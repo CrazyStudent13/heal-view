@@ -31,6 +31,12 @@ const updateChart = () => {
   const dates = props.data.map(item => item.date);
   const stress = props.data.map(item => item.avgStress || 0);
 
+  // Get theme colors
+  const isDark = document.documentElement.classList.contains('dark-theme');
+  const textColor = isDark ? '#a8a8a8' : '#606266';
+  const axisLineColor = isDark ? '#3a3a3a' : '#e8e8e8';
+  const splitLineColor = isDark ? '#3a3a3a' : '#ebeef5';
+
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -52,14 +58,36 @@ const updateChart = () => {
       data: dates,
       axisLabel: {
         rotate: 45,
-        fontSize: 12
+        fontSize: 12,
+        color: textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: axisLineColor
+        }
       }
     },
     yAxis: {
       type: 'value',
       name: '压力指数',
       min: 0,
-      max: 100
+      max: 100,
+      nameTextStyle: {
+        color: textColor
+      },
+      axisLabel: {
+        color: textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: axisLineColor
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: splitLineColor
+        }
+      }
     },
     series: [{
       name: '压力指数',
@@ -110,17 +138,18 @@ const handleResize = () => {
 
 <style scoped>
 .chart-container {
-  background: #fff;
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
 }
 
 .chart-title {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 

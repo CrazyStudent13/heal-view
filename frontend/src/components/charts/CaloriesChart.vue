@@ -67,17 +67,18 @@ const handleResize = () => {
 
 <style scoped>
 .chart-container {
-  background: #fff;
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
 }
 
 .chart-title {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 

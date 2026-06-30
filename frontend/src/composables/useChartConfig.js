@@ -1,9 +1,25 @@
 import * as echarts from 'echarts';
 
 /**
+ * Get chart theme colors based on current theme
+ */
+function getChartThemeColors() {
+  const isDark = document.documentElement.classList.contains('dark-theme');
+  
+  return {
+    textColor: isDark ? '#a8a8a8' : '#606266',
+    axisLineColor: isDark ? '#3a3a3a' : '#e8e8e8',
+    splitLineColor: isDark ? '#3a3a3a' : '#ebeef5',
+    backgroundColor: isDark ? '#262626' : '#ffffff'
+  };
+}
+
+/**
  * Steps chart configuration
  */
 export function useStepsChartConfig() {
+  const colors = getChartThemeColors();
+  
   return {
     tooltip: {
       trigger: 'axis',
@@ -25,14 +41,34 @@ export function useStepsChartConfig() {
       data: [],
       axisLabel: {
         rotate: 45,
-        fontSize: 12
+        fontSize: 12,
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
       }
     },
     yAxis: {
       type: 'value',
       name: '步数',
+      nameTextStyle: {
+        color: colors.textColor
+      },
       axisLabel: {
-        formatter: (value) => `${(value / 1000).toFixed(0)}k`
+        formatter: (value) => `${(value / 1000).toFixed(0)}k`,
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: colors.splitLineColor
+        }
       }
     },
     series: [{
@@ -63,6 +99,8 @@ export function useStepsChartConfig() {
  * Calories chart configuration
  */
 export function useCaloriesChartConfig() {
+  const colors = getChartThemeColors();
+  
   return {
     tooltip: {
       trigger: 'axis',
@@ -83,14 +121,34 @@ export function useCaloriesChartConfig() {
       data: [],
       axisLabel: {
         rotate: 45,
-        fontSize: 12
+        fontSize: 12,
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
       }
     },
     yAxis: {
       type: 'value',
       name: '卡路里 (kcal)',
+      nameTextStyle: {
+        color: colors.textColor
+      },
       axisLabel: {
-        formatter: (value) => `${value} kcal`
+        formatter: (value) => `${value} kcal`,
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: colors.splitLineColor
+        }
       }
     },
     series: [{
@@ -117,6 +175,8 @@ export function useCaloriesChartConfig() {
  * Heart rate chart configuration
  */
 export function useHeartRateChartConfig() {
+  const colors = getChartThemeColors();
+  
   return {
     tooltip: {
       trigger: 'axis',
@@ -127,7 +187,10 @@ export function useHeartRateChartConfig() {
     },
     legend: {
       data: ['平均心率', '最高心率'],
-      top: 0
+      top: 0,
+      textStyle: {
+        color: colors.textColor
+      }
     },
     grid: {
       left: '3%',
@@ -141,14 +204,36 @@ export function useHeartRateChartConfig() {
       data: [],
       axisLabel: {
         rotate: 45,
-        fontSize: 12
+        fontSize: 12,
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
       }
     },
     yAxis: {
       type: 'value',
       name: '心率 (bpm)',
       min: 50,
-      max: 180
+      max: 180,
+      nameTextStyle: {
+        color: colors.textColor
+      },
+      axisLabel: {
+        color: colors.textColor
+      },
+      axisLine: {
+        lineStyle: {
+          color: colors.axisLineColor
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: colors.splitLineColor
+        }
+      }
     },
     series: [
       {

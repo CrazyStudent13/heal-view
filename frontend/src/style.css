@@ -11,6 +11,20 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
+  /* App theme variables */
+  --app-bg: #f5f5f5;
+  --card-bg: #ffffff;
+  --card-border: #e8e8e8;
+  --primary-color: #409eff;
+  --primary-light: #ecf5ff;
+  --text-primary: #303133;
+  --text-secondary: #909399;
+  --text-tertiary: #c0c4cc;
+  --success-color: #67c23a;
+  --danger-color: #f56c6c;
+  --warning-color: #e6a23c;
+  --info-color: #909399;
+
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
@@ -28,6 +42,35 @@
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+}
+
+/* Dark theme */
+.dark-theme {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+  --accent: #c084fc;
+  --accent-bg: rgba(192, 132, 252, 0.15);
+  --accent-border: rgba(192, 132, 252, 0.5);
+  --social-bg: rgba(47, 48, 58, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+  /* App theme variables */
+  --app-bg: #1a1a1a;
+  --card-bg: #262626;
+  --card-border: #3a3a3a;
+  --primary-color: #409eff;
+  --primary-light: rgba(64, 158, 255, 0.15);
+  --text-primary: #e5e5e5;
+  --text-secondary: #a8a8a8;
+  --text-tertiary: #737373;
+  --success-color: #67c23a;
+  --danger-color: #f56c6c;
+  --warning-color: #e6a23c;
+  --info-color: #909399;
 }
 
 @media (prefers-color-scheme: dark) {
