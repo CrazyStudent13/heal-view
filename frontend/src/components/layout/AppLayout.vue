@@ -124,6 +124,7 @@ async function fetchSingleDayData(date) {
     chartData.value = [{
       date: summary.date,
       steps: summary.steps,
+      distance: summary.distance,
       calories: summary.calories,
       avgHeartRate: summary.avgHeartRate,
       maxHeartRate: summary.maxHeartRate,
