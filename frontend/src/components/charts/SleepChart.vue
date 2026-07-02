@@ -67,6 +67,8 @@ const updateChart = () => {
     },
     legend: {
       data: ['深睡', '浅睡', 'REM'],
+      right: 10,
+      top: 0,
       textStyle: {
         color: textColor
       }
