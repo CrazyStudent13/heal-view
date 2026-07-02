@@ -16,11 +16,9 @@
       <div class="drawer-content">
         <!-- Language setting -->
         <div class="setting-item">
-          <div class="setting-label">
-            <span class="icon-emoji">🌐</span>
-            <span>{{ t('settings.language') }}</span>
-          </div>
-          <el-select v-model="currentLanguage" size="default" style="width: 140px">
+          <span class="icon-emoji">🌐</span>
+          <span class="setting-label">{{ t('settings.language') }}</span>
+          <el-select v-model="currentLanguage" size="default" style="width: 140px; margin-left: auto;">
             <el-option label="中文" value="zh-CN" />
             <el-option label="English" value="en" />
           </el-select>
@@ -28,16 +26,15 @@
 
         <!-- Theme setting -->
         <div class="setting-item">
-          <div class="setting-label">
-            <span class="icon-emoji">{{ isDarkMode ? '' : '☀️' }}</span>
-            <span>{{ t('settings.theme') }}</span>
-          </div>
+          <span class="icon-emoji">{{ isDarkMode ? '' : '☀️' }}</span>
+          <span class="setting-label">{{ t('settings.theme') }}</span>
           <el-switch
             v-model="isDarkMode"
             inline-prompt
             active-text="暗"
             inactive-text="亮"
             size="default"
+            style="margin-left: auto;"
           />
         </div>
       </div>
@@ -57,12 +54,6 @@
       
       <!-- Right area: Chart display -->
       <div class="chart-area">
-        <!-- Settings panel -->
-        <SettingsPanel 
-          @language-change="handleLanguageChange"
-          @theme-change="handleThemeChange"
-        />
-        
         <ChartDisplay 
           :chart-data="chartData"
           :chart-type="currentChartType"
@@ -279,5 +270,37 @@ onMounted(() => {
 .chart-area {
   flex: 1;
   overflow-y: auto;
+}
+
+/* Drawer content styles */
+.drawer-content {
+  padding: 20px;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.icon-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.setting-label {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 </style>
