@@ -11,7 +11,7 @@
       v-model="settingsDrawerVisible"
       :title="t('settings.title')"
       direction="rtl"
-      size="320px"
+      size="400px"
     >
       <div class="drawer-content">
         <!-- Language setting -->
