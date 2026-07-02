@@ -36,10 +36,23 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || props.data.length === 0) return;
 
-  const dates = props.data.map(item => item.date);
-  const deepSleep = props.data.map(item => item.deepSleepHours || 0);
-  const lightSleep = props.data.map(item => item.lightSleepHours || 0);
-  const remSleep = props.data.map(item => item.remSleepHours || 0);
+  // Filter out dates with no sleep data (total sleep hours = 0)
+  const filteredData = props.data.filter(item => {
+    const totalSleep = (item.deepSleepHours || 0) + 
+                       (item.lightSleepHours || 0) + 
+                       (item.remSleepHours || 0);
+    return totalSleep > 0;
+  });
+
+  if (filteredData.length === 0) {
+    chartInstance.clear();
+    return;
+  }
+
+  const dates = filteredData.map(item => item.date);
+  const deepSleep = filteredData.map(item => item.deepSleepHours || 0);
+  const lightSleep = filteredData.map(item => item.lightSleepHours || 0);
+  const remSleep = filteredData.map(item => item.remSleepHours || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
