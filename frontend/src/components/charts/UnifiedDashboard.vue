@@ -49,6 +49,18 @@
           <div class="card-value">{{ displayData.avgStress }}</div>
         </div>
       </div>
+
+      <div 
+        class="card clickable" 
+        :class="{ active: currentChartType === 'sleep' }"
+        @click="currentChartType = 'sleep'"
+      >
+        <div class="card-icon sleep"></div>
+        <div class="card-content">
+          <div class="card-label">{{ isCompareMode ? '平均睡眠' : '睡眠时长' }}</div>
+          <div class="card-value">{{ displayData.avgSleepHours }} h</div>
+        </div>
+      </div>
     </div>
 
     <!-- Dynamic Chart based on selected type -->
@@ -57,6 +69,7 @@
       <CaloriesChart v-if="currentChartType === 'calories'" :data="chartData" />
       <HeartRateChart v-if="currentChartType === 'heartrate'" :data="chartData" />
       <StressChart v-if="currentChartType === 'stress'" :data="chartData" />
+      <SleepChart v-if="currentChartType === 'sleep'" :data="chartData" />
     </div>
 
     <!-- Empty state -->
@@ -80,6 +93,7 @@ import StepsChart from './StepsChart.vue';
 import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
+import SleepChart from './SleepChart.vue';
 
 const props = defineProps({
   viewMode: {
@@ -111,7 +125,7 @@ const hasData = computed(() => {
 // Calculate display data based on mode
 const displayData = computed(() => {
   if (chartData.value.length === 0) {
-    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0 };
+    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0, avgSleepHours: 0 };
   }
 
   if (isCompareMode.value) {
@@ -120,8 +134,9 @@ const displayData = computed(() => {
     const avgCalories = Math.round(chartData.value.reduce((acc, item) => acc + item.calories, 0) / chartData.value.length);
     const avgHeartRate = Math.round(chartData.value.reduce((acc, item) => acc + item.avgHeartRate, 0) / chartData.value.length);
     const avgStress = Math.round(chartData.value.reduce((acc, item) => acc + item.avgStress, 0) / chartData.value.length);
+    const avgSleepHours = (chartData.value.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / chartData.value.length).toFixed(1);
 
-    return { avgSteps, avgCalories, avgHeartRate, avgStress };
+    return { avgSteps, avgCalories, avgHeartRate, avgStress, avgSleepHours };
   } else {
     // Single day: use the first (and only) item
     const item = chartData.value[0];
@@ -129,7 +144,8 @@ const displayData = computed(() => {
       avgSteps: item.steps || 0,
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
-      avgStress: item.avgStress || 0
+      avgStress: item.avgStress || 0,
+      avgSleepHours: item.sleepHours || 0
     };
   }
 });
@@ -278,6 +294,15 @@ watch(() => props.viewMode, () => {
 
 .card-icon.stress {
   background: #f9f0ff;
+}
+
+.card-icon.sleep {
+  background: #fff7e6;
+}
+
+.card-icon.sleep::before {
+  content: '🌙';
+  font-size: 24px;
 }
 
 .card-content {

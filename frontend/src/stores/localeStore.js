@@ -41,6 +41,8 @@ export const useLocaleStore = defineStore('locale', () => {
       'data.heartRate': '平均心率',
       'data.stress': '压力指数',
       'data.avgStress': '平均压力',
+      'data.sleep': '睡眠时长',
+      'data.avgSleep': '平均睡眠',
       
       // Charts
       'chart.noData': '请在顶部选择日期查看数据',
@@ -85,6 +87,8 @@ export const useLocaleStore = defineStore('locale', () => {
       'data.heartRate': 'Avg Heart Rate',
       'data.stress': 'Stress Level',
       'data.avgStress': 'Avg Stress',
+      'data.sleep': 'Sleep Duration',
+      'data.avgSleep': 'Avg Sleep',
       
       // Charts
       'chart.noData': 'Please select a date above to view data',

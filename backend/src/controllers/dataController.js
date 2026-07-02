@@ -89,6 +89,16 @@ export function getDailySummary(req, res) {
     `);
     const avgStress = stressResult.length > 0 ? Math.round(stressResult[0].values[0][0] || 0) : 0;
 
+    // Get sleep duration - extract from sleep JSON (duration field in minutes)
+    const sleepResult = db.exec(`
+      SELECT SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_sleep
+      FROM fitness_data
+      WHERE date = '${date}' AND key = 'sleep'
+    `);
+    const totalSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][0] || 0 : 0;
+    // Convert to hours with 1 decimal place
+    const sleepHours = totalSleepMinutes > 0 ? (totalSleepMinutes / 60).toFixed(1) : 0;
+
     // Get sport records count
     const sportResult = db.exec(`
       SELECT COUNT(*) as count
@@ -104,6 +114,7 @@ export function getDailySummary(req, res) {
       avgHeartRate,
       maxHeartRate,
       avgStress,
+      sleepHours: parseFloat(sleepHours),
       sportCount
     };
 

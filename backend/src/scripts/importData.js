@@ -20,7 +20,8 @@ const valuableFitnessKeys = new Set([
   'sleep',
   'weight',
   'spo2',
-  'intensity'
+  'intensity',
+  'fitness_report'  // Added to support sleep data from weekly statistics
 ]);
 
 /**

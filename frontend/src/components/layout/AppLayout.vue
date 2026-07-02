@@ -82,7 +82,8 @@ async function fetchSingleDayData(date) {
       calories: summary.calories,
       avgHeartRate: summary.avgHeartRate,
       maxHeartRate: summary.maxHeartRate,
-      avgStress: summary.avgStress
+      avgStress: summary.avgStress,
+      sleepHours: summary.sleepHours || 0
     }];
   } else {
     chartData.value = [];
@@ -121,6 +122,8 @@ function getLast30Days() {
 
 // Initialize default data
 async function initDefaultData() {
+  loading.value = true;
+  
   // Wait for date list to be loaded
   if (dateStore.dateList.length === 0) {
     await dateStore.fetchDateList();
@@ -130,10 +133,18 @@ async function initDefaultData() {
   viewMode.value = 'compare';
   const last30Days = getLast30Days();
   
+  console.log('Last 30 days:', last30Days);
+  console.log('Training dates:', dateStore.trainingDates);
+  
   if (last30Days.length > 0) {
     dateStore.selectedDates = last30Days;
     await fetchCompareData(last30Days);
+    console.log('Chart data loaded:', chartData.value.length, 'items');
+  } else {
+    console.warn('No training dates available');
   }
+  
+  loading.value = false;
 }
 
 // Watch for changes in single mode

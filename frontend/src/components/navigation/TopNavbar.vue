@@ -34,9 +34,11 @@
           :end-placeholder="t('nav.endDate')"
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
-          style="width: 280px; margin-left: 8px"
+          :shortcuts="dateShortcuts"
+          style="width: 360px; margin-left: 8px"
           @change="handleDateRangeChange"
         />
+        
         <el-button 
           type="success" 
           plain 
@@ -95,6 +97,37 @@ const localeStore = useLocaleStore();
 function t(key) {
   return localeStore.t(key);
 }
+
+// Date picker shortcuts
+const dateShortcuts = [
+  {
+    text: '最近一周',
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
+      return [start, end];
+    }
+  },
+  {
+    text: '最近一月',
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
+      return [start, end];
+    }
+  },
+  {
+    text: '最近三月',
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+      return [start, end];
+    }
+  }
+];
 
 const props = defineProps({
   viewMode: {
@@ -163,6 +196,71 @@ function handleDateRangeChange(value) {
 // Select all training dates
 function handleSelectAll() {
   store.selectAllTrainingDates();
+}
+
+// Quick select: last week
+function selectLastWeek() {
+  const today = new Date();
+  const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const startDate = formatDate(oneWeekAgo);
+  const endDate = formatDate(today);
+  
+  dateRange.value = [startDate, endDate];
+  
+  // Filter and select dates within range
+  const filteredDates = store.trainingDates.filter(date => {
+    const d = new Date(date);
+    return d >= oneWeekAgo && d <= today;
+  });
+  
+  store.selectedDates = filteredDates;
+}
+
+// Quick select: last month
+function selectLastMonth() {
+  const today = new Date();
+  const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  const startDate = formatDate(oneMonthAgo);
+  const endDate = formatDate(today);
+  
+  dateRange.value = [startDate, endDate];
+  
+  // Filter and select dates within range
+  const filteredDates = store.trainingDates.filter(date => {
+    const d = new Date(date);
+    return d >= oneMonthAgo && d <= today;
+  });
+  
+  store.selectedDates = filteredDates;
+}
+
+// Quick select: last three months
+function selectLastThreeMonths() {
+  const today = new Date();
+  const threeMonthsAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+  
+  const startDate = formatDate(threeMonthsAgo);
+  const endDate = formatDate(today);
+  
+  dateRange.value = [startDate, endDate];
+  
+  // Filter and select dates within range
+  const filteredDates = store.trainingDates.filter(date => {
+    const d = new Date(date);
+    return d >= threeMonthsAgo && d <= today;
+  });
+  
+  store.selectedDates = filteredDates;
+}
+
+// Helper function to format date as YYYY-MM-DD
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Handle reset

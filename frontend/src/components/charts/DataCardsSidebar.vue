@@ -73,6 +73,23 @@
           </div>
         </div>
       </el-card>
+
+      <el-card 
+        class="card-item clickable"
+        :class="{ active: currentChartType === 'sleep' }"
+        shadow="hover"
+        @click="$emit('chart-change', 'sleep')"
+      >
+        <div class="card-content">
+          <div class="card-icon sleep">
+            <span class="icon-text">🌙</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</div>
+            <div class="card-value">{{ displayData.avgSleepHours }} h</div>
+          </div>
+        </div>
+      </el-card>
     </div>
 
     <el-empty v-else :description="t('chart.selectDate')" :image-size="100" />
@@ -114,7 +131,7 @@ const hasData = computed(() => props.chartData.length > 0);
 
 const displayData = computed(() => {
   if (props.chartData.length === 0) {
-    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0 };
+    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0, avgSleepHours: 0 };
   }
 
   if (isCompareMode.value) {
@@ -122,15 +139,17 @@ const displayData = computed(() => {
     const avgCalories = Math.round(props.chartData.reduce((acc, item) => acc + item.calories, 0) / props.chartData.length);
     const avgHeartRate = Math.round(props.chartData.reduce((acc, item) => acc + item.avgHeartRate, 0) / props.chartData.length);
     const avgStress = Math.round(props.chartData.reduce((acc, item) => acc + item.avgStress, 0) / props.chartData.length);
+    const avgSleepHours = (props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length).toFixed(1);
 
-    return { avgSteps, avgCalories, avgHeartRate, avgStress };
+    return { avgSteps, avgCalories, avgHeartRate, avgStress, avgSleepHours };
   } else {
     const item = props.chartData[0];
     return {
       avgSteps: item.steps || 0,
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
-      avgStress: item.avgStress || 0
+      avgStress: item.avgStress || 0,
+      avgSleepHours: item.sleepHours || 0
     };
   }
 });
@@ -224,6 +243,11 @@ function formatNumber(num) {
 .card-icon.stress {
   background: #f9f0ff;
   color: #722ed1;
+}
+
+.card-icon.sleep {
+  background: #fff7e6;
+  color: #fa8c16;
 }
 
 .card-info {
