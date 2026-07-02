@@ -57,11 +57,14 @@ export function getDailySummary(req, res) {
 
     // Get steps summary from aggregated_data table (daily totals)
     const stepsResult = db.exec(`
-      SELECT CAST(json_extract(value, '$.steps') AS INTEGER) as total_steps
+      SELECT 
+        CAST(json_extract(value, '$.steps') AS INTEGER) as total_steps,
+        CAST(json_extract(value, '$.distance') AS INTEGER) as total_distance
       FROM aggregated_data
       WHERE date = '${date}' AND key = 'steps'
     `);
     const totalSteps = stepsResult.length > 0 ? stepsResult[0].values[0][0] || 0 : 0;
+    const totalDistance = stepsResult.length > 0 ? stepsResult[0].values[0][1] || 0 : 0;
 
     // Get calories summary from aggregated_data table (daily totals)
     const caloriesResult = db.exec(`
@@ -122,6 +125,7 @@ export function getDailySummary(req, res) {
     const summary = {
       date,
       steps: totalSteps,
+      distance: totalDistance,
       calories: totalCalories,
       avgHeartRate,
       maxHeartRate,
