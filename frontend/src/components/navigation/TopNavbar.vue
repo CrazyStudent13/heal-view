@@ -53,29 +53,6 @@
 
     <el-divider direction="vertical" />
 
-    <!-- Sport type filter -->
-    <div class="sport-section" v-if="filterStore.sportTypes.length > 0">
-      <span class="section-label">{{ t('nav.sportType') }}：</span>
-      <el-select
-        v-model="filterStore.selectedSportTypes"
-        multiple
-        collapse-tags
-        collapse-tags-tooltip
-        :placeholder="t('nav.selectSport')"
-        style="width: 200px"
-        :max-collapse-tags="2"
-      >
-        <el-option
-          v-for="type in filterStore.sportTypes"
-          :key="type"
-          :label="formatSportType(type)"
-          :value="type"
-        />
-      </el-select>
-    </div>
-
-    <el-divider direction="vertical" />
-
     <!-- Reset button -->
     <el-button type="danger" plain size="default" @click="handleReset">
       <el-icon><RefreshLeft /></el-icon>
@@ -88,7 +65,6 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { Calendar, RefreshLeft } from '@element-plus/icons-vue';
 import { useDateStore } from '../../stores/dateStore.js';
-import { useFilterStore } from '../../stores/filterStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 
 const localeStore = useLocaleStore();
@@ -139,7 +115,6 @@ const props = defineProps({
 const emit = defineEmits(['update:viewMode']);
 
 const store = useDateStore();
-const filterStore = useFilterStore();
 
 const viewModeLocal = computed({
   get: () => props.viewMode,
@@ -148,20 +123,6 @@ const viewModeLocal = computed({
 
 const selectedSingleDate = ref('');
 const dateRange = ref([]);
-
-// Format sport type
-function formatSportType(type) {
-  const typeMap = {
-    'walking': '步行',
-    'outdoor_riding': '户外骑行',
-    'outdoor_hiking': '户外徒步',
-    'elliptical_trainer': '椭圆机',
-    'rowing_machine': '划船机',
-    'free_training': '自由训练',
-    'outdoor_running': '户外跑步'
-  };
-  return typeMap[type] || type;
-}
 
 // Disable future dates
 function disabledDate(time) {
@@ -267,7 +228,6 @@ function formatDate(date) {
 function handleReset() {
   selectedSingleDate.value = '';
   dateRange.value = [];
-  filterStore.resetFilters();
   
   // Reset to first date in single mode
   if (props.viewMode === 'single' && store.dateList.length > 0) {
@@ -278,8 +238,6 @@ function handleReset() {
 
 // Initialize
 onMounted(() => {
-  filterStore.fetchFilterOptions();
-  
   // Set initial date in single mode
   if (store.dateList.length > 0) {
     selectedSingleDate.value = store.dateList[0];
@@ -321,8 +279,7 @@ watch(() => store.selectedDates, (newDates) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.date-section,
-.sport-section {
+.date-section {
   display: flex;
   align-items: center;
   gap: 8px;
