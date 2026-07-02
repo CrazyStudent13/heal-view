@@ -55,19 +55,19 @@ export function getDailySummary(req, res) {
 
     const db = databaseService.getDb();
 
-    // Get steps summary - extract from JSON
+    // Get steps summary from aggregated_data table (daily totals)
     const stepsResult = db.exec(`
-      SELECT SUM(CAST(json_extract(value, '$.steps') AS INTEGER)) as total_steps
-      FROM fitness_data
+      SELECT CAST(json_extract(value, '$.steps') AS INTEGER) as total_steps
+      FROM aggregated_data
       WHERE date = '${date}' AND key = 'steps'
     `);
     const totalSteps = stepsResult.length > 0 ? stepsResult[0].values[0][0] || 0 : 0;
 
-    // Get calories summary - extract from JSON
+    // Get calories summary from aggregated_data table (daily totals)
     const caloriesResult = db.exec(`
-      SELECT SUM(CAST(json_extract(value, '$.calories') AS INTEGER)) as total_calories
-      FROM fitness_data
-      WHERE date = '${date}' AND key = 'calories'
+      SELECT CAST(json_extract(value, '$.calories') AS INTEGER) as total_calories
+      FROM aggregated_data
+      WHERE date = '${date}' AND key = 'steps'
     `);
     const totalCalories = caloriesResult.length > 0 ? caloriesResult[0].values[0][0] || 0 : 0;
 
