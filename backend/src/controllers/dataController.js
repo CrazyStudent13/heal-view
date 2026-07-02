@@ -56,10 +56,11 @@ export function getDailySummary(req, res) {
     const db = databaseService.getDb();
 
     // Get steps summary from aggregated_data table (daily totals)
+    // Use MAX to get non-zero values since there may be duplicate records
     const stepsResult = db.exec(`
       SELECT 
-        CAST(json_extract(value, '$.steps') AS INTEGER) as total_steps,
-        CAST(json_extract(value, '$.distance') AS INTEGER) as total_distance
+        MAX(CAST(json_extract(value, '$.steps') AS INTEGER)) as total_steps,
+        MAX(CAST(json_extract(value, '$.distance') AS INTEGER)) as total_distance
       FROM aggregated_data
       WHERE date = '${date}' AND key = 'steps'
     `);
