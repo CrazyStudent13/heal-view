@@ -5,6 +5,7 @@
     <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
     <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
     <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
+    <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
 
     <!-- Empty state -->
     <div v-if="!hasData" class="empty-state">
@@ -24,6 +25,7 @@ import StepsChart from './StepsChart.vue';
 import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
+import SleepChart from './SleepChart.vue';
 
 const props = defineProps({
   chartData: {
