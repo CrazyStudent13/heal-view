@@ -168,10 +168,15 @@ watch(viewMode, async (newMode) => {
   currentChartType.value = 'steps';
   
   if (newMode === 'single') {
-    // Switch to single mode with most recent date
-    if (dateStore.dateList.length > 0) {
+    // Switch to single mode
+    // If no date is selected, use the most recent date
+    // Otherwise, keep the previously selected date
+    if (!dateStore.selectedDate && dateStore.dateList.length > 0) {
       dateStore.selectedDate = dateStore.dateList[0];
-      await fetchSingleDayData(dateStore.dateList[0]);
+    }
+    
+    if (dateStore.selectedDate) {
+      await fetchSingleDayData(dateStore.selectedDate);
     }
   } else {
     // Switch to compare mode with last 30 days
