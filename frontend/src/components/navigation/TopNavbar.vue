@@ -58,12 +58,22 @@
       <el-icon><RefreshLeft /></el-icon>
       {{ t('common.reset') }}
     </el-button>
+
+    <div style="flex: 1"></div>
+
+    <!-- Settings button -->
+    <el-button 
+      :icon="Setting" 
+      circle 
+      size="large"
+      @click="$emit('open-settings')"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { Calendar, RefreshLeft } from '@element-plus/icons-vue';
+import { Calendar, RefreshLeft, Setting } from '@element-plus/icons-vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 
@@ -73,6 +83,8 @@ const localeStore = useLocaleStore();
 function t(key) {
   return localeStore.t(key);
 }
+
+const emit = defineEmits(['update:viewMode', 'open-settings']);
 
 // Date picker shortcuts
 const dateShortcuts = [
@@ -111,8 +123,6 @@ const props = defineProps({
     default: 'single'
   }
 });
-
-const emit = defineEmits(['update:viewMode']);
 
 const store = useDateStore();
 

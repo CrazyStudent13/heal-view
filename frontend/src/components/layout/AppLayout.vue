@@ -1,7 +1,47 @@
 <template>
   <div class="app-layout">
     <!-- Top navigation bar -->
-    <TopNavbar v-model:viewMode="viewMode" />
+    <TopNavbar 
+      v-model:viewMode="viewMode" 
+      @open-settings="settingsDrawerVisible = true"
+    />
+    
+    <!-- Settings Drawer -->
+    <el-drawer
+      v-model="settingsDrawerVisible"
+      :title="t('settings.title')"
+      direction="rtl"
+      size="320px"
+    >
+      <div class="drawer-content">
+        <!-- Language setting -->
+        <div class="setting-item">
+          <div class="setting-label">
+            <span class="icon-emoji">🌐</span>
+            <span>{{ t('settings.language') }}</span>
+          </div>
+          <el-select v-model="currentLanguage" size="default" style="width: 140px">
+            <el-option label="中文" value="zh-CN" />
+            <el-option label="English" value="en" />
+          </el-select>
+        </div>
+
+        <!-- Theme setting -->
+        <div class="setting-item">
+          <div class="setting-label">
+            <span class="icon-emoji">{{ isDarkMode ? '' : '☀️' }}</span>
+            <span>{{ t('settings.theme') }}</span>
+          </div>
+          <el-switch
+            v-model="isDarkMode"
+            inline-prompt
+            active-text="暗"
+            inactive-text="亮"
+            size="default"
+          />
+        </div>
+      </div>
+    </el-drawer>
     
     <!-- Main content area -->
     <div class="content-area">
@@ -35,13 +75,37 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
+import { useLocaleStore } from '../../stores/localeStore';
+import { useThemeStore } from '../../stores/themeStore';
 import TopNavbar from '../navigation/TopNavbar.vue';
 import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
 import ChartDisplay from '../charts/ChartDisplay.vue';
-import SettingsPanel from '../settings/SettingsPanel.vue';
+
+const localeStore = useLocaleStore();
+const themeStore = useThemeStore();
+
+// Translation function
+function t(key) {
+  return localeStore.t(key);
+}
+
+// Settings drawer visibility
+const settingsDrawerVisible = ref(false);
+
+// Language - use store value
+const currentLanguage = computed({
+  get: () => localeStore.currentLocale === 'zh-CN' ? 'zh-CN' : 'en',
+  set: (val) => localeStore.setLocale(val)
+});
+
+// Theme - use store value
+const isDarkMode = computed({
+  get: () => themeStore.isDarkMode,
+  set: (val) => themeStore.setTheme(val)
+});
 
 const viewMode = ref('compare'); // Default to compare mode
 const currentChartType = ref('steps');
@@ -54,16 +118,6 @@ const dataStore = useDataStore();
 // Handle chart type change
 function handleChartChange(type) {
   currentChartType.value = type;
-}
-
-// Handle language change
-function handleLanguageChange(lang) {
-  console.log('Language changed to:', lang);
-}
-
-// Handle theme change
-function handleThemeChange(theme) {
-  console.log('Theme changed to:', theme);
 }
 
 // Fetch data for single mode
