@@ -83,7 +83,10 @@ async function fetchSingleDayData(date) {
       avgHeartRate: summary.avgHeartRate,
       maxHeartRate: summary.maxHeartRate,
       avgStress: summary.avgStress,
-      sleepHours: summary.sleepHours || 0
+      sleepHours: summary.sleepHours || 0,
+      deepSleepHours: summary.deepSleepHours || 0,
+      lightSleepHours: summary.lightSleepHours || 0,
+      remSleepHours: summary.remSleepHours || 0
     }];
   } else {
     chartData.value = [];

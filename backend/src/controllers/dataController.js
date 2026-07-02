@@ -91,13 +91,24 @@ export function getDailySummary(req, res) {
 
     // Get sleep duration - extract from sleep JSON (duration field in minutes)
     const sleepResult = db.exec(`
-      SELECT SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_sleep
+      SELECT 
+        SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_sleep,
+        SUM(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as total_deep_sleep,
+        SUM(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as total_light_sleep,
+        SUM(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as total_rem_sleep
       FROM fitness_data
       WHERE date = '${date}' AND key = 'sleep'
     `);
     const totalSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][0] || 0 : 0;
+    const totalDeepSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][1] || 0 : 0;
+    const totalLightSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][2] || 0 : 0;
+    const totalRemSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][3] || 0 : 0;
+    
     // Convert to hours with 1 decimal place
     const sleepHours = totalSleepMinutes > 0 ? (totalSleepMinutes / 60).toFixed(1) : 0;
+    const deepSleepHours = totalDeepSleepMinutes > 0 ? (totalDeepSleepMinutes / 60).toFixed(1) : 0;
+    const lightSleepHours = totalLightSleepMinutes > 0 ? (totalLightSleepMinutes / 60).toFixed(1) : 0;
+    const remSleepHours = totalRemSleepMinutes > 0 ? (totalRemSleepMinutes / 60).toFixed(1) : 0;
 
     // Get sport records count
     const sportResult = db.exec(`
@@ -115,6 +126,9 @@ export function getDailySummary(req, res) {
       maxHeartRate,
       avgStress,
       sleepHours: parseFloat(sleepHours),
+      deepSleepHours: parseFloat(deepSleepHours),
+      lightSleepHours: parseFloat(lightSleepHours),
+      remSleepHours: parseFloat(remSleepHours),
       sportCount
     };
 

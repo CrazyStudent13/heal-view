@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">{{ t('data.sleep') }}趋势</h3>
+    <h3 class="chart-title">{{ t('data.sleep') }}分析</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -37,7 +37,9 @@ const updateChart = () => {
   if (!chartInstance || props.data.length === 0) return;
 
   const dates = props.data.map(item => item.date);
-  const sleepHours = props.data.map(item => item.sleepHours || 0);
+  const deepSleep = props.data.map(item => item.deepSleepHours || 0);
+  const lightSleep = props.data.map(item => item.lightSleepHours || 0);
+  const remSleep = props.data.map(item => item.remSleepHours || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
@@ -48,21 +50,36 @@ const updateChart = () => {
   const option = {
     tooltip: {
       trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
       formatter: (params) => {
-        const data = params[0];
-        return `${data.name}<br/>${t('data.sleep')}: ${data.value} h`;
+        let result = `${params[0].name}<br/>`;
+        params.forEach(param => {
+          if (param.value > 0) {
+            result += `${param.marker}${param.seriesName}: ${param.value} h<br/>`;
+          }
+        });
+        const total = params.reduce((sum, param) => sum + param.value, 0);
+        result += `<strong>总睡眠: ${total.toFixed(1)} h</strong>`;
+        return result;
+      }
+    },
+    legend: {
+      data: ['深睡', '浅睡', 'REM'],
+      textStyle: {
+        color: textColor
       }
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
-      top: '10%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
       data: dates,
       axisLabel: {
         rotate: 45,
@@ -77,7 +94,7 @@ const updateChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: t('data.sleep'),
+      name: '小时(h)',
       min: 0,
       max: 12,
       nameTextStyle: {
@@ -98,27 +115,44 @@ const updateChart = () => {
         }
       }
     },
-    series: [{
-      name: t('data.sleep'),
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: {
-        color: '#fa8c16',
-        width: 2
+    series: [
+      {
+        name: '深睡',
+        type: 'bar',
+        stack: 'sleep',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#5b8ff9'
+        },
+        data: deepSleep
       },
-      itemStyle: {
-        color: '#fa8c16'
+      {
+        name: '浅睡',
+        type: 'bar',
+        stack: 'sleep',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#5ad8a6'
+        },
+        data: lightSleep
       },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(250, 140, 22, 0.3)' },
-          { offset: 1, color: 'rgba(250, 140, 22, 0.05)' }
-        ])
-      },
-      data: sleepHours
-    }]
+      {
+        name: 'REM',
+        type: 'bar',
+        stack: 'sleep',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#f6bd60'
+        },
+        data: remSleep
+      }
+    ]
   };
 
   chartInstance.setOption(option);
@@ -164,6 +198,6 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  height: 350px;
+  height: 400px;
 }
 </style>
