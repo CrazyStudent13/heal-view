@@ -90,12 +90,13 @@ export function getDailySummary(req, res) {
     const avgStress = stressResult.length > 0 ? Math.round(stressResult[0].values[0][0] || 0) : 0;
 
     // Get sleep duration - extract from sleep JSON (duration field in minutes)
+    // Use AVG instead of SUM because there may be duplicate records for the same day
     const sleepResult = db.exec(`
       SELECT 
-        SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_sleep,
-        SUM(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as total_deep_sleep,
-        SUM(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as total_light_sleep,
-        SUM(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as total_rem_sleep
+        AVG(CAST(json_extract(value, '$.duration') AS INTEGER)) as avg_sleep,
+        AVG(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as avg_deep_sleep,
+        AVG(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as avg_light_sleep,
+        AVG(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as avg_rem_sleep
       FROM fitness_data
       WHERE date = '${date}' AND key = 'sleep'
     `);
