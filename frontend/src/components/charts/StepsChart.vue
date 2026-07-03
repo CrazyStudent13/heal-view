@@ -1,33 +1,38 @@
 <template>
-  <div class="chart-container">
-    <h3 class="chart-title">步数与距离趋势</h3>
-    
-    <!-- Statistics cards -->
-    <div v-if="stats" class="stats-cards">
-      <div class="stat-card">
-        <div class="stat-icon">🏃‍♂️</div>
-        <div class="stat-content">
-          <div class="stat-label">平均日运动时长</div>
-          <div class="stat-value">{{ stats.avgExerciseDuration }} 分钟</div>
+  <div class="chart-wrapper">
+    <!-- Statistics cards card -->
+    <div v-if="stats" class="stats-card">
+      <h3 class="card-title">运动统计</h3>
+      <div class="stats-cards">
+        <div class="stat-item">
+          <div class="stat-icon">🏃‍️</div>
+          <div class="stat-content">
+            <div class="stat-label">平均日运动时长</div>
+            <div class="stat-value">{{ stats.avgExerciseDuration }} 分钟</div>
+          </div>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📏</div>
-        <div class="stat-content">
-          <div class="stat-label">平均日运动距离</div>
-          <div class="stat-value">{{ stats.avgExerciseDistance }} km</div>
+        <div class="stat-item">
+          <div class="stat-icon">📏</div>
+          <div class="stat-content">
+            <div class="stat-label">平均日运动距离</div>
+            <div class="stat-value">{{ stats.avgExerciseDistance }} km</div>
+          </div>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-content">
-          <div class="stat-label">周运动次数</div>
-          <div class="stat-value">{{ stats.weeklyExerciseCount }} 次</div>
+        <div class="stat-item">
+          <div class="stat-icon"></div>
+          <div class="stat-content">
+            <div class="stat-label">周运动次数</div>
+            <div class="stat-value">{{ stats.weeklyExerciseCount }} 次</div>
+          </div>
         </div>
       </div>
     </div>
     
-    <div ref="chartRef" class="chart"></div>
+    <!-- Chart card -->
+    <div class="chart-container">
+      <h3 class="chart-title">步数与距离趋势</h3>
+      <div ref="chartRef" class="chart"></div>
+    </div>
   </div>
 </template>
 
@@ -277,11 +282,85 @@ const handleResize = () => {
 </script>
 
 <style scoped>
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-card {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+}
+
+.card-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.stats-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.02));
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.1), rgba(24, 144, 255, 0.05));
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  line-height: 1.2;
+}
+
 .chart-container {
   background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
 }
@@ -293,54 +372,21 @@ const handleResize = () => {
   font-weight: 500;
 }
 
-.stats-cards {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  flex: 1;
-  min-width: 150px;
-  background: var(--bg-secondary, #f5f7fa);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--card-border, #e8e8e8);
-}
-
-.stat-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(24, 144, 255, 0.1);
-  border-radius: 8px;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary, #909399);
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-}
-
 .chart {
   width: 100%;
   height: 350px;
+}
+
+/* Dark theme adjustments */
+:deep(.dark-theme) .stat-item {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+:deep(.dark-theme) .stat-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:deep(.dark-theme) .stat-icon {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15), rgba(24, 144, 255, 0.08));
 }
 </style>
