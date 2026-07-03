@@ -343,44 +343,48 @@ const handleResize = () => {
 .stats-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stat-item {
-  flex: 1 1 calc(20% - 10px);
-  min-width: 140px;
-  max-width: calc(33.333% - 8px);
+  flex: 1 1 auto;
+  min-width: 120px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 8px;
+  padding: 12px;
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.08), rgba(24, 144, 255, 0.03));
   border-radius: 10px;
   border: 1px solid rgba(24, 144, 255, 0.15);
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-height: 80px;
+  min-height: 70px;
 }
 
 /* Responsive breakpoints */
-@media (max-width: 1200px) {
+@media (max-width: 992px) {
   .stat-item {
-    flex: 1 1 calc(33.333% - 8px);
-    max-width: calc(50% - 6px);
+    min-width: calc(50% - 5px);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 576px) {
   .stat-item {
-    flex: 1 1 calc(50% - 6px);
-    max-width: none;
+    min-width: 100%;
   }
-}
-
-@media (max-width: 480px) {
-  .stat-item {
-    flex: 1 1 100%;
-    max-width: none;
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+  
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
   }
 }
 
