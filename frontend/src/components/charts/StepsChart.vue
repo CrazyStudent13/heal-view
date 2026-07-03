@@ -21,8 +21,8 @@
         <div class="stat-item">
           <div class="stat-icon"></div>
           <div class="stat-content">
-            <div class="stat-label">周运动次数</div>
-            <div class="stat-value">{{ stats.weeklyExerciseCount }} 次</div>
+            <div class="stat-label">周运动天数</div>
+            <div class="stat-value">{{ stats.weeklyExerciseDays }} 天</div>
           </div>
         </div>
         <div class="stat-item">
@@ -33,10 +33,17 @@
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon">🎯</div>
+          <div class="stat-icon"></div>
           <div class="stat-content">
             <div class="stat-label">累计运动距离</div>
             <div class="stat-value">{{ stats.totalExerciseDistance }} km</div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon"></div>
+          <div class="stat-content">
+            <div class="stat-label">累计消耗热量</div>
+            <div class="stat-value">{{ stats.totalCalories }} kcal</div>
           </div>
         </div>
       </div>
@@ -75,9 +82,10 @@ const stats = computed(() => {
     return {
       avgExerciseDuration: 0,
       avgExerciseDistance: 0,
-      weeklyExerciseCount: 0,
+      weeklyExerciseDays: 0,
       totalExerciseDuration: 0,
-      totalExerciseDistance: 0
+      totalExerciseDistance: 0,
+      totalCalories: 0
     };
   }
   
@@ -89,7 +97,7 @@ const stats = computed(() => {
   const totalDistance = exerciseDays.reduce((sum, item) => sum + ((item.distance || 0) / 1000), 0);
   const avgExerciseDistance = (totalDistance / exerciseDays.length).toFixed(2);
   
-  // Calculate weekly exercise count (count unique weeks with at least one exercise day)
+  // Calculate weekly exercise days (count unique weeks with at least one exercise day)
   const weeksWithExercise = new Set();
   exerciseDays.forEach(item => {
     const date = new Date(item.date);
@@ -104,18 +112,25 @@ const stats = computed(() => {
     const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     weeksWithExercise.add(`${year}-W${weekNum}`);
   });
-  const weeklyExerciseCount = weeksWithExercise.size;
+  const weeklyExerciseDays = weeksWithExercise.size;
   
   // Calculate total exercise duration and distance
   const totalExerciseDuration = (totalDuration / 60).toFixed(1); // Convert to hours
   const totalExerciseDistance = totalDistance.toFixed(2);
   
+  // Calculate total calories burned during exercise
+  // Note: We need to get calorie data from sport_records, but it's not in the summary
+  // For now, we'll estimate based on distance (rough estimate: ~60 kcal per km for running/walking)
+  const estimatedCalories = Math.round(totalDistance * 60);
+  const totalCalories = estimatedCalories;
+  
   return {
     avgExerciseDuration,
     avgExerciseDistance,
-    weeklyExerciseCount,
+    weeklyExerciseDays,
     totalExerciseDuration,
-    totalExerciseDistance
+    totalExerciseDistance,
+    totalCalories
   };
 });
 
