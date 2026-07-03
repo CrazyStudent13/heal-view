@@ -29,7 +29,7 @@
           <div class="stat-icon">⏱️</div>
           <div class="stat-content">
             <div class="stat-label">累计运动时长</div>
-            <div class="stat-value">{{ stats.totalExerciseDuration }} 分钟</div>
+            <div class="stat-value">{{ stats.totalExerciseDuration }} 小时</div>
           </div>
         </div>
         <div class="stat-item">
@@ -107,7 +107,7 @@ const stats = computed(() => {
   const weeklyExerciseCount = weeksWithExercise.size;
   
   // Calculate total exercise duration and distance
-  const totalExerciseDuration = totalDuration;
+  const totalExerciseDuration = (totalDuration / 60).toFixed(1); // Convert to hours
   const totalExerciseDistance = totalDistance.toFixed(2);
   
   return {
