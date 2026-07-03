@@ -25,6 +25,20 @@
             <div class="stat-value">{{ stats.weeklyExerciseCount }} 次</div>
           </div>
         </div>
+        <div class="stat-item">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-content">
+            <div class="stat-label">累计运动时长</div>
+            <div class="stat-value">{{ stats.totalExerciseDuration }} 分钟</div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-content">
+            <div class="stat-label">累计运动距离</div>
+            <div class="stat-value">{{ stats.totalExerciseDistance }} km</div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -61,7 +75,9 @@ const stats = computed(() => {
     return {
       avgExerciseDuration: 0,
       avgExerciseDistance: 0,
-      weeklyExerciseCount: 0
+      weeklyExerciseCount: 0,
+      totalExerciseDuration: 0,
+      totalExerciseDistance: 0
     };
   }
   
@@ -90,10 +106,16 @@ const stats = computed(() => {
   });
   const weeklyExerciseCount = weeksWithExercise.size;
   
+  // Calculate total exercise duration and distance
+  const totalExerciseDuration = totalDuration;
+  const totalExerciseDistance = totalDistance.toFixed(2);
+  
   return {
     avgExerciseDuration,
     avgExerciseDistance,
-    weeklyExerciseCount
+    weeklyExerciseCount,
+    totalExerciseDuration,
+    totalExerciseDistance
   };
 });
 
@@ -286,6 +308,7 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
 }
 
 .stats-card {
@@ -294,6 +317,7 @@ const handleResize = () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  flex: 0 0 auto;
 }
 
 .card-title {
@@ -304,14 +328,12 @@ const handleResize = () => {
 }
 
 .stats-cards {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
 }
 
 .stat-item {
-  flex: 1;
-  min-width: 140px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -321,6 +343,7 @@ const handleResize = () => {
   border: 1px solid rgba(24, 144, 255, 0.15);
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  min-height: 80px;
 }
 
 .stat-item:hover {
