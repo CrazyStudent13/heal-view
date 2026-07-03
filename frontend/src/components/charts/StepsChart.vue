@@ -315,15 +315,19 @@ const handleResize = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: var(--bg-secondary, rgba(0, 0, 0, 0.02));
-  border-radius: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.08), rgba(24, 144, 255, 0.03));
+  border-radius: 10px;
+  border: 1px solid rgba(24, 144, 255, 0.15);
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .stat-item:hover {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.12), rgba(24, 144, 255, 0.06));
+  border-color: rgba(24, 144, 255, 0.25);
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
@@ -379,14 +383,18 @@ const handleResize = () => {
 
 /* Dark theme adjustments */
 :deep(.dark-theme) .stat-item {
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15), rgba(24, 144, 255, 0.08));
+  border-color: rgba(24, 144, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.dark-theme) .stat-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.2), rgba(24, 144, 255, 0.12));
+  border-color: rgba(24, 144, 255, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 :deep(.dark-theme) .stat-icon {
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15), rgba(24, 144, 255, 0.08));
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.2), rgba(24, 144, 255, 0.12));
 }
 </style>
