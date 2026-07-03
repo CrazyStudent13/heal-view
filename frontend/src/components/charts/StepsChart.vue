@@ -338,6 +338,15 @@ const handleResize = () => {
   font-size: 16px;
   color: var(--text-primary);
   font-weight: 500;
+  text-align: left;
+}
+
+.chart-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: left;
 }
 
 .stats-cards {
@@ -440,6 +449,7 @@ const handleResize = () => {
   font-size: 16px;
   color: var(--text-primary);
   font-weight: 500;
+  text-align: left;
 }
 
 .chart {
