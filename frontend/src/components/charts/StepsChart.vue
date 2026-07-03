@@ -308,7 +308,6 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
 }
 
 .stats-card {
@@ -317,7 +316,6 @@ const handleResize = () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
-  flex: 0 0 auto;
 }
 
 .card-title {
@@ -328,12 +326,15 @@ const handleResize = () => {
 }
 
 .stats-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
 .stat-item {
+  flex: 1 1 calc(20% - 10px);
+  min-width: 140px;
+  max-width: calc(33.333% - 8px);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -344,6 +345,28 @@ const handleResize = () => {
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   min-height: 80px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1200px) {
+  .stat-item {
+    flex: 1 1 calc(33.333% - 8px);
+    max-width: calc(50% - 6px);
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-item {
+    flex: 1 1 calc(50% - 6px);
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-item {
+    flex: 1 1 100%;
+    max-width: none;
+  }
 }
 
 .stat-item:hover {
@@ -390,6 +413,7 @@ const handleResize = () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  overflow: hidden;
 }
 
 .chart-title {
@@ -402,6 +426,7 @@ const handleResize = () => {
 .chart {
   width: 100%;
   height: 350px;
+  overflow: hidden;
 }
 
 /* Dark theme adjustments */
