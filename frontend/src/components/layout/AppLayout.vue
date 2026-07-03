@@ -48,6 +48,7 @@
           :chart-data="chartData"
           :current-chart-type="currentChartType"
           :view-mode="viewMode"
+          :loading="loading"
           @chart-change="handleChartChange"
         />
       </div>
@@ -133,7 +134,8 @@ async function fetchSingleDayData(date) {
       deepSleepHours: summary.deepSleepHours || 0,
       lightSleepHours: summary.lightSleepHours || 0,
       remSleepHours: summary.remSleepHours || 0,
-      totalDurationMinutes: summary.totalDurationMinutes || 0
+      totalDurationMinutes: summary.totalDurationMinutes || 0,
+      sportCalories: summary.sportCalories || 0
     }];
   } else {
     chartData.value = [];
@@ -265,13 +267,19 @@ onMounted(() => {
   background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
+  overflow-y: auto;
   border: 1px solid var(--card-border);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-area {
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* Drawer content styles */

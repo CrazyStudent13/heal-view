@@ -1,7 +1,30 @@
 <template>
   <div class="chart-wrapper">
+    <!-- Skeleton loading state -->
+    <div v-show="loading" class="skeleton-overlay">
+      <div class="stats-card">
+        <h3 class="card-title">运动统计</h3>
+        <div class="stats-cards">
+          <el-skeleton-item 
+            v-for="i in 6" 
+            :key="i"
+            variant="rect" 
+            style="width: calc(33.333% - 8px); height: 80px; border-radius: 10px;" 
+          />
+        </div>
+      </div>
+      <div class="chart-container skeleton-chart">
+        <h3 class="card-title">步数与距离趋势</h3>
+        <el-skeleton animated>
+          <template #default>
+            <el-skeleton-item variant="rect" style="width: 100%; height: 100%;" />
+          </template>
+        </el-skeleton>
+      </div>
+    </div>
+    
     <!-- Statistics cards card -->
-    <div v-if="stats" class="stats-card">
+    <div v-if="!loading && stats" class="stats-card">
       <h3 class="card-title">运动统计</h3>
       <div class="stats-cards">
         <div class="stat-item">
@@ -19,7 +42,7 @@
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon"></div>
+          <div class="stat-icon">🔥</div>
           <div class="stat-content">
             <div class="stat-label">日平均热量</div>
             <div class="stat-value">{{ stats.avgDailyCalories }} kcal</div>
@@ -33,14 +56,14 @@
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon"></div>
+          <div class="stat-icon">📍</div>
           <div class="stat-content">
             <div class="stat-label">累计运动距离</div>
             <div class="stat-value">{{ stats.totalExerciseDistance }} km</div>
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon"></div>
+          <div class="stat-icon">📅</div>
           <div class="stat-content">
             <div class="stat-label">周运动天数</div>
             <div class="stat-value">{{ stats.weeklyExerciseDays }} 天</div>
@@ -58,13 +81,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps({
   data: {
     type: Array,
     required: true
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -85,7 +112,7 @@ const stats = computed(() => {
       weeklyExerciseDays: 0,
       totalExerciseDuration: 0,
       totalExerciseDistance: 0,
-      totalCalories: 0
+      avgDailyCalories: 0
     };
   }
   
@@ -118,11 +145,10 @@ const stats = computed(() => {
   const totalExerciseDuration = (totalDuration / 60).toFixed(1); // Convert to hours
   const totalExerciseDistance = totalDistance.toFixed(2);
   
-  // Calculate total calories burned during exercise
-  // Note: We need to get calorie data from sport_records, but it's not in the summary
-  // For now, we'll estimate based on distance (rough estimate: ~60 kcal per km for running/walking)
-  const estimatedCalories = Math.round(totalDistance * 60);
-  const avgDailyCalories = Math.round(estimatedCalories / exerciseDays.length);
+  // Calculate calories from sport_records data
+  const totalSportCalories = exerciseDays.reduce((sum, item) => sum + (item.sportCalories || 0), 0);
+  const avgDailyCalories = Math.round(totalSportCalories / exerciseDays.length);
+  const totalCalories = Math.round(totalSportCalories);
   
   return {
     avgExerciseDuration,
@@ -130,7 +156,8 @@ const stats = computed(() => {
     weeklyExerciseDays,
     totalExerciseDuration,
     totalExerciseDistance,
-    avgDailyCalories
+    avgDailyCalories,
+    totalCalories
   };
 });
 
@@ -147,6 +174,7 @@ const updateChart = () => {
   const steps = props.data.map(item => item.steps || 0);
   const distance = props.data.map(item => (item.distance || 0) / 1000); // Convert meters to km
   const exerciseDuration = props.data.map(item => item.totalDurationMinutes || 0);
+  const sportCalories = props.data.map(item => item.sportCalories || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
@@ -167,19 +195,25 @@ const updateChart = () => {
             result += `${param.marker}${param.seriesName}: ${param.value.toLocaleString()} 步<br/>`;
           } else if (param.seriesName === '距离') {
             result += `${param.marker}${param.seriesName}: ${param.value.toFixed(2)} km<br/>`;
+          } else if (param.seriesName === '运动热量') {
+            result += `${param.marker}${param.seriesName}: ${param.value} kcal<br/>`;
           }
         });
         // Add exercise duration from the data point
         const dataIndex = params[0].dataIndex;
         const duration = exerciseDuration[dataIndex];
+        const calories = sportCalories[dataIndex];
         if (duration > 0) {
           result += `🏃‍♂️ 运动时长: ${duration} 分钟<br/>`;
+        }
+        if (calories > 0) {
+          result += `🔥 运动热量: ${calories} kcal<br/>`;
         }
         return result;
       }
     },
     legend: {
-      data: ['步数', '距离'],
+      data: ['步数', '距离', '运动热量'],
       right: 10,
       top: 0,
       textStyle: {
@@ -189,8 +223,8 @@ const updateChart = () => {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
-      top: '15%',
+      bottom: '18%',
+      top: '10%',
       containLabel: true
     },
     xAxis: {
@@ -198,9 +232,10 @@ const updateChart = () => {
       boundaryGap: false,
       data: dates,
       axisLabel: {
-        rotate: 45,
-        fontSize: 12,
-        color: textColor
+        rotate: 30,
+        fontSize: 11,
+        color: textColor,
+        margin: 8
       },
       axisLine: {
         lineStyle: {
@@ -301,8 +336,21 @@ watch(() => props.data, () => {
   updateChart();
 }, { deep: true });
 
+// Watch for loading state changes to reinitialize chart
+watch(() => props.loading, async (newLoading) => {
+  if (!newLoading && chartRef.value) {
+    // Wait for DOM to be updated
+    await nextTick();
+    setTimeout(() => {
+      initChart();
+    }, 100);
+  }
+});
+
 onMounted(() => {
-  initChart();
+  if (!props.loading) {
+    initChart();
+  }
   window.addEventListener('resize', handleResize);
 });
 
@@ -323,6 +371,15 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+  position: relative;
+}
+
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
 }
 
 .stats-card {
@@ -331,13 +388,36 @@ const handleResize = () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+.skeleton-chart {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--card-bg);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 8px;
 }
 
 .card-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
+  margin: 0 0 24px 0;
+  font-size: 18px;
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
   text-align: left;
 }
 
@@ -367,7 +447,7 @@ const handleResize = () => {
   border: 1px solid rgba(24, 144, 255, 0.15);
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-height: 75px;
+  min-height: 80px;
 }
 
 /* Responsive breakpoints */
@@ -442,19 +522,17 @@ const handleResize = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
   overflow: hidden;
-}
-
-.chart-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-  font-weight: 500;
-  text-align: left;
+  flex: 1;
+  min-height: 350px;
+  max-height: calc(100vh - 280px);
+  display: flex;
+  flex-direction: column;
 }
 
 .chart {
   width: 100%;
-  height: 350px;
+  height: 100%;
+  min-height: 280px;
   overflow: hidden;
 }
 
