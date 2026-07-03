@@ -31,6 +31,7 @@ const updateChart = () => {
   const dates = props.data.map(item => item.date);
   const steps = props.data.map(item => item.steps || 0);
   const distance = props.data.map(item => (item.distance || 0) / 1000); // Convert meters to km
+  const exerciseDuration = props.data.map(item => item.totalDurationMinutes || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
@@ -49,10 +50,16 @@ const updateChart = () => {
         params.forEach(param => {
           if (param.seriesName === '步数') {
             result += `${param.marker}${param.seriesName}: ${param.value.toLocaleString()} 步<br/>`;
-          } else {
+          } else if (param.seriesName === '距离') {
             result += `${param.marker}${param.seriesName}: ${param.value.toFixed(2)} km<br/>`;
           }
         });
+        // Add exercise duration from the data point
+        const dataIndex = params[0].dataIndex;
+        const duration = exerciseDuration[dataIndex];
+        if (duration > 0) {
+          result += `🏃‍♂️ 运动时长: ${duration} 分钟<br/>`;
+        }
         return result;
       }
     },

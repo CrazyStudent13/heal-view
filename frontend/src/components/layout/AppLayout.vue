@@ -132,7 +132,8 @@ async function fetchSingleDayData(date) {
       sleepHours: summary.sleepHours || 0,
       deepSleepHours: summary.deepSleepHours || 0,
       lightSleepHours: summary.lightSleepHours || 0,
-      remSleepHours: summary.remSleepHours || 0
+      remSleepHours: summary.remSleepHours || 0,
+      totalDurationMinutes: summary.totalDurationMinutes || 0
     }];
   } else {
     chartData.value = [];
