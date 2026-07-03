@@ -21,8 +21,8 @@
         <div class="stat-item">
           <div class="stat-icon"></div>
           <div class="stat-content">
-            <div class="stat-label">周运动天数</div>
-            <div class="stat-value">{{ stats.weeklyExerciseDays }} 天</div>
+            <div class="stat-label">日平均热量</div>
+            <div class="stat-value">{{ stats.avgDailyCalories }} kcal</div>
           </div>
         </div>
         <div class="stat-item">
@@ -42,8 +42,8 @@
         <div class="stat-item">
           <div class="stat-icon"></div>
           <div class="stat-content">
-            <div class="stat-label">累计消耗热量</div>
-            <div class="stat-value">{{ stats.totalCalories }} kcal</div>
+            <div class="stat-label">周运动天数</div>
+            <div class="stat-value">{{ stats.weeklyExerciseDays }} 天</div>
           </div>
         </div>
       </div>
@@ -122,7 +122,7 @@ const stats = computed(() => {
   // Note: We need to get calorie data from sport_records, but it's not in the summary
   // For now, we'll estimate based on distance (rough estimate: ~60 kcal per km for running/walking)
   const estimatedCalories = Math.round(totalDistance * 60);
-  const totalCalories = estimatedCalories;
+  const avgDailyCalories = Math.round(estimatedCalories / exerciseDays.length);
   
   return {
     avgExerciseDuration,
@@ -130,7 +130,7 @@ const stats = computed(() => {
     weeklyExerciseDays,
     totalExerciseDuration,
     totalExerciseDistance,
-    totalCalories
+    avgDailyCalories
   };
 });
 
