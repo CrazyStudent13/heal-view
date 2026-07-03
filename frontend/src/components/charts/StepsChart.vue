@@ -343,34 +343,34 @@ const handleResize = () => {
 .stats-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .stat-item {
-  flex: 1 1 auto;
-  min-width: 120px;
+  flex: 0 0 calc(33.333% - 8px);
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.08), rgba(24, 144, 255, 0.03));
   border-radius: 10px;
   border: 1px solid rgba(24, 144, 255, 0.15);
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-height: 70px;
+  min-height: 75px;
 }
 
 /* Responsive breakpoints */
 @media (max-width: 992px) {
   .stat-item {
-    min-width: calc(50% - 5px);
+    flex: 0 0 calc(50% - 6px);
   }
 }
 
 @media (max-width: 576px) {
   .stat-item {
-    min-width: 100%;
+    flex: 0 0 100%;
   }
   
   .stat-label {
