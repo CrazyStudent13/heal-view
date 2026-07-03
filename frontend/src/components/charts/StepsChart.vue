@@ -1,12 +1,38 @@
 <template>
   <div class="chart-container">
     <h3 class="chart-title">步数与距离趋势</h3>
+    
+    <!-- Statistics cards -->
+    <div v-if="stats" class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon">🏃‍♂️</div>
+        <div class="stat-content">
+          <div class="stat-label">平均日运动时长</div>
+          <div class="stat-value">{{ stats.avgExerciseDuration }} 分钟</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📏</div>
+        <div class="stat-content">
+          <div class="stat-label">平均日运动距离</div>
+          <div class="stat-value">{{ stats.avgExerciseDistance }} km</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-content">
+          <div class="stat-label">周运动次数</div>
+          <div class="stat-value">{{ stats.weeklyExerciseCount }} 次</div>
+        </div>
+      </div>
+    </div>
+    
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps({
@@ -18,6 +44,53 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+
+// Calculate statistics
+const stats = computed(() => {
+  if (!props.data || props.data.length === 0) return null;
+  
+  // Filter days with exercise (totalDurationMinutes > 0)
+  const exerciseDays = props.data.filter(item => item.totalDurationMinutes && item.totalDurationMinutes > 0);
+  
+  if (exerciseDays.length === 0) {
+    return {
+      avgExerciseDuration: 0,
+      avgExerciseDistance: 0,
+      weeklyExerciseCount: 0
+    };
+  }
+  
+  // Calculate average exercise duration (only for days with exercise)
+  const totalDuration = exerciseDays.reduce((sum, item) => sum + (item.totalDurationMinutes || 0), 0);
+  const avgExerciseDuration = Math.round(totalDuration / exerciseDays.length);
+  
+  // Calculate average exercise distance (only for days with exercise)
+  const totalDistance = exerciseDays.reduce((sum, item) => sum + ((item.distance || 0) / 1000), 0);
+  const avgExerciseDistance = (totalDistance / exerciseDays.length).toFixed(2);
+  
+  // Calculate weekly exercise count (count unique weeks with at least one exercise day)
+  const weeksWithExercise = new Set();
+  exerciseDays.forEach(item => {
+    const date = new Date(item.date);
+    // Get ISO week number
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const d = new Date(year, month, day);
+    const dayOfWeek = d.getDay() || 7;
+    d.setDate(d.getDate() + 4 - dayOfWeek);
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    weeksWithExercise.add(`${year}-W${weekNum}`);
+  });
+  const weeklyExerciseCount = weeksWithExercise.size;
+  
+  return {
+    avgExerciseDuration,
+    avgExerciseDistance,
+    weeklyExerciseCount
+  };
+});
 
 const initChart = () => {
   if (!chartRef.value) return;
@@ -218,6 +291,52 @@ const handleResize = () => {
   font-size: 16px;
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.stats-cards {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 150px;
+  background: var(--bg-secondary, #f5f7fa);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--card-border, #e8e8e8);
+}
+
+.stat-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 8px;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
 }
 
 .chart {
