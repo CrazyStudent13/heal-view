@@ -227,6 +227,14 @@ onMounted(() => {
   if (store.dateList.length > 0) {
     selectedSingleDate.value = store.dateList[0];
   }
+  
+  // Set initial date range in compare mode
+  if (props.viewMode === 'compare' && store.selectedDates.length > 0) {
+    const sorted = [...store.selectedDates].sort((a, b) => new Date(a) - new Date(b));
+    if (sorted.length > 0) {
+      dateRange.value = [sorted[0], sorted[sorted.length - 1]];
+    }
+  }
 });
 
 // Watch for view mode changes and update date range display
@@ -242,6 +250,14 @@ watch(() => props.viewMode, (newMode) => {
     }
   }
 });
+
+// Watch for selected dates changes to update date range display (only in compare mode)
+watch(() => store.selectedDates, (newDates) => {
+  if (props.viewMode === 'compare' && newDates.length > 0) {
+    const sorted = [...newDates].sort((a, b) => new Date(a) - new Date(b));
+    dateRange.value = [sorted[0], sorted[sorted.length - 1]];
+  }
+}, { deep: true });
 </script>
 
 <style scoped>
