@@ -22,8 +22,19 @@
         value-format="YYYY-MM-DD"
         :disabled-date="disabledDate"
         style="width: 220px; margin-left: 8px"
-        @change="handleSingleDateChange"
       />
+      
+      <el-button 
+        v-if="viewMode === 'single'"
+        type="primary" 
+        plain 
+        size="default" 
+        style="margin-left: 12px"
+        @click="handleSingleQuery"
+      >
+        <el-icon style="margin-right: 6px"><Search /></el-icon>
+        {{ t('common.query') }}
+      </el-button>
 
       <!-- Compare mode: date range -->
       <template v-else>
@@ -131,10 +142,10 @@ function disabledDate(time) {
   return time.getTime() > Date.now();
 }
 
-// Handle single date change
-function handleSingleDateChange(value) {
-  if (value) {
-    store.selectDate(value);
+// Single mode query button handler
+function handleSingleQuery() {
+  if (selectedSingleDate.value) {
+    store.selectDate(selectedSingleDate.value);
   }
 }
 
@@ -224,8 +235,18 @@ function formatDate(date) {
 // Initialize
 onMounted(() => {
   // Set initial date in single mode
-  if (store.dateList.length > 0) {
-    selectedSingleDate.value = store.dateList[0];
+  if (props.viewMode === 'single') {
+    // If there's a previously selected date, use it; otherwise use current date
+    if (store.selectedDate) {
+      selectedSingleDate.value = store.selectedDate;
+    } else if (store.dateList.length > 0) {
+      // Use the most recent date from the list
+      selectedSingleDate.value = store.dateList[0];
+    } else {
+      // Use today's date as fallback
+      const today = new Date();
+      selectedSingleDate.value = formatDate(today);
+    }
   }
   
   // Set initial date range in compare mode
@@ -242,6 +263,16 @@ watch(() => props.viewMode, (newMode) => {
   if (newMode === 'single') {
     // Clear date range when switching to single mode
     dateRange.value = [];
+    
+    // Set initial date in single mode
+    if (store.selectedDate) {
+      selectedSingleDate.value = store.selectedDate;
+    } else if (store.dateList.length > 0) {
+      selectedSingleDate.value = store.dateList[0];
+    } else {
+      const today = new Date();
+      selectedSingleDate.value = formatDate(today);
+    }
   } else if (store.selectedDates.length > 0) {
     // Update date range display when switching to compare mode
     const sorted = [...store.selectedDates].sort((a, b) => new Date(a) - new Date(b));
