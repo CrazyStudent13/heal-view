@@ -36,7 +36,6 @@
           value-format="YYYY-MM-DD"
           :shortcuts="dateShortcuts"
           style="width: 360px; margin-left: 8px"
-          @change="handleDateRangeChange"
         />
         
         <el-button 
@@ -139,10 +138,10 @@ function handleSingleDateChange(value) {
   }
 }
 
-// Handle date range change - query button triggers this
-function handleDateRangeChange(value) {
-  if (value && value.length === 2) {
-    const [start, end] = value;
+// Query button handler - applies the date range filter
+function handleQuery() {
+  if (dateRange.value && dateRange.value.length === 2) {
+    const [start, end] = dateRange.value;
     
     // Filter dates within range
     const filteredDates = store.trainingDates.filter(date => {
@@ -152,15 +151,8 @@ function handleDateRangeChange(value) {
       return d >= startDate && d <= endDate;
     });
     
-    // Auto select filtered dates
+    // Update selected dates
     store.selectedDates = filteredDates;
-  }
-}
-
-// Query button handler - applies the date range filter
-function handleQuery() {
-  if (dateRange.value && dateRange.value.length === 2) {
-    handleDateRangeChange(dateRange.value);
   }
 }
 
@@ -250,14 +242,6 @@ watch(() => props.viewMode, (newMode) => {
     }
   }
 });
-
-// Watch for selected dates changes to update date range display
-watch(() => store.selectedDates, (newDates) => {
-  if (props.viewMode === 'compare' && newDates.length > 0) {
-    const sorted = [...newDates].sort((a, b) => new Date(a) - new Date(b));
-    dateRange.value = [sorted[0], sorted[sorted.length - 1]];
-  }
-}, { deep: true });
 </script>
 
 <style scoped>
