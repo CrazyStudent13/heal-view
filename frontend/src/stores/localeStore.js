@@ -17,6 +17,7 @@ export const useLocaleStore = defineStore('locale', () => {
       'common.empty': '暂无数据',
       'common.reset': '重置',
       'common.selectAll': '全选',
+      'common.query': '查询',
       
       // Navigation
       'nav.singleDay': '单日视图',
@@ -63,6 +64,7 @@ export const useLocaleStore = defineStore('locale', () => {
       'common.empty': 'No data',
       'common.reset': 'Reset',
       'common.selectAll': 'Select All',
+      'common.query': 'Query',
       
       // Navigation
       'nav.singleDay': 'Single Day',

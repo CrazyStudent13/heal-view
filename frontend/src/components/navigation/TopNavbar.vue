@@ -10,7 +10,7 @@
 
     <!-- Date selection -->
     <div class="date-section">
-      <el-icon><Calendar /></el-icon>
+      <span class="section-label">{{ t('nav.selectDate') }}：</span>
       
       <!-- Single mode: date picker -->
       <el-date-picker
@@ -40,24 +40,17 @@
         />
         
         <el-button 
-          type="success" 
+          type="primary" 
           plain 
-          size="small" 
+          size="default" 
           style="margin-left: 12px"
-          @click="handleSelectAll"
+          @click="handleQuery"
         >
-          {{ t('common.selectAll') }}
+          <el-icon style="margin-right: 6px"><Search /></el-icon>
+          {{ t('common.query') }}
         </el-button>
       </template>
     </div>
-
-    <el-divider direction="vertical" />
-
-    <!-- Reset button -->
-    <el-button type="danger" plain size="default" @click="handleReset">
-      <el-icon><RefreshLeft /></el-icon>
-      {{ t('common.reset') }}
-    </el-button>
 
     <div style="flex: 1"></div>
 
@@ -73,7 +66,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { Calendar, RefreshLeft, Setting } from '@element-plus/icons-vue';
+import { Calendar, Setting, Search } from '@element-plus/icons-vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 
@@ -146,7 +139,7 @@ function handleSingleDateChange(value) {
   }
 }
 
-// Handle date range change
+// Handle date range change - query button triggers this
 function handleDateRangeChange(value) {
   if (value && value.length === 2) {
     const [start, end] = value;
@@ -164,9 +157,11 @@ function handleDateRangeChange(value) {
   }
 }
 
-// Select all training dates
-function handleSelectAll() {
-  store.selectAllTrainingDates();
+// Query button handler - applies the date range filter
+function handleQuery() {
+  if (dateRange.value && dateRange.value.length === 2) {
+    handleDateRangeChange(dateRange.value);
+  }
 }
 
 // Quick select: last week
@@ -232,18 +227,6 @@ function formatDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-// Handle reset
-function handleReset() {
-  selectedSingleDate.value = '';
-  dateRange.value = [];
-  
-  // Reset to first date in single mode
-  if (props.viewMode === 'single' && store.dateList.length > 0) {
-    store.selectDate(store.dateList[0]);
-    selectedSingleDate.value = store.dateList[0];
-  }
 }
 
 // Initialize
