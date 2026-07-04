@@ -2,6 +2,45 @@
   <div class="daily-sport-chart">
     <h3 class="chart-title">{{ t('chart.dailySportActivities') }}</h3>
     
+    <!-- Summary cards -->
+    <div v-if="sportRecords.length > 0" class="summary-cards">
+      <el-card class="summary-card-item" shadow="hover">
+        <div class="card-content">
+          <div class="card-icon calories">
+            <span class="icon-text">🔥</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">累计热量</div>
+            <div class="card-value">{{ totalCalories }} kcal</div>
+          </div>
+        </div>
+      </el-card>
+      
+      <el-card class="summary-card-item" shadow="hover">
+        <div class="card-content">
+          <div class="card-icon duration">
+            <span class="icon-text">&#9201;</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">总时长</div>
+            <div class="card-value">{{ formatDuration(totalDuration) }}</div>
+          </div>
+        </div>
+      </el-card>
+      
+      <el-card class="summary-card-item" shadow="hover">
+        <div class="card-content">
+          <div class="card-icon steps">
+            <span class="icon-text">&#128099;</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">运动总计步数</div>
+            <div class="card-value">{{ totalSteps.toLocaleString() }}</div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+    
     <!-- Empty state -->
     <div v-if="sportRecords.length === 0" class="empty-state">
       <p>{{ t('chart.noSportRecords') }}</p>
@@ -9,12 +48,12 @@
 
     <!-- Sport table -->
     <el-table 
-      v-else
+      v-if="sportRecords.length > 0"
       :data="sportRecords" 
       stripe
       highlight-current-row
       @current-change="handleRowSelect"
-      style="width: 100%"
+      style="width: 100%; margin-top: 15px;"
       :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
     >
       <!-- Time column -->
@@ -84,7 +123,7 @@
         align="center"
       >
         <template #default="{ row }">
-          <span v-if="row.maxHrm" class="hr-text">💓 {{ row.maxHrm }} bpm</span>
+          <span v-if="row.maxHrm" class="hr-text"> {{ row.maxHrm }} bpm</span>
           <span v-else>--</span>
         </template>
       </el-table-column>
@@ -97,8 +136,8 @@
         <template #default="{ row }">
           <div class="details-content">
             <span v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.distanceKm" class="detail-item">📍 {{ row.distanceKm }} 公里</span>
-            <span v-if="row.avgSpeed" class="detail-item">⚡ 平均速度: {{ row.avgSpeed }} km/h</span>
-            <span v-if="row.avgPace" class="detail-item">🏃 平均配速: {{ formatPace(row.avgPace) }}</span>
+            <span v-if="row.avgSpeed" class="detail-item"> 平均速度: {{ row.avgSpeed }} km/h</span>
+            <span v-if="row.avgPace" class="detail-item"> 平均配速: {{ formatPace(row.avgPace) }}</span>
           </div>
         </template>
       </el-table-column>
@@ -108,7 +147,7 @@
     <transition name="slide-fade">
       <div v-if="selectedRecord" class="detail-panel">
         <div class="detail-header">
-          <h3 class="detail-title">{{ selectedRecord.categoryName }} - 运动详情</h3>
+          <h3 class="detail-title">运动详情 - {{ selectedRecord.categoryName }}</h3>
           <el-button size="small" @click="closeDetail">关闭</el-button>
         </div>
 
@@ -117,10 +156,6 @@
           <div class="info-card" v-if="selectedRecord.sport_type === 13 || selectedRecord.categoryName === '划船机'">
             <div class="card-value">{{ selectedRecord.strokes || '--' }}</div>
             <div class="card-label">划动次数</div>
-          </div>
-          <div class="info-card" v-else-if="selectedRecord.sport_type === 11 || selectedRecord.categoryName === '椭圆机'">
-            <div class="card-value">{{ selectedRecord.steps || '--' }}</div>
-            <div class="card-label">步数</div>
           </div>
         </div>
 
@@ -221,6 +256,14 @@
         <div v-else-if="selectedRecord.sport_type === 11 || selectedRecord.categoryName === '椭圆机'" class="sport-specific">
           <h4 class="section-title">椭圆机数据</h4>
           <div class="metrics-grid">
+            <div class="metric-item" v-if="selectedRecord.distanceKm && selectedRecord.distanceKm !== '0.00'">
+              <span class="metric-label">运动距离</span>
+              <span class="metric-value">{{ selectedRecord.distanceKm }} km</span>
+            </div>
+            <div class="metric-item" v-else-if="selectedRecord.steps">
+              <span class="metric-label">运动步数</span>
+              <span class="metric-value">{{ selectedRecord.steps }}</span>
+            </div>
             <div class="metric-item">
               <span class="metric-label">平均步频</span>
               <span class="metric-value">{{ selectedRecord.avgCadence || '--' }} 步/分</span>
@@ -235,16 +278,6 @@
         <!-- Heart Rate Chart Section -->
         <div class="chart-section">
           <h4 class="section-title">心率 (BPM)</h4>
-          <div class="hr-stats">
-            <div class="hr-stat">
-              <div class="stat-value">{{ selectedRecord.avgHrm || '--' }}</div>
-              <div class="stat-label">平均心率</div>
-            </div>
-            <div class="hr-stat">
-              <div class="stat-value">{{ selectedRecord.maxHrm || '--' }}</div>
-              <div class="stat-label">最大心率</div>
-            </div>
-          </div>
           <div class="chart-container" ref="heartRateChartRef"></div>
         </div>
 
@@ -276,7 +309,7 @@
 
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { ElTable, ElTableColumn, ElTag, ElButton } from 'element-plus';
+import { ElTable, ElTableColumn, ElTag, ElButton, ElCard } from 'element-plus';
 import * as echarts from 'echarts';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
@@ -306,6 +339,19 @@ const hasHeartRateZones = computed(() => {
   if (!selectedRecord.value) return false;
   const totalDuration = heartRateZones.value.reduce((sum, zone) => sum + zone.duration, 0);
   return totalDuration > 0;
+});
+
+// Summary calculations
+const totalCalories = computed(() => {
+  return sportRecords.value.reduce((sum, record) => sum + (record.calories || 0), 0);
+});
+
+const totalDuration = computed(() => {
+  return sportRecords.value.reduce((sum, record) => sum + (record.duration || 0), 0);
+});
+
+const totalSteps = computed(() => {
+  return sportRecords.value.reduce((sum, record) => sum + (record.steps || 0), 0);
 });
 
 // Format timestamp to time string (HH:mm)
@@ -726,17 +772,93 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  height: 100%;
 }
 
 .chart-title {
   margin: 0 0 20px 0;
-  font-size: 16px;
+  font-size: 20px;
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
   text-align: left;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.summary-card-item {
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  min-height: 90px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.summary-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+}
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 28px;
+}
+
+.icon-text {
+  line-height: 1;
+}
+
+.card-icon.calories {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.card-icon.duration {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.card-icon.steps {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.card-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.card-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .empty-state {
@@ -784,6 +906,11 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   color: #888;
 }
 
+:deep(.dark-theme) .summary-card-item {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
 :deep(.dark-theme) .detail-item {
   background: #3a3a3a;
   color: #d0d0d0;
@@ -800,7 +927,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 /* Detail Panel Styles */
 .detail-panel {
-  margin-top: 20px;
+  margin-top: 15px;
   padding: 0;
   background: transparent;
   color: var(--text-primary);
@@ -810,37 +937,35 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--card-border);
+  margin-bottom: 15px;
 }
 
 .detail-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
 .info-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .info-card {
   background: var(--card-bg);
-  padding: 15px;
+  padding: 12px;
   border-radius: 8px;
   text-align: center;
   border: 1px solid var(--card-border);
 }
 
 .card-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   color: var(--text-primary);
 }
 
@@ -851,14 +976,14 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .sport-specific {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   border: 1px solid var(--card-border);
 }
 
 .section-title {
-  margin: 0 0 15px 0;
+  margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
@@ -867,16 +992,16 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric-item {
   background: rgba(0, 0, 0, 0.03);
-  padding: 12px;
+  padding: 10px;
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .metric-label {
@@ -885,17 +1010,17 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .metric-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .segments-section {
-  margin-top: 20px;
+  margin-top: 15px;
 }
 
 .km-paces-section {
-  margin-top: 20px;
+  margin-top: 15px;
 }
 
 .km-paces-list {
@@ -943,16 +1068,16 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .chart-section {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   border: 1px solid var(--card-border);
 }
 
 .hr-stats {
   display: flex;
-  gap: 30px;
-  margin-bottom: 15px;
+  gap: 20px;
+  margin-bottom: 12px;
 }
 
 .hr-stat {
@@ -961,9 +1086,9 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   color: var(--primary-color, #1890ff);
 }
 
@@ -973,7 +1098,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .chart-container {
-  height: 200px;
+  height: 180px;
   background: transparent;
   border-radius: 8px;
   padding: 10px;
@@ -981,9 +1106,9 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .hr-zones-section {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   border: 1px solid var(--card-border);
 }
 
