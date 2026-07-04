@@ -35,10 +35,12 @@
       </div>
     </div>
 
-    <!-- Charts -->
-    <StepsChart v-if="chartData.length > 0" :data="chartData" />
-    <CaloriesChart v-if="chartData.length > 0" :data="chartData" />
-    <HeartRateChart v-if="chartData.length > 0" :data="chartData" />
+    <!-- Time Series Chart -->
+    <TimeSeriesChart 
+      v-if="timeSeriesLoaded" 
+      :steps-data="stepsTimeSeries" 
+      :heart-rate-data="heartRateTimeSeries" 
+    />
 
     <!-- Loading State -->
     <div v-if="dataStore.loading" class="loading-state">
@@ -57,17 +59,17 @@ import { ref, watch } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
-import StepsChart from './StepsChart.vue';
-import CaloriesChart from './CaloriesChart.vue';
-import HeartRateChart from './HeartRateChart.vue';
+import TimeSeriesChart from './TimeSeriesChart.vue';
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
 const localeStore = useLocaleStore();
 const { t } = localeStore;
 
-const chartData = ref([]);
 const currentSummary = ref(null);
+const timeSeriesLoaded = ref(false);
+const stepsTimeSeries = ref([]);
+const heartRateTimeSeries = ref([]);
 
 // Format number with commas
 function formatNumber(num) {
@@ -78,20 +80,37 @@ function formatNumber(num) {
 watch(() => dateStore.selectedDate, async (newDate) => {
   if (!newDate) return;
 
+  // Reset state
+  currentSummary.value = null;
+  timeSeriesLoaded.value = false;
+  stepsTimeSeries.value = [];
+  heartRateTimeSeries.value = [];
+
   // Fetch daily summary
   const summary = await dataStore.fetchDailySummary(newDate);
   currentSummary.value = summary;
 
-  // For now, we'll show the single day data
-  // In the future, we can fetch a range of dates
+  // Fetch time series data for steps and heart rate
   if (summary) {
-    chartData.value = [{
-      date: summary.date,
-      steps: summary.steps,
-      calories: summary.calories,
-      avgHeartRate: summary.avgHeartRate,
-      maxHeartRate: summary.maxHeartRate
-    }];
+    try {
+      const [stepsData, hrData] = await Promise.all([
+        dataStore.fetchTimeSeries(newDate, 'steps'),
+        dataStore.fetchTimeSeries(newDate, 'heart_rate')
+      ]);
+
+      if (stepsData) {
+        stepsTimeSeries.value = stepsData.data || [];
+      }
+
+      if (hrData) {
+        heartRateTimeSeries.value = hrData.data || [];
+      }
+
+      timeSeriesLoaded.value = true;
+    } catch (error) {
+      console.error('Failed to fetch time series data:', error);
+      timeSeriesLoaded.value = true; // Still show the chart even if data is empty
+    }
   }
 }, { immediate: true });
 </script>

@@ -99,7 +99,7 @@ const isDarkMode = computed({
   set: (val) => themeStore.setTheme(val)
 });
 
-const viewMode = ref('compare'); // Default to compare mode
+const viewMode = ref('single'); // Default to single day mode for debugging
 const currentChartType = ref('steps');
 const chartData = ref([]);
 const loading = ref(false);
@@ -181,17 +181,17 @@ async function initDefaultData() {
     await dateStore.fetchDateList();
   }
   
-  // Set default to compare mode with last 30 days
-  viewMode.value = 'compare';
-  const last30Days = getLast30Days();
+  // Set default to single mode for debugging
+  viewMode.value = 'single';
   
-  console.log('Last 30 days:', last30Days);
-  console.log('Training dates:', dateStore.trainingDates);
-  
-  if (last30Days.length > 0) {
-    dateStore.selectedDates = last30Days;
-    await fetchCompareData(last30Days);
-    console.log('Chart data loaded:', chartData.value.length, 'items');
+  // Select the most recent date with training data
+  const trainingDates = dateStore.trainingDates;
+  if (trainingDates.length > 0) {
+    const sorted = [...trainingDates].sort((a, b) => new Date(b) - new Date(a));
+    const mostRecentDate = sorted[0];
+    dateStore.selectedDate = mostRecentDate;
+    await fetchSingleDayData(mostRecentDate);
+    console.log('Loaded single day data for:', mostRecentDate);
   } else {
     console.warn('No training dates available');
   }

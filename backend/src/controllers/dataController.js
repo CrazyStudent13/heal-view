@@ -239,19 +239,38 @@ export function getSportRecords(req, res) {
 
     const result = db.exec(query);
 
-    const records = result.length > 0
-      ? result[0].columns.map((col, idx) => col).reduce((acc, col, i) => {
-          result[0].values.forEach(row => {
-            if (!acc[i]) acc[i] = {};
-            acc[i][col] = row[i];
+    let records = result.length > 0
+      ? result[0].values.map(row => {
+          const record = {};
+          result[0].columns.forEach((col, idx) => {
+            record[col] = row[idx];
           });
-          return acc;
-        }, []).map(record => ({
-          ...record,
-          time: parseInt(record.time),
-          date: record.date
-        }))
+          return {
+            ...record,
+            time: parseInt(record.time) || null,
+            date: record.date
+          };
+        })
       : [];
+
+    // Remove duplicates based on start_time and category
+    const seen = new Set();
+    records = records.filter(record => {
+      try {
+        const value = typeof record.value === 'string' ? JSON.parse(record.value) : record.value;
+        const startTime = value.start_time || record.time;
+        const category = record.category || '';
+        const key = `${startTime}_${category}`;
+        
+        if (seen.has(key)) {
+          return false; // Duplicate
+        }
+        seen.add(key);
+        return true; // Unique
+      } catch (error) {
+        return true; // Keep record if parsing fails
+      }
+    });
 
     const response = { records };
 

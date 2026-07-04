@@ -1,15 +1,20 @@
 <template>
   <div class="chart-display">
-    <!-- Charts based on selected type -->
-    <StepsChart v-if="chartType === 'steps'" :data="chartData" :loading="loading" />
-    <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
-    <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
-    <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
-    <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+    <!-- Single day mode: show daily sport activities -->
+    <DailySportChart v-if="viewMode === 'single'" />
 
-    <!-- Empty state -->
-    <div v-if="!hasData && !loading" class="empty-state">
-      <p>{{ viewMode === 'compare' ? '请在顶部选择日期' : '请在顶部选择日期查看数据' }}</p>
+    <!-- Multi-day comparison mode: show traditional charts -->
+    <template v-else-if="viewMode === 'compare'">
+      <StepsChart v-if="chartType === 'steps'" :data="chartData" :loading="loading" />
+      <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
+      <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
+      <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
+      <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+    </template>
+
+    <!-- Empty state for compare mode -->
+    <div v-if="!hasData && !loading && viewMode === 'compare'" class="empty-state">
+      <p>请在顶部选择日期</p>
     </div>
   </div>
 </template>
@@ -21,6 +26,7 @@ import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
 import SleepChart from './SleepChart.vue';
+import DailySportChart from './DailySportChart.vue';
 
 const props = defineProps({
   chartData: {
