@@ -43,15 +43,47 @@
         </template>
       </el-table-column>
 
+      <!-- Duration column -->
+      <el-table-column 
+        prop="durationText" 
+        label="时长" 
+        width="120"
+        align="center"
+      />
+
+      <!-- Average Heart Rate column -->
+      <el-table-column 
+        prop="avgHrm" 
+        label="平均心率" 
+        width="120"
+        align="center"
+      >
+        <template #default="{ row }">
+          <span v-if="row.avgHrm" class="hr-text">❤️ {{ row.avgHrm }} bpm</span>
+          <span v-else>--</span>
+        </template>
+      </el-table-column>
+
+      <!-- Max Heart Rate column -->
+      <el-table-column 
+        prop="maxHrm" 
+        label="最高心率" 
+        width="120"
+        align="center"
+      >
+        <template #default="{ row }">
+          <span v-if="row.maxHrm" class="hr-text">💓 {{ row.maxHrm }} bpm</span>
+          <span v-else>--</span>
+        </template>
+      </el-table-column>
+
       <!-- Details column -->
       <el-table-column 
         label="详细信息" 
-        min-width="300"
+        min-width="200"
       >
         <template #default="{ row }">
           <div class="details-content">
-            <span v-if="row.avgHrm" class="detail-item">❤️ 平均心率: {{ row.avgHrm }} bpm</span>
-            <span v-if="row.maxHrm" class="detail-item">💓 最高心率: {{ row.maxHrm }} bpm</span>
             <span v-if="row.avgSpeed" class="detail-item">⚡ 平均速度: {{ row.avgSpeed }} km/h</span>
             <span v-if="row.avgPace" class="detail-item">🏃 平均配速: {{ formatPace(row.avgPace) }}</span>
           </div>
