@@ -249,7 +249,7 @@
         </div>
 
         <!-- Heart Rate Zones -->
-        <div class="hr-zones-section">
+        <div v-if="hasHeartRateZones" class="hr-zones-section">
           <h4 class="section-title">心率区间</h4>
           <div class="zones-list">
             <div v-for="zone in heartRateZones" :key="zone.name" class="zone-item">
@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted } from 'vue';
+import { ref, watch, nextTick, onMounted, computed } from 'vue';
 import { ElTable, ElTableColumn, ElTag, ElButton } from 'element-plus';
 import * as echarts from 'echarts';
 import { useDateStore } from '../../stores/dateStore.js';
@@ -300,6 +300,13 @@ const heartRateZones = ref([
   { name: '无氧', duration: 0, color: '#ee6666' },
   { name: '极限', duration: 0, color: '#73c0de' }
 ]);
+
+// Check if there are valid heart rate zones data
+const hasHeartRateZones = computed(() => {
+  if (!selectedRecord.value) return false;
+  const totalDuration = heartRateZones.value.reduce((sum, zone) => sum + zone.duration, 0);
+  return totalDuration > 0;
+});
 
 // Format timestamp to time string (HH:mm)
 function formatTime(timestamp) {
@@ -490,7 +497,6 @@ function filterNightRecords(records) {
 // Handle row selection
 function handleRowSelect(row) {
   selectedRecord.value = row;
-  selectedFeeling.value = null;
   
   if (row) {
     nextTick(() => {
@@ -795,11 +801,9 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 /* Detail Panel Styles */
 .detail-panel {
   margin-top: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: white;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .detail-header {
@@ -807,12 +811,15 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--card-border);
 }
 
 .detail-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .info-cards {
@@ -823,42 +830,38 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .info-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
+  background: var(--card-bg);
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.info-card.primary {
-  background: rgba(255, 255, 255, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--card-border);
 }
 
 .card-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   margin-bottom: 5px;
+  color: var(--text-primary);
 }
 
 .card-label {
   font-size: 12px;
-  opacity: 0.9;
+  color: var(--text-secondary);
 }
 
 .sport-specific {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  border: 1px solid var(--card-border);
 }
 
 .section-title {
   margin: 0 0 15px 0;
   font-size: 16px;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary);
 }
 
 .metrics-grid {
@@ -868,9 +871,9 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .metric-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.03);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -878,12 +881,13 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .metric-label {
   font-size: 12px;
-  opacity: 0.85;
+  color: var(--text-secondary);
 }
 
 .metric-value {
   font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .segments-section {
@@ -917,7 +921,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.03);
   padding: 8px;
   border-radius: 6px;
 }
@@ -934,13 +938,15 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   font-size: 14px;
   font-weight: 600;
   text-align: right;
+  color: var(--text-primary);
 }
 
 .chart-section {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  border: 1px solid var(--card-border);
 }
 
 .hr-stats {
@@ -955,28 +961,30 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   margin-bottom: 5px;
+  color: var(--primary-color, #1890ff);
 }
 
 .stat-label {
   font-size: 12px;
-  opacity: 0.85;
+  color: var(--text-secondary);
 }
 
 .chart-container {
   height: 200px;
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
   border-radius: 8px;
   padding: 10px;
 }
 
 .hr-zones-section {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  border: 1px solid var(--card-border);
 }
 
 .zones-list {
@@ -999,15 +1007,16 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .zone-name {
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .zone-duration {
-  opacity: 0.9;
+  color: var(--text-secondary);
 }
 
 .zone-bar-container {
   height: 12px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -1035,22 +1044,5 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
-
-/* Dark theme adjustments for detail panel */
-:deep(.dark-theme) .detail-panel {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  box-shadow: 0 4px 20px rgba(44, 62, 80, 0.5);
-}
-
-:deep(.dark-theme) .info-card,
-:deep(.dark-theme) .sport-specific,
-:deep(.dark-theme) .chart-section,
-:deep(.dark-theme) .hr-zones-section {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-:deep(.dark-theme) .km-pace-item .pace-bar-container {
-  background: rgba(255, 255, 255, 0.05);
 }
 </style>
