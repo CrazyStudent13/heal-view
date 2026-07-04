@@ -51,6 +51,18 @@
         align="center"
       />
 
+      <!-- Calories column -->
+      <el-table-column 
+        prop="calories" 
+        label="热量消耗" 
+        width="120"
+        align="center"
+      >
+        <template #default="{ row }">
+          <span class="highlight-text">🔥 {{ row.calories }} kcal</span>
+        </template>
+      </el-table-column>
+
       <!-- Average Heart Rate column -->
       <el-table-column 
         prop="avgHrm" 
@@ -84,6 +96,7 @@
       >
         <template #default="{ row }">
           <div class="details-content">
+            <span v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.distanceKm" class="detail-item">📍 {{ row.distanceKm }} 公里</span>
             <span v-if="row.avgSpeed" class="detail-item">⚡ 平均速度: {{ row.avgSpeed }} km/h</span>
             <span v-if="row.avgPace" class="detail-item">🏃 平均配速: {{ formatPace(row.avgPace) }}</span>
           </div>
@@ -101,25 +114,9 @@
 
         <!-- Basic Info Cards -->
         <div class="info-cards">
-          <div class="info-card primary">
-            <div class="card-value">{{ selectedRecord.calories }}</div>
-            <div class="card-label">千卡</div>
-          </div>
-          <div class="info-card">
-            <div class="card-value">{{ formatDuration(selectedRecord.duration) }}</div>
-            <div class="card-label">运动时长</div>
-          </div>
-          <div class="info-card">
-            <div class="card-value">{{ selectedRecord.avgHrm || '--' }}</div>
-            <div class="card-label">平均心率 BPM</div>
-          </div>
           <div class="info-card" v-if="selectedRecord.sport_type === 13 || selectedRecord.categoryName === '划船机'">
             <div class="card-value">{{ selectedRecord.strokes || '--' }}</div>
             <div class="card-label">划动次数</div>
-          </div>
-          <div class="info-card" v-else-if="selectedRecord.sport_type === 2 || selectedRecord.sport_type === 22 || selectedRecord.categoryName === '步行' || selectedRecord.categoryName === '健走'">
-            <div class="card-value">{{ (selectedRecord.distanceKm || 0) }}</div>
-            <div class="card-label">公里</div>
           </div>
           <div class="info-card" v-else-if="selectedRecord.sport_type === 11 || selectedRecord.categoryName === '椭圆机'">
             <div class="card-value">{{ selectedRecord.steps || '--' }}</div>
