@@ -5,7 +5,7 @@
       <div class="card">
         <div class="card-icon steps">👟</div>
         <div class="card-content">
-          <div class="card-label">步数</div>
+          <div class="card-label">{{ t('data.steps') }}</div>
           <div class="card-value">{{ formatNumber(currentSummary.steps) }}</div>
         </div>
       </div>
@@ -13,7 +13,7 @@
       <div class="card">
         <div class="card-icon calories">🔥</div>
         <div class="card-content">
-          <div class="card-label">卡路里</div>
+          <div class="card-label">{{ t('data.calories') }}</div>
           <div class="card-value">{{ formatNumber(currentSummary.calories) }} kcal</div>
         </div>
       </div>
@@ -21,7 +21,7 @@
       <div class="card">
         <div class="card-icon heartrate">❤️</div>
         <div class="card-content">
-          <div class="card-label">平均心率</div>
+          <div class="card-label">{{ t('data.heartRate') }}</div>
           <div class="card-value">{{ currentSummary.avgHeartRate }} bpm</div>
         </div>
       </div>
@@ -29,7 +29,7 @@
       <div class="card">
         <div class="card-icon stress">😌</div>
         <div class="card-content">
-          <div class="card-label">压力指数</div>
+          <div class="card-label">{{ t('data.stress') }}</div>
           <div class="card-value">{{ currentSummary.avgStress }}</div>
         </div>
       </div>
@@ -42,12 +42,12 @@
 
     <!-- Loading State -->
     <div v-if="dataStore.loading" class="loading-state">
-      <p>加载中...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
 
     <!-- Empty State -->
     <div v-if="!currentSummary && !dataStore.loading" class="empty-state">
-      <p>请选择日期查看数据</p>
+      <p>{{ t('nav.selectDateToView') }}</p>
     </div>
   </div>
 </template>
@@ -56,12 +56,15 @@
 import { ref, watch } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import StepsChart from './StepsChart.vue';
 import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const chartData = ref([]);
 const currentSummary = ref(null);

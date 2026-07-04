@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">压力指数趋势</h3>
+    <h3 class="chart-title">{{ t('data.stress') }}{{ t('chart.trend') }}</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -8,6 +8,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
+import { useLocaleStore } from '../../stores/localeStore.js';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   data: {
@@ -42,7 +46,7 @@ const updateChart = () => {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>压力指数: ${data.value}`;
+        return `${data.name}<br/>${t('data.stress')}: ${data.value}`;
       }
     },
     grid: {
@@ -69,7 +73,7 @@ const updateChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: '压力指数',
+      name: t('data.stress'),
       min: 0,
       max: 100,
       nameTextStyle: {
@@ -90,7 +94,7 @@ const updateChart = () => {
       }
     },
     series: [{
-      name: '压力指数',
+      name: t('data.stress'),
       type: 'line',
       smooth: true,
       symbol: 'circle',

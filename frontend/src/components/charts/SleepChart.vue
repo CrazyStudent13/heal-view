@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">{{ t('data.sleep') }}分析</h3>
+    <h3 class="chart-title">{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -74,12 +74,12 @@ const updateChart = () => {
           }
         });
         const total = params.reduce((sum, param) => sum + param.value, 0);
-        result += `<strong>总睡眠: ${total.toFixed(1)} h</strong>`;
+        result += `<strong>${t('chart.totalSleep')}: ${total.toFixed(1)} h</strong>`;
         return result;
       }
     },
     legend: {
-      data: ['深睡', '浅睡', 'REM'],
+      data: [t('chart.deepSleep'), t('chart.lightSleep'), 'REM'],
       right: 10,
       top: 0,
       textStyle: {
@@ -109,7 +109,7 @@ const updateChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: '小时(h)',
+      name: t('chart.hours'),
       min: 0,
       max: 12,
       nameTextStyle: {
@@ -132,7 +132,7 @@ const updateChart = () => {
     },
     series: [
       {
-        name: '深睡',
+        name: t('chart.deepSleep'),
         type: 'bar',
         stack: 'sleep',
         emphasis: {
@@ -144,7 +144,7 @@ const updateChart = () => {
         data: deepSleep
       },
       {
-        name: '浅睡',
+        name: t('chart.lightSleep'),
         type: 'bar',
         stack: 'sleep',
         emphasis: {

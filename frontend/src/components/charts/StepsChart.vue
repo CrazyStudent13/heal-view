@@ -28,26 +28,26 @@
     
     <!-- Statistics cards card -->
     <div v-if="!loading && stats" class="stats-card">
-      <h3 class="card-title">运动统计</h3>
+      <h3 class="card-title">{{ t('chart.exerciseStats') }}</h3>
       <div class="stats-cards">
         <div class="stat-item">
           <div class="stat-icon">⏱️</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">日均运动时长</span>
-              <el-tooltip content="计算公式：总运动时长 ÷ 有运动的天数<br/>说明：仅统计有运动记录的日期的平均值" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.avgExerciseDuration') }}</span>
+              <el-tooltip :content="t('chart.avgExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDurationDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
-            <div class="stat-value">{{ stats.avgExerciseDuration }} 分钟</div>
+            <div class="stat-value">{{ stats.avgExerciseDuration }} {{ t('chart.minutes') }}</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">📏</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">日均运动距离</span>
-              <el-tooltip content="计算公式：总运动距离 ÷ 有运动的天数<br/>说明：仅统计有运动记录的日期的平均距离（单位：km）" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.avgExerciseDistance') }}</span>
+              <el-tooltip :content="t('chart.avgExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDistanceDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
@@ -58,8 +58,8 @@
           <div class="stat-icon">🔥</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">日均消耗热量</span>
-              <el-tooltip content="计算公式：总消耗热量 ÷ 有运动的天数<br/>说明：基于运动记录中的卡路里数据计算的平均值" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.avgDailyCalories') }}</span>
+              <el-tooltip :content="t('chart.avgDailyCaloriesFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgDailyCaloriesDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
@@ -70,20 +70,20 @@
           <div class="stat-icon">🕐</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">累计运动时长</span>
-              <el-tooltip content="计算公式：所有运动记录时长之和<br/>说明：选中时间段内所有运动的总时长（单位：小时）" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.totalExerciseDuration') }}</span>
+              <el-tooltip :content="t('chart.totalExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDurationDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
-            <div class="stat-value">{{ stats.totalExerciseDuration }} 小时</div>
+            <div class="stat-value">{{ stats.totalExerciseDuration }} {{ t('chart.hours') }}</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">📍</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">累计运动距离</span>
-              <el-tooltip content="计算公式：所有运动记录距离之和<br/>说明：选中时间段内所有运动的总距离（单位：km）" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.totalExerciseDistance') }}</span>
+              <el-tooltip :content="t('chart.totalExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDistanceDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
@@ -94,12 +94,12 @@
           <div class="stat-icon">📅</div>
           <div class="stat-content">
             <div class="stat-header">
-              <span class="stat-label">运动天数</span>
-              <el-tooltip content="计算公式：有运动记录的天数 / 选中总天数<br/>说明：分子是有运动的天数，分母是选中的日期总数" placement="top" raw-content>
+              <span class="stat-label">{{ t('chart.exerciseDays') }}</span>
+              <el-tooltip :content="t('chart.exerciseFrequencyFormula') + '<br/>' + t('chart.description') + '：' + t('chart.exerciseFrequencyDesc')" placement="top" raw-content>
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
-            <div class="stat-value">{{ stats.actualExerciseDays }}/{{ stats.totalDays }} 天</div>
+            <div class="stat-value">{{ stats.actualExerciseDays }}/{{ stats.totalDays }} {{ t('chart.days') }}</div>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@
     
     <!-- Chart card -->
     <div v-show="!loading" class="chart-container">
-      <h3 class="chart-title">步数与距离趋势</h3>
+      <h3 class="chart-title">{{ t('chart.stepsDistanceTrend') }}</h3>
       <div ref="chartRef" class="chart"></div>
     </div>
   </div>
@@ -117,6 +117,10 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
+import { useLocaleStore } from '../../stores/localeStore.js';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   data: {
@@ -215,12 +219,12 @@ const updateChart = () => {
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
         params.forEach(param => {
-          if (param.seriesName === '步数') {
-            result += `${param.marker}${param.seriesName}: ${param.value.toLocaleString()} 步<br/>`;
-          } else if (param.seriesName === '距离') {
-            result += `${param.marker}${param.seriesName}: ${param.value.toFixed(2)} km<br/>`;
-          } else if (param.seriesName === '运动热量') {
-            result += `${param.marker}${param.seriesName}: ${param.value} kcal<br/>`;
+          if (param.seriesName === t('chart.steps')) {
+            result += `${param.marker}${t('chart.steps')}: ${param.value.toLocaleString()} ${t('chart.unitSteps')}<br/>`;
+          } else if (param.seriesName === t('chart.distance')) {
+            result += `${param.marker}${t('chart.distance')}: ${param.value.toFixed(2)} km<br/>`;
+          } else if (param.seriesName === t('chart.sportCalories')) {
+            result += `${param.marker}${t('chart.sportCalories')}: ${param.value} kcal<br/>`;
           }
         });
         // Add exercise duration from the data point
@@ -228,16 +232,16 @@ const updateChart = () => {
         const duration = exerciseDuration[dataIndex];
         const calories = sportCalories[dataIndex];
         if (duration > 0) {
-          result += `🏃‍♂️ 运动时长: ${duration} 分钟<br/>`;
+          result += `🏃‍♂️ ${t('chart.totalExerciseDuration')}: ${duration} ${t('chart.minutes')}<br/>`;
         }
         if (calories > 0) {
-          result += `🔥 运动热量: ${calories} kcal<br/>`;
+          result += `🔥 ${t('chart.sportCalories')}: ${calories} kcal<br/>`;
         }
         return result;
       }
     },
     legend: {
-      data: ['步数', '距离', '运动热量'],
+      data: [t('chart.steps'), t('chart.distance'), t('chart.sportCalories')],
       right: 10,
       top: 0,
       textStyle: {
@@ -270,7 +274,7 @@ const updateChart = () => {
     yAxis: [
       {
         type: 'value',
-        name: '步数',
+        name: t('chart.steps'),
         position: 'left',
         nameTextStyle: {
           color: '#1890ff'
@@ -292,7 +296,7 @@ const updateChart = () => {
       },
       {
         type: 'value',
-        name: '距离(km)',
+        name: `${t('chart.distance')}(km)`,
         position: 'right',
         nameTextStyle: {
           color: '#52c41a'
@@ -313,7 +317,7 @@ const updateChart = () => {
     ],
     series: [
       {
-        name: '步数',
+        name: t('chart.steps'),
         type: 'line',
         smooth: true,
         symbol: 'circle',
@@ -334,7 +338,7 @@ const updateChart = () => {
         data: steps
       },
       {
-        name: '距离',
+        name: t('chart.distance'),
         type: 'line',
         smooth: true,
         symbol: 'diamond',

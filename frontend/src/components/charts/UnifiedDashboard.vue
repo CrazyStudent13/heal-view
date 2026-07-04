@@ -9,7 +9,7 @@
       >
         <div class="card-icon steps">👟</div>
         <div class="card-content">
-          <div class="card-label">{{ isCompareMode ? '平均步数' : '步数' }}</div>
+          <div class="card-label">{{ isCompareMode ? t('data.avgSteps') : t('data.steps') }}</div>
           <div class="card-value">{{ formatNumber(displayData.avgSteps) }}</div>
         </div>
       </div>
@@ -21,7 +21,7 @@
       >
         <div class="card-icon calories">🔥</div>
         <div class="card-content">
-          <div class="card-label">{{ isCompareMode ? '平均卡路里' : '卡路里' }}</div>
+          <div class="card-label">{{ isCompareMode ? t('data.avgCalories') : t('data.calories') }}</div>
           <div class="card-value">{{ formatNumber(displayData.avgCalories) }} kcal</div>
         </div>
       </div>
@@ -33,7 +33,7 @@
       >
         <div class="card-icon heartrate">❤️</div>
         <div class="card-content">
-          <div class="card-label">{{ isCompareMode ? '平均心率' : '平均心率' }}</div>
+          <div class="card-label">{{ t('data.heartRate') }}</div>
           <div class="card-value">{{ displayData.avgHeartRate }} bpm</div>
         </div>
       </div>
@@ -45,7 +45,7 @@
       >
         <div class="card-icon stress">😌</div>
         <div class="card-content">
-          <div class="card-label">{{ isCompareMode ? '平均压力' : '压力指数' }}</div>
+          <div class="card-label">{{ isCompareMode ? t('data.avgStress') : t('data.stress') }}</div>
           <div class="card-value">{{ displayData.avgStress }}</div>
         </div>
       </div>
@@ -57,7 +57,7 @@
       >
         <div class="card-icon sleep"></div>
         <div class="card-content">
-          <div class="card-label">{{ isCompareMode ? '平均睡眠' : '睡眠时长' }}</div>
+          <div class="card-label">{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</div>
           <div class="card-value">{{ displayData.avgSleepHours }} h</div>
         </div>
       </div>
@@ -74,13 +74,13 @@
 
     <!-- Empty state -->
     <div v-if="!hasData && !loading" class="empty-state">
-      <p v-if="isCompareMode">请在左侧选择要对比的日期</p>
-      <p v-else>请选择日期查看数据</p>
+      <p v-if="isCompareMode">{{ t('nav.selectDatesToCompare') }}</p>
+      <p v-else>{{ t('nav.selectDateToView') }}</p>
     </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
-      <p>加载中...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
   </div>
 </template>
@@ -89,11 +89,15 @@
 import { ref, computed, watch } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import StepsChart from './StepsChart.vue';
 import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
 import SleepChart from './SleepChart.vue';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   viewMode: {

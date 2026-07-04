@@ -5,7 +5,7 @@
       <div class="card">
         <div class="card-icon steps">📊</div>
         <div class="card-content">
-          <div class="card-label">平均步数</div>
+          <div class="card-label">{{ t('data.avgSteps') }}</div>
           <div class="card-value">{{ formatNumber(avgSteps) }}</div>
         </div>
       </div>
@@ -13,7 +13,7 @@
       <div class="card">
         <div class="card-icon calories">🔥</div>
         <div class="card-content">
-          <div class="card-label">平均卡路里</div>
+          <div class="card-label">{{ t('data.avgCalories') }}</div>
           <div class="card-value">{{ formatNumber(avgCalories) }} kcal</div>
         </div>
       </div>
@@ -21,7 +21,7 @@
       <div class="card">
         <div class="card-icon heartrate">❤️</div>
         <div class="card-content">
-          <div class="card-label">平均心率</div>
+          <div class="card-label">{{ t('data.heartRate') }}</div>
           <div class="card-value">{{ avgHeartRate }} bpm</div>
         </div>
       </div>
@@ -29,7 +29,7 @@
       <div class="card">
         <div class="card-icon max">🏆</div>
         <div class="card-content">
-          <div class="card-label">最高步数</div>
+          <div class="card-label">{{ t('data.maxSteps') }}</div>
           <div class="card-value">{{ formatNumber(maxSteps) }}</div>
         </div>
       </div>
@@ -40,12 +40,12 @@
 
     <!-- Empty state -->
     <div v-if="selectedDates.length === 0" class="empty-state">
-      <p>请在左侧选择要对比的日期</p>
+      <p>{{ t('nav.selectDatesToCompare') }}</p>
     </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
-      <p>加载中...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
   </div>
 </template>
@@ -54,7 +54,11 @@
 import { ref, computed, watch } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import ComparisonChart from './ComparisonChart.vue';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();

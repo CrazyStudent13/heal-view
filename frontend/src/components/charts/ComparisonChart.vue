@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">多日步数对比</h3>
+    <h3 class="chart-title">{{ t('nav.multiDay') }}{{ t('chart.steps') }}{{ t('chart.trend') }}</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -8,6 +8,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
+import { useLocaleStore } from '../../stores/localeStore.js';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   data: {
@@ -42,7 +46,7 @@ const updateChart = () => {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>步数: ${data.value.toLocaleString()} 步`;
+        return `${data.name}<br/>${t('chart.steps')}: ${data.value.toLocaleString()} ${t('chart.unitSteps')}`;
       }
     },
     grid: {
@@ -69,7 +73,7 @@ const updateChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: '步数',
+      name: t('chart.steps'),
       nameTextStyle: {
         color: textColor
       },
@@ -89,7 +93,7 @@ const updateChart = () => {
       }
     },
     series: [{
-      name: '步数',
+      name: t('chart.steps'),
       type: 'line',
       smooth: true,
       symbol: 'circle',

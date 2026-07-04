@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">卡路里消耗</h3>
+    <h3 class="chart-title">{{ t('chart.caloriesBurned') }}</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -8,7 +8,11 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import { useCaloriesChartConfig } from '../../composables/useChartConfig.js';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   data: {
