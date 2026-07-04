@@ -1,25 +1,28 @@
-<template>
+﻿<template>
   <div class="chart-wrapper">
     <!-- Skeleton loading state -->
-    <div v-show="loading" class="skeleton-overlay">
-      <div class="stats-card">
-        <h3 class="card-title">运动统计</h3>
+    <div v-show="loading" class="skeleton-wrapper">
+      <!-- Stats card skeleton -->
+      <div class="stats-card skeleton-stats-card">
+        <div class="skeleton-title-text"></div>
         <div class="stats-cards">
-          <el-skeleton-item 
-            v-for="i in 6" 
-            :key="i"
-            variant="rect" 
-            style="width: calc(33.333% - 8px); height: 80px; border-radius: 10px;" 
-          />
+          <div v-for="i in 6" :key="i" class="stat-item-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-header">
+                <div class="skeleton-label"></div>
+                <div class="skeleton-help-icon"></div>
+              </div>
+              <div class="skeleton-value"></div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="chart-container skeleton-chart">
-        <h3 class="card-title">步数与距离趋势</h3>
-        <el-skeleton animated>
-          <template #default>
-            <el-skeleton-item variant="rect" style="width: 100%; height: 100%;" />
-          </template>
-        </el-skeleton>
+      
+      <!-- Chart container skeleton -->
+      <div class="chart-container skeleton-chart-container">
+        <div class="skeleton-title-text-small"></div>
+        <div class="skeleton-chart-area"></div>
       </div>
     </div>
     
@@ -28,52 +31,82 @@
       <h3 class="card-title">运动统计</h3>
       <div class="stats-cards">
         <div class="stat-item">
-          <div class="stat-icon">🏃‍️</div>
+          <div class="stat-icon">⏱️</div>
           <div class="stat-content">
-            <div class="stat-label">平均日运动时长</div>
+            <div class="stat-header">
+              <span class="stat-label">日均运动时长</span>
+              <el-tooltip content="计算公式：总运动时长 ÷ 有运动的天数<br/>说明：仅统计有运动记录的日期的平均值" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="stat-value">{{ stats.avgExerciseDuration }} 分钟</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">📏</div>
           <div class="stat-content">
-            <div class="stat-label">平均日运动距离</div>
+            <div class="stat-header">
+              <span class="stat-label">日均运动距离</span>
+              <el-tooltip content="计算公式：总运动距离 ÷ 有运动的天数<br/>说明：仅统计有运动记录的日期的平均距离（单位：km）" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="stat-value">{{ stats.avgExerciseDistance }} km</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">🔥</div>
           <div class="stat-content">
-            <div class="stat-label">日平均热量</div>
+            <div class="stat-header">
+              <span class="stat-label">日均消耗热量</span>
+              <el-tooltip content="计算公式：总消耗热量 ÷ 有运动的天数<br/>说明：基于运动记录中的卡路里数据计算的平均值" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="stat-value">{{ stats.avgDailyCalories }} kcal</div>
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon">⏱️</div>
+          <div class="stat-icon">🕐</div>
           <div class="stat-content">
-            <div class="stat-label">累计运动时长</div>
+            <div class="stat-header">
+              <span class="stat-label">累计运动时长</span>
+              <el-tooltip content="计算公式：所有运动记录时长之和<br/>说明：选中时间段内所有运动的总时长（单位：小时）" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="stat-value">{{ stats.totalExerciseDuration }} 小时</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">📍</div>
           <div class="stat-content">
-            <div class="stat-label">累计运动距离</div>
+            <div class="stat-header">
+              <span class="stat-label">累计运动距离</span>
+              <el-tooltip content="计算公式：所有运动记录距离之和<br/>说明：选中时间段内所有运动的总距离（单位：km）" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="stat-value">{{ stats.totalExerciseDistance }} km</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">📅</div>
           <div class="stat-content">
-            <div class="stat-label">周运动天数</div>
-            <div class="stat-value">{{ stats.weeklyExerciseDays }} 天</div>
+            <div class="stat-header">
+              <span class="stat-label">运动天数</span>
+              <el-tooltip content="计算公式：有运动记录的天数 / 选中总天数<br/>说明：分子是有运动的天数，分母是选中的日期总数" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
+            <div class="stat-value">{{ stats.actualExerciseDays }}/{{ stats.totalDays }} 天</div>
           </div>
         </div>
       </div>
     </div>
     
     <!-- Chart card -->
-    <div class="chart-container">
+    <div v-show="!loading" class="chart-container">
       <h3 class="chart-title">步数与距离趋势</h3>
       <div ref="chartRef" class="chart"></div>
     </div>
@@ -83,6 +116,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import * as echarts from 'echarts';
+import { QuestionFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
   data: {
@@ -105,11 +139,17 @@ const stats = computed(() => {
   // Filter days with exercise (totalDurationMinutes > 0)
   const exerciseDays = props.data.filter(item => item.totalDurationMinutes && item.totalDurationMinutes > 0);
   
-  if (exerciseDays.length === 0) {
+  // Total days in selected range
+  const totalDays = props.data.length;
+  // Actual exercise days count
+  const actualExerciseDays = exerciseDays.length;
+  
+  if (actualExerciseDays === 0) {
     return {
       avgExerciseDuration: 0,
       avgExerciseDistance: 0,
-      weeklyExerciseDays: 0,
+      actualExerciseDays: 0,
+      totalDays: totalDays,
       totalExerciseDuration: 0,
       totalExerciseDistance: 0,
       avgDailyCalories: 0
@@ -118,28 +158,11 @@ const stats = computed(() => {
   
   // Calculate average exercise duration (only for days with exercise)
   const totalDuration = exerciseDays.reduce((sum, item) => sum + (item.totalDurationMinutes || 0), 0);
-  const avgExerciseDuration = Math.round(totalDuration / exerciseDays.length);
+  const avgExerciseDuration = Math.round(totalDuration / actualExerciseDays);
   
   // Calculate average exercise distance (only for days with exercise)
   const totalDistance = exerciseDays.reduce((sum, item) => sum + ((item.distance || 0) / 1000), 0);
-  const avgExerciseDistance = (totalDistance / exerciseDays.length).toFixed(2);
-  
-  // Calculate weekly exercise days (count unique weeks with at least one exercise day)
-  const weeksWithExercise = new Set();
-  exerciseDays.forEach(item => {
-    const date = new Date(item.date);
-    // Get ISO week number
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const day = date.getDate();
-    const d = new Date(year, month, day);
-    const dayOfWeek = d.getDay() || 7;
-    d.setDate(d.getDate() + 4 - dayOfWeek);
-    const yearStart = new Date(d.getFullYear(), 0, 1);
-    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    weeksWithExercise.add(`${year}-W${weekNum}`);
-  });
-  const weeklyExerciseDays = weeksWithExercise.size;
+  const avgExerciseDistance = (totalDistance / actualExerciseDays).toFixed(2);
   
   // Calculate total exercise duration and distance
   const totalExerciseDuration = (totalDuration / 60).toFixed(1); // Convert to hours
@@ -147,13 +170,14 @@ const stats = computed(() => {
   
   // Calculate calories from sport_records data
   const totalSportCalories = exerciseDays.reduce((sum, item) => sum + (item.sportCalories || 0), 0);
-  const avgDailyCalories = Math.round(totalSportCalories / exerciseDays.length);
+  const avgDailyCalories = Math.round(totalSportCalories / actualExerciseDays);
   const totalCalories = Math.round(totalSportCalories);
   
   return {
     avgExerciseDuration,
     avgExerciseDistance,
-    weeklyExerciseDays,
+    actualExerciseDays,
+    totalDays,
     totalExerciseDuration,
     totalExerciseDistance,
     avgDailyCalories,
@@ -332,14 +356,16 @@ const updateChart = () => {
   chartInstance.setOption(option);
 };
 
-watch(() => props.data, () => {
-  updateChart();
+watch(() => props.data, (newData) => {
+  // Update chart when data changes and chart is initialized
+  if (newData && newData.length > 0 && chartInstance) {
+    updateChart();
+  }
 }, { deep: true });
 
-// Watch for loading state changes to reinitialize chart
+// Watch for loading state changes to initialize chart when loading finishes
 watch(() => props.loading, async (newLoading) => {
-  if (!newLoading && chartRef.value) {
-    // Wait for DOM to be updated
+  if (!newLoading && props.data && props.data.length > 0) {
     await nextTick();
     setTimeout(() => {
       initChart();
@@ -348,8 +374,11 @@ watch(() => props.loading, async (newLoading) => {
 });
 
 onMounted(() => {
-  if (!props.loading) {
-    initChart();
+  // Initialize chart on mount if not loading and has data
+  if (!props.loading && props.data && props.data.length > 0) {
+    setTimeout(() => {
+      initChart();
+    }, 100);
   }
   window.addEventListener('resize', handleResize);
 });
@@ -398,19 +427,159 @@ const handleResize = () => {
   flex-direction: column;
 }
 
-.skeleton-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--card-bg);
-  z-index: 10;
+.skeleton-wrapper {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+}
+
+/* Skeleton stats card styles */
+.skeleton-stats-card {
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+.skeleton-title-text {
+  width: 120px;
+  height: 24px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  margin-bottom: 24px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.stat-item-skeleton {
+  flex: 0 0 calc(33.333% - 8px);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card-bg);
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  min-height: 80px;
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 10px;
+  flex-shrink: 0;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.skeleton-label {
+  width: 80%;
+  height: 14px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 3px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  flex: 1;
+}
+
+.skeleton-help-icon {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-value {
+  width: 60%;
+  height: 20px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 3px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Skeleton chart container styles */
+.skeleton-chart-container {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-title-text-small {
+  width: 140px;
+  height: 20px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-chart-area {
+  flex: 1;
+  min-height: 280px;
+  background: linear-gradient(90deg, 
+    var(--skeleton-color, #e0e0e0) 25%, 
+    var(--skeleton-highlight, #f0f0f0) 50%, 
+    var(--skeleton-color, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .card-title {
@@ -501,11 +670,31 @@ const handleResize = () => {
   min-width: 0;
 }
 
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.help-icon {
+  font-size: 14px;
+  color: var(--text-secondary, #909399);
+  cursor: help;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.help-icon:hover {
+  color: var(--primary-color, #1890ff);
+  transform: scale(1.1);
+}
+
 .stat-label {
   font-size: 12px;
   color: var(--text-secondary, #909399);
-  margin-bottom: 6px;
   line-height: 1.2;
+  flex: 1;
 }
 
 .stat-value {
@@ -551,5 +740,16 @@ const handleResize = () => {
 
 :deep(.dark-theme) .stat-icon {
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.2), rgba(24, 144, 255, 0.12));
+}
+
+/* Dark theme skeleton styles */
+:deep(.dark-theme) .skeleton-title,
+:deep(.dark-theme) .skeleton-icon,
+:deep(.dark-theme) .skeleton-label,
+:deep(.dark-theme) .skeleton-value,
+:deep(.dark-theme) .skeleton-title-small,
+:deep(.dark-theme) .skeleton-chart-area {
+  --skeleton-color: #3a3a3a;
+  --skeleton-highlight: #4a4a4a;
 }
 </style>

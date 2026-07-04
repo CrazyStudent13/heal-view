@@ -5,7 +5,26 @@
       {{ t('data.overview') }}
     </h3>
     
-    <div class="cards-list" v-if="hasData">
+    <!-- Skeleton loading state -->
+    <div v-if="loading" class="cards-list">
+      <el-card class="card-item" shadow="hover" v-for="i in 5" :key="i">
+        <div class="card-content">
+          <el-skeleton :rows="0" animated>
+            <template #image>
+              <el-skeleton-item variant="circle" style="width: 48px; height: 48px;" />
+            </template>
+            <template #default>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <el-skeleton-item variant="text" style="width: 60%;" />
+                <el-skeleton-item variant="text" style="width: 40%;" />
+              </div>
+            </template>
+          </el-skeleton>
+        </div>
+      </el-card>
+    </div>
+    
+    <div class="cards-list" v-else-if="hasData">
       <el-card 
         class="card-item clickable"
         :class="{ active: currentChartType === 'steps' }"
@@ -120,6 +139,10 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'single'
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -163,7 +186,7 @@ function formatNumber(num) {
 .data-cards-sidebar {
   width: 100%;
   height: 100%;
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
 }
 
@@ -189,6 +212,7 @@ function formatNumber(num) {
   border: 2px solid var(--card-border);
   border-radius: 8px;
   background: var(--card-bg);
+  min-height: 90px;
 }
 
 .card-item:hover {

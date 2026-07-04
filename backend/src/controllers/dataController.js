@@ -115,17 +115,19 @@ export function getDailySummary(req, res) {
     const lightSleepHours = totalLightSleepMinutes > 0 ? (totalLightSleepMinutes / 60).toFixed(1) : 0;
     const remSleepHours = totalRemSleepMinutes > 0 ? (totalRemSleepMinutes / 60).toFixed(1) : 0;
 
-    // Get sport records count and total duration
+    // Get sport records count, total duration, and total calories
     const sportResult = db.exec(`
       SELECT 
         COUNT(*) as count,
-        SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_duration_seconds
+        SUM(CAST(json_extract(value, '$.duration') AS INTEGER)) as total_duration_seconds,
+        SUM(CAST(json_extract(value, '$.calories') AS INTEGER)) as total_calories
       FROM sport_records
       WHERE date = '${date}'
     `);
     const sportCount = sportResult.length > 0 ? sportResult[0].values[0][0] : 0;
     const totalDurationSeconds = sportResult.length > 0 ? (sportResult[0].values[0][1] || 0) : 0;
     const totalDurationMinutes = Math.round(totalDurationSeconds / 60);
+    const sportCalories = sportResult.length > 0 ? (sportResult[0].values[0][2] || 0) : 0;
 
     const summary = {
       date,
@@ -140,7 +142,8 @@ export function getDailySummary(req, res) {
       lightSleepHours: parseFloat(lightSleepHours),
       remSleepHours: parseFloat(remSleepHours),
       sportCount,
-      totalDurationMinutes
+      totalDurationMinutes,
+      sportCalories
     };
 
     // Cache the result

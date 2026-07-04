@@ -1,20 +1,15 @@
 <template>
   <div class="chart-display">
     <!-- Charts based on selected type -->
-    <StepsChart v-if="chartType === 'steps' && hasData" :data="chartData" />
+    <StepsChart v-if="chartType === 'steps'" :data="chartData" :loading="loading" />
     <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
     <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
     <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
     <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
 
     <!-- Empty state -->
-    <div v-if="!hasData" class="empty-state">
+    <div v-if="!hasData && !loading" class="empty-state">
       <p>{{ viewMode === 'compare' ? '请在顶部选择日期' : '请在顶部选择日期查看数据' }}</p>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
-      <p>加载中...</p>
     </div>
   </div>
 </template>
