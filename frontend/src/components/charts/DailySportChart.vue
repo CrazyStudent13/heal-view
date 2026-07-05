@@ -42,9 +42,11 @@
     </div>
     
     <!-- Empty state -->
-    <div v-if="sportRecords.length === 0" class="empty-state">
-      <p>{{ t('chart.noSportRecords') }}</p>
-    </div>
+    <el-empty 
+      v-if="sportRecords.length === 0" 
+      :description="t('chart.noSportRecords')"
+      :image-size="120"
+    />
 
     <!-- Sport table -->
     <el-table 
@@ -60,7 +62,7 @@
       <el-table-column 
         prop="timeRange" 
         label="时间区间" 
-        width="180"
+        min-width="140"
         align="center"
       >
         <template #default="{ row }">
@@ -72,7 +74,7 @@
       <el-table-column 
         prop="categoryName" 
         label="运动类型" 
-        width="120"
+        min-width="100"
         align="center"
       >
         <template #default="{ row }">
@@ -86,7 +88,7 @@
       <el-table-column 
         prop="durationText" 
         label="时长" 
-        width="120"
+        min-width="90"
         align="center"
       />
 
@@ -94,7 +96,7 @@
       <el-table-column 
         prop="calories" 
         label="热量消耗" 
-        width="120"
+        min-width="110"
         align="center"
       >
         <template #default="{ row }">
@@ -106,7 +108,7 @@
       <el-table-column 
         prop="avgHrm" 
         label="平均心率" 
-        width="120"
+        min-width="110"
         align="center"
       >
         <template #default="{ row }">
@@ -119,7 +121,7 @@
       <el-table-column 
         prop="maxHrm" 
         label="最高心率" 
-        width="120"
+        min-width="110"
         align="center"
       >
         <template #default="{ row }">
@@ -131,14 +133,36 @@
       <!-- Details column -->
       <el-table-column 
         label="详细信息" 
-        min-width="200"
+        min-width="100"
+        align="center"
       >
         <template #default="{ row }">
-          <div class="details-content">
-            <span v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.distanceKm" class="detail-item">📍 {{ row.distanceKm }} 公里</span>
-            <span v-if="row.avgSpeed" class="detail-item"> 平均速度: {{ row.avgSpeed }} km/h</span>
-            <span v-if="row.avgPace" class="detail-item"> 平均配速: {{ formatPace(row.avgPace) }}</span>
-          </div>
+          <el-tooltip placement="top" effect="dark">
+            <template #content>
+              <div class="detail-tooltip">
+                <!-- Walking data -->
+                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.distanceKm">📍 {{ row.distanceKm }} 公里</div>
+                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.avgSpeed">平均速度: {{ row.avgSpeed }} km/h</div>
+                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.avgPace">平均配速: {{ formatPace(row.avgPace) }}</div>
+                
+                <!-- Elliptical data -->
+                <div v-if="row.sport_type === 11 || row.categoryName === '椭圆机'">
+                  <div v-if="row.steps">步数: {{ row.steps.toLocaleString() }}</div>
+                  <div v-if="row.avgCadence">平均步频: {{ row.avgCadence }} 步/分</div>
+                  <div v-if="row.maxCadence">最高步频: {{ row.maxCadence }} 步/分</div>
+                </div>
+                
+                <!-- Rowing machine data -->
+                <div v-if="row.sport_type === 13 || row.categoryName === '划船机'">
+                  <div v-if="row.strokes">划动次数: {{ row.strokes.toLocaleString() }}</div>
+                  <div v-if="row.segmentCount > 0">组数: {{ row.segmentCount }} 组</div>
+                  <div v-if="row.avgStrokeRate">平均划频: {{ row.avgStrokeRate }} 次/分</div>
+                  <div v-if="row.maxStrokeRate">最高划频: {{ row.maxStrokeRate }} 次/分</div>
+                </div>
+              </div>
+            </template>
+            <span class="detail-link">查看详情</span>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -148,21 +172,21 @@
       <div v-if="selectedRecord" class="detail-panel">
         <div class="detail-header">
           <h3 class="detail-title">运动详情 - {{ selectedRecord.categoryName }}</h3>
-          <el-button size="small" @click="closeDetail">关闭</el-button>
-        </div>
-
-        <!-- Basic Info Cards -->
-        <div class="info-cards">
-          <div class="info-card" v-if="selectedRecord.sport_type === 13 || selectedRecord.categoryName === '划船机'">
-            <div class="card-value">{{ selectedRecord.strokes || '--' }}</div>
-            <div class="card-label">划动次数</div>
-          </div>
         </div>
 
         <!-- Rowing Machine Details -->
         <div v-if="selectedRecord.sport_type === 13 || selectedRecord.categoryName === '划船机'" class="sport-specific">
-          <h4 class="section-title">划船数据</h4>
           <div class="metrics-grid">
+            <div class="metric-item">
+              <span class="metric-label">划动次数</span>
+              <span class="metric-value">{{ selectedRecord.strokes || '--' }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">组数及平均时长</span>
+              <span class="metric-value">
+                {{ selectedRecord.segmentCount || '--' }} 组 * {{ getRowingGroupDuration(selectedRecord) ? formatDuration(getRowingGroupDuration(selectedRecord)) : '--' }}
+              </span>
+            </div>
             <div class="metric-item">
               <span class="metric-label">平均划频</span>
               <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }} 次/分</span>
@@ -205,13 +229,12 @@
 
         <!-- Walking Details -->
         <div v-else-if="selectedRecord.sport_type === 2 || selectedRecord.sport_type === 22 || selectedRecord.categoryName === '步行' || selectedRecord.categoryName === '健走'" class="sport-specific">
-          <h4 class="section-title">步行数据</h4>
           <div class="metrics-grid">
             <div class="metric-item">
               <span class="metric-label">平均配速</span>
               <span class="metric-value">{{ formatPace(selectedRecord.avgPaceSeconds) }}</span>
             </div>
-            <div class="metric-item">
+            <div v-if="selectedRecord.bestPaceSeconds" class="metric-item">
               <span class="metric-label">最快配速</span>
               <span class="metric-value">{{ formatPace(selectedRecord.bestPaceSeconds) }}</span>
             </div>
@@ -227,13 +250,13 @@
               <span class="metric-label">平均步幅</span>
               <span class="metric-value">{{ selectedRecord.avgStride || '--' }} cm</span>
             </div>
-            <div class="metric-item">
+            <div v-if="selectedRecord.maxStride" class="metric-item">
               <span class="metric-label">最大步幅</span>
-              <span class="metric-value">{{ selectedRecord.maxStride || '--' }} cm</span>
+              <span class="metric-value">{{ selectedRecord.maxStride }} cm</span>
             </div>
-            <div class="metric-item">
+            <div v-if="selectedRecord.elevationGain" class="metric-item">
               <span class="metric-label">累计上升</span>
-              <span class="metric-value">{{ selectedRecord.elevationGain || '--' }} m</span>
+              <span class="metric-value">{{ selectedRecord.elevationGain }} m</span>
             </div>
           </div>
 
@@ -254,7 +277,6 @@
 
         <!-- Elliptical Details -->
         <div v-else-if="selectedRecord.sport_type === 11 || selectedRecord.categoryName === '椭圆机'" class="sport-specific">
-          <h4 class="section-title">椭圆机数据</h4>
           <div class="metrics-grid">
             <div class="metric-item" v-if="selectedRecord.distanceKm && selectedRecord.distanceKm !== '0.00'">
               <span class="metric-label">运动距离</span>
@@ -277,30 +299,8 @@
 
         <!-- Heart Rate Chart Section -->
         <div class="chart-section">
-          <h4 class="section-title">心率 (BPM)</h4>
+          <h4 class="section-title section-title-left">运动心率 (BPM)</h4>
           <div class="chart-container" ref="heartRateChartRef"></div>
-        </div>
-
-        <!-- Heart Rate Zones -->
-        <div v-if="hasHeartRateZones" class="hr-zones-section">
-          <h4 class="section-title">心率区间</h4>
-          <div class="zones-list">
-            <div v-for="zone in heartRateZones" :key="zone.name" class="zone-item">
-              <div class="zone-info">
-                <span class="zone-name">{{ zone.name }}</span>
-                <span class="zone-duration">{{ formatDuration(zone.duration) }}</span>
-              </div>
-              <div class="zone-bar-container">
-                <div 
-                  class="zone-bar" 
-                  :style="{ 
-                    width: getZonePercentage(zone.duration) + '%',
-                    backgroundColor: zone.color
-                  }"
-                ></div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </transition>
@@ -354,6 +354,22 @@ const totalSteps = computed(() => {
   return sportRecords.value.reduce((sum, record) => sum + (record.steps || 0), 0);
 });
 
+// Get average duration per group for rowing machine
+function getRowingGroupDuration(record) {
+  if (!record || record.sport_type !== 13) return null;
+  const totalDuration = record.duration || 0;
+  const restTime = record.restTime || 0;
+  const groupCount = record.segmentCount || 0;
+  
+  if (groupCount === 0) return null;
+  
+  // Calculate average training time per group (excluding rest time)
+  const trainingTime = totalDuration - restTime;
+  const avgDurationPerGroup = Math.round(trainingTime / groupCount);
+  
+  return avgDurationPerGroup;
+}
+
 // Format timestamp to time string (HH:mm)
 function formatTime(timestamp) {
   if (!timestamp) return '--:--';
@@ -376,12 +392,12 @@ function formatDuration(seconds) {
   return `${minutes}分钟`;
 }
 
-// Format pace from seconds per km to min/km
+// Format pace from seconds per km to km/h (speed)
 function formatPace(paceSeconds) {
   if (!paceSeconds || paceSeconds === 0) return '--';
-  const minutes = Math.floor(paceSeconds / 60);
-  const seconds = paceSeconds % 60;
-  return `${minutes}'${seconds.toString().padStart(2, '0')}"`;
+  // Convert seconds per km to km/h: speed = 3600 / paceSeconds
+  const speedKmh = 3600 / paceSeconds;
+  return `${speedKmh.toFixed(1)} km/h`;
 }
 
 // Get category name in Chinese (based on sport_type or category)
@@ -584,6 +600,13 @@ function initHeartRateChart() {
     hrData.push([time, Math.round(baseHR + variation)]);
   }
   
+  // Calculate dynamic Y-axis range based on actual heart rate data
+  const hrValues = hrData.map(item => item[1]);
+  const minHR = Math.min(...hrValues);
+  const maxHR = Math.max(...hrValues);
+  const hrRange = maxHR - minHR;
+  const padding = Math.max(hrRange * 0.15, 10); // At least 10 BPM padding
+  
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -594,25 +617,49 @@ function initHeartRateChart() {
       }
     },
     grid: {
-      left: '50px',
+      left: '60px',
       right: '20px',
-      top: '20px',
-      bottom: '40px'
+      top: '10px',
+      bottom: '30px'
     },
     xAxis: {
       type: 'value',
       name: '时间',
+      nameLocation: 'end',
+      nameTextStyle: {
+        fontSize: 12
+      },
       axisLabel: {
+        fontSize: 11,
         formatter: function(value) {
           return formatDuration(value);
+        }
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: 'rgba(200, 200, 200, 0.2)'
         }
       }
     },
     yAxis: {
       type: 'value',
       name: 'BPM',
-      min: 50,
-      max: 200
+      nameLocation: 'end',
+      nameTextStyle: {
+        fontSize: 12
+      },
+      min: Math.floor(minHR - padding),
+      max: Math.ceil(maxHR + padding),
+      axisLabel: {
+        fontSize: 11
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: 'rgba(200, 200, 200, 0.2)'
+        }
+      }
     },
     series: [
       {
@@ -689,6 +736,20 @@ watch(() => dateStore.selectedDate, async (newDate) => {
       try {
         const value = typeof record.value === 'string' ? JSON.parse(record.value) : record.value;
         
+        // Debug: Log segments for rowing machine
+        if (value.sport_type === 13 || value.category === 'rowing_machine') {
+          console.log('[DailySportChart] Rowing machine raw value:', value);
+          console.log('[DailySportChart] Segments:', value.segments);
+          console.log('[DailySportChart] All keys in value:', Object.keys(value));
+          // Check for any fields that might contain segment/group info
+          const possibleSegmentFields = ['segments', 'groups', 'sets', 'intervals', 'laps', 'splits'];
+          possibleSegmentFields.forEach(field => {
+            if (value[field]) {
+              console.log(`[DailySportChart] Found ${field}:`, value[field]);
+            }
+          });
+        }
+        
         const startTime = value.start_time || record.time;
         const endTime = value.end_time || (startTime + (value.duration || 0));
         const duration = value.duration || 0;
@@ -723,9 +784,10 @@ watch(() => dateStore.selectedDate, async (newDate) => {
           // Rowing specific
           strokes: value.strokes || value.row_count,
           avgStrokeRate: value.avg_stroke_rate || value.avg_row_freq,
-          maxStrokeRate: value.max_stroke_rate || value.max_row_freq,
-          restTime: value.rest_time || 0,
+          maxStrokeRate: value.max_stroke_rate || value.best_row_freq,
+          restTime: value.rest_time || value.rest_between_group_duration || 0,
           segments: value.segments || [],
+          segmentCount: value.group_count || 0,
           
           // Walking specific
           avgPaceSeconds: value.avg_pace_seconds || value.avg_pace,
@@ -760,6 +822,22 @@ watch(() => dateStore.selectedDate, async (newDate) => {
     sportRecords.value = filterNightRecords(parsedRecords).sort((a, b) => a.start_time - b.start_time);
     
     console.log('[DailySportChart] Filtered records:', sportRecords.value.length);
+    
+    // Debug: Log rowing machine data
+    const rowingRecord = sportRecords.value.find(r => r.sport_type === 13 || r.categoryName === '划船机');
+    if (rowingRecord) {
+      console.log('[DailySportChart] Parsed rowing record:', rowingRecord);
+      console.log('[DailySportChart] Segment count:', rowingRecord.segmentCount);
+    }
+    
+    // Auto-select first record if available
+    if (sportRecords.value.length > 0 && !selectedRecord.value) {
+      selectedRecord.value = sportRecords.value[0];
+      nextTick(() => {
+        initHeartRateChart();
+        updateHeartRateZones(sportRecords.value[0]);
+      });
+    }
   } catch (error) {
     console.error('Failed to fetch sport records:', error);
     sportRecords.value = [];
@@ -861,13 +939,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   color: var(--text-primary);
 }
 
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
-  background: #fafafa;
-  border-radius: 8px;
-}
+
 
 .time-range {
   font-weight: 600;
@@ -880,18 +952,25 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   font-weight: 600;
 }
 
-.details-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.detail-link {
+  font-size: 13px;
+  color: #1890ff;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
-.detail-item {
-  font-size: 12px;
-  color: #666;
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 4px;
+.detail-link:hover {
+  color: #40a9ff;
+}
+
+.detail-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.detail-tooltip div {
   white-space: nowrap;
 }
 
@@ -900,11 +979,15 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   color: #ff4d4f;
 }
 
-/* Dark theme adjustments */
-:deep(.dark-theme) .empty-state {
-  background: #2a2a2a;
-  color: #888;
+.group-duration {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: normal;
 }
+
+/* Dark theme adjustments */
 
 :deep(.dark-theme) .summary-card-item {
   background: #2a2a2a;
@@ -989,6 +1072,10 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   color: var(--text-primary);
 }
 
+.section-title-left {
+  text-align: left;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1067,11 +1154,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .chart-section {
-  background: var(--card-bg);
-  padding: 15px;
-  border-radius: 8px;
   margin-bottom: 15px;
-  border: 1px solid var(--card-border);
 }
 
 .hr-stats {
@@ -1098,7 +1181,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .chart-container {
-  height: 180px;
+  height: 300px;
   background: transparent;
   border-radius: 8px;
   padding: 10px;
