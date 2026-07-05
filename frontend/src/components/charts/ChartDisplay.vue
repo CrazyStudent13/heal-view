@@ -5,8 +5,10 @@
       <!-- Default to sport records when no specific chart selected -->
       <DailySportChart v-if="chartType === 'sport' || chartType === 'steps'" />
       
+      <!-- Show time series heart rate chart for single day mode -->
+      <SingleDayHeartRateChart v-if="chartType === 'heartrate'" />
+      
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
       <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
     </template>
@@ -35,6 +37,7 @@ import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
 import SleepChart from './SleepChart.vue';
 import DailySportChart from './DailySportChart.vue';
+import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
 
 const props = defineProps({
   chartData: {

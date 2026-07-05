@@ -99,6 +99,9 @@ export const useLocaleStore = defineStore('locale', () => {
       'chart.exerciseDays': '运动天数',
       'chart.minutes': '分钟',
       'chart.days': '天',
+      'chart.heartRateRange': '心率范围',
+      'chart.restingHeartRate': '静息心率',
+      'chart.unitBpm': '次/分',
       
       // Days of week
       'day.monday': '周一',
@@ -197,6 +200,9 @@ export const useLocaleStore = defineStore('locale', () => {
       'chart.exerciseDays': 'Exercise Days',
       'chart.minutes': 'min',
       'chart.days': 'days',
+      'chart.heartRateRange': 'Heart Rate Range',
+      'chart.restingHeartRate': 'Resting Heart Rate',
+      'chart.unitBpm': 'bpm',
       
       // Days of week
       'day.monday': 'Mon',

@@ -189,13 +189,48 @@ export function getTimeSeries(req, res) {
     `);
 
     const data = result.length > 0
-      ? result[0].values.map(row => ({
-          time: row[0],
-          value: parseFloat(row[1]) || 0
-        }))
+      ? result[0].values.map(row => {
+          // Parse JSON value for metrics that store data in JSON format
+          let value;
+          try {
+            const jsonValue = typeof row[1] === 'string' ? JSON.parse(row[1]) : row[1];
+            
+            // Extract the appropriate field based on metric type
+            if (metric === 'heart_rate') {
+              value = jsonValue.bpm || 0;
+            } else if (metric === 'stress') {
+              value = jsonValue.stress || 0;
+            } else if (metric === 'steps') {
+              value = jsonValue.steps || 0;
+            } else if (metric === 'calories') {
+              value = jsonValue.calories || 0;
+            } else {
+              // For other metrics, try to parse as number or use default
+              value = parseFloat(jsonValue) || 0;
+            }
+          } catch (e) {
+            // If parsing fails, try to parse as float directly
+            value = parseFloat(row[1]) || 0;
+          }
+          
+          return {
+            time: row[0],
+            value: value
+          };
+        })
       : [];
 
-    const response = { date, metric, data };
+    // Remove duplicates - keep only unique time entries
+    const seen = new Set();
+    const uniqueData = data.filter(item => {
+      if (seen.has(item.time)) {
+        return false;
+      }
+      seen.add(item.time);
+      return true;
+    });
+
+    const response = { date, metric, data: uniqueData };
 
     // Cache the result
     cacheManager.set(cacheKey, response, config.cacheTTL.summary);
