@@ -18,7 +18,6 @@
       </div>
     </div>
     
-    <h3 class="chart-title">{{ t('chart.heartRateMonitor') }}</h3>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
