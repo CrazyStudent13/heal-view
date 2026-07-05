@@ -181,8 +181,11 @@ export function useHeartRateChartConfig() {
     tooltip: {
       trigger: 'axis',
       formatter: (params) => {
-        const data = params[0];
-        return `${data.name}<br/>心率: ${data.value} bpm`;
+        let result = `${params[0].name}<br/>`;
+        params.forEach(param => {
+          result += `${param.marker}${param.seriesName}: ${param.value} bpm<br/>`;
+        });
+        return result;
       }
     },
     legend: {
