@@ -147,6 +147,9 @@ const handleResize = () => {
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  height: 100%; /* Use full height to match sidebar */
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-title {
@@ -154,10 +157,12 @@ const handleResize = () => {
   font-size: 16px;
   color: var(--text-primary);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .chart {
   width: 100%;
-  height: 350px;
+  flex: 1; /* Take remaining space */
+  min-height: 300px;
 }
 </style>

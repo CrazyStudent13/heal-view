@@ -716,16 +716,15 @@ const handleResize = () => {
   border: 1px solid var(--card-border);
   overflow: hidden;
   flex: 1;
-  min-height: 350px;
-  max-height: calc(100vh - 280px);
+  height: 100%; /* Use full height to match sidebar */
   display: flex;
   flex-direction: column;
 }
 
 .chart {
   width: 100%;
-  height: 100%;
-  min-height: 280px;
+  flex: 1; /* Take remaining space */
+  min-height: 300px;
   overflow: hidden;
 }
 

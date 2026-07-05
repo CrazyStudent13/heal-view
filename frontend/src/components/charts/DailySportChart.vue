@@ -1196,10 +1196,12 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .chart-container {
-  height: 300px;
+  height: 100%; /* Use full height to match sidebar */
   background: transparent;
   border-radius: 8px;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .hr-zones-section {
