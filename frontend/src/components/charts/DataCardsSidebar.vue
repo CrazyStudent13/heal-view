@@ -43,6 +43,7 @@
       </el-card>
 
       <el-card 
+        v-if="isCompareMode"
         class="card-item clickable"
         :class="{ active: currentChartType === 'calories' }"
         shadow="hover"
@@ -53,7 +54,7 @@
             <span class="icon-text">🔥</span>
           </div>
           <div class="card-info">
-            <div class="card-label">{{ isCompareMode ? t('data.avgCalories') : t('data.calories') }}</div>
+            <div class="card-label">{{ t('data.avgCalories') }}</div>
             <div class="card-value">{{ formatNumber(displayData.avgCalories) }} kcal</div>
           </div>
         </div>

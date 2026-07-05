@@ -5,8 +5,7 @@
       <!-- Default to sport records when no specific chart selected -->
       <DailySportChart v-if="chartType === 'sport' || chartType === 'steps'" />
       
-      <!-- Show other charts when explicitly selected -->
-      <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
+      <!-- Show other charts when explicitly selected (no calories in single mode) -->
       <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
       <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
