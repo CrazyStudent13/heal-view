@@ -1,7 +1,16 @@
 <template>
   <div class="chart-display">
-    <!-- Single day mode: show daily sport activities -->
-    <DailySportChart v-if="viewMode === 'single'" />
+    <!-- Single day mode: show different content based on chart type -->
+    <template v-if="viewMode === 'single'">
+      <!-- Default to sport records when no specific chart selected -->
+      <DailySportChart v-if="chartType === 'sport' || chartType === 'steps'" />
+      
+      <!-- Show other charts when explicitly selected -->
+      <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
+      <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
+      <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
+      <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+    </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
     <template v-else-if="viewMode === 'compare'">

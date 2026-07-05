@@ -100,7 +100,7 @@ const isDarkMode = computed({
 });
 
 const viewMode = ref('single'); // Default to single day mode for debugging
-const currentChartType = ref('steps');
+const currentChartType = ref('sport'); // Default to sport records in single mode
 const chartData = ref([]);
 const loading = ref(false);
 
@@ -202,7 +202,7 @@ async function initDefaultData() {
 // Watch for changes in single mode
 watch(() => dateStore.selectedDate, async (newDate) => {
   if (viewMode.value === 'single') {
-    currentChartType.value = 'steps';
+    // Keep current chart type when switching dates in single mode
     await fetchSingleDayData(newDate);
   }
 });
@@ -217,7 +217,8 @@ watch(() => dateStore.selectedDates, async (newDates) => {
 
 // Watch for view mode changes
 watch(viewMode, async (newMode) => {
-  currentChartType.value = 'steps';
+  // Set default chart type based on mode
+  currentChartType.value = newMode === 'single' ? 'sport' : 'steps';
   
   if (newMode === 'single') {
     // Switch to single mode
