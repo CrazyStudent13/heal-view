@@ -55,6 +55,7 @@
       stripe
       highlight-current-row
       @current-change="handleRowSelect"
+      height="180"
       style="width: 100%; margin-top: 15px;"
       :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
     >
@@ -830,17 +831,31 @@ watch(() => dateStore.selectedDate, async (newDate) => {
       console.log('[DailySportChart] Segment count:', rowingRecord.segmentCount);
     }
     
-    // Auto-select first record if available
-    if (sportRecords.value.length > 0 && !selectedRecord.value) {
-      selectedRecord.value = sportRecords.value[0];
-      nextTick(() => {
-        initHeartRateChart();
-        updateHeartRateZones(sportRecords.value[0]);
-      });
+    // Clear selected record when no sport records available
+    if (sportRecords.value.length === 0) {
+      selectedRecord.value = null;
+      if (heartRateChart) {
+        heartRateChart.dispose();
+        heartRateChart = null;
+      }
+    } else {
+      // Auto-select first record if not already selected
+      if (!selectedRecord.value) {
+        selectedRecord.value = sportRecords.value[0];
+        nextTick(() => {
+          initHeartRateChart();
+          updateHeartRateZones(sportRecords.value[0]);
+        });
+      }
     }
   } catch (error) {
     console.error('Failed to fetch sport records:', error);
     sportRecords.value = [];
+    selectedRecord.value = null;
+    if (heartRateChart) {
+      heartRateChart.dispose();
+      heartRateChart = null;
+    }
   }
 }, { immediate: true });
 </script>
