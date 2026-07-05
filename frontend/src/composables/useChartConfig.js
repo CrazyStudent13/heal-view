@@ -187,6 +187,7 @@ export function useHeartRateChartConfig() {
     },
     legend: {
       data: ['平均心率', '最高心率'],
+      right: 0,
       top: 0,
       textStyle: {
         color: colors.textColor
