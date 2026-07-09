@@ -60,6 +60,7 @@
           :chart-type="currentChartType"
           :view-mode="viewMode"
           :loading="loading"
+          :sleep-timeline-data="sleepTimelineData"
         />
       </div>
     </div>
@@ -102,14 +103,22 @@ const isDarkMode = computed({
 const viewMode = ref('single'); // Default to single day mode for debugging
 const currentChartType = ref('sport'); // Default to sport records in single mode
 const chartData = ref([]);
+const sleepTimelineData = ref(null);
 const loading = ref(false);
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
 
 // Handle chart type change
-function handleChartChange(type) {
+async function handleChartChange(type) {
   currentChartType.value = type;
+  
+  // Fetch sleep timeline when switching to sleep chart in single mode
+  if (type === 'sleep' && viewMode.value === 'single' && dateStore.selectedDate) {
+    sleepTimelineData.value = await dataStore.fetchSleepTimeline(dateStore.selectedDate);
+  } else if (type !== 'sleep') {
+    sleepTimelineData.value = null;
+  }
 }
 
 // Fetch data for single mode
@@ -204,6 +213,11 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   if (viewMode.value === 'single') {
     // Keep current chart type when switching dates in single mode
     await fetchSingleDayData(newDate);
+    
+    // Re-fetch sleep timeline if currently viewing sleep chart
+    if (currentChartType.value === 'sleep' && newDate) {
+      sleepTimelineData.value = await dataStore.fetchSleepTimeline(newDate);
+    }
   }
 });
 
@@ -219,6 +233,9 @@ watch(() => dateStore.selectedDates, async (newDates) => {
 watch(viewMode, async (newMode) => {
   // Set default chart type based on mode
   currentChartType.value = newMode === 'single' ? 'sport' : 'steps';
+  
+  // Clear sleep timeline data when switching modes
+  sleepTimelineData.value = null;
   
   if (newMode === 'single') {
     // Switch to single mode

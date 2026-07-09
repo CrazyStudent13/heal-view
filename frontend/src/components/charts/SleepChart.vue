@@ -40,7 +40,8 @@ const updateChart = () => {
   const filteredData = props.data.filter(item => {
     const totalSleep = (item.deepSleepHours || 0) + 
                        (item.lightSleepHours || 0) + 
-                       (item.remSleepHours || 0);
+                       (item.remSleepHours || 0) +
+                       (item.awakeSleepHours || 0);
     return totalSleep > 0;
   });
 
@@ -53,6 +54,7 @@ const updateChart = () => {
   const deepSleep = filteredData.map(item => item.deepSleepHours || 0);
   const lightSleep = filteredData.map(item => item.lightSleepHours || 0);
   const remSleep = filteredData.map(item => item.remSleepHours || 0);
+  const awakeSleep = filteredData.map(item => item.awakeSleepHours || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
@@ -79,7 +81,7 @@ const updateChart = () => {
       }
     },
     legend: {
-      data: [t('chart.deepSleep'), t('chart.lightSleep'), 'REM'],
+      data: [t('chart.deepSleep'), t('chart.lightSleep'), 'REM', t('chart.awakeSleep')],
       right: 10,
       top: 0,
       textStyle: {
@@ -133,39 +135,75 @@ const updateChart = () => {
     series: [
       {
         name: t('chart.deepSleep'),
-        type: 'bar',
+        type: 'line',
         stack: 'sleep',
+        smooth: true,
+        symbol: 'none',
         emphasis: {
           focus: 'series'
         },
-        itemStyle: {
-          color: '#5b8ff9'
+        lineStyle: {
+          width: 0
+        },
+        areaStyle: {
+          color: '#5b8ff9',
+          opacity: 0.8
         },
         data: deepSleep
       },
       {
         name: t('chart.lightSleep'),
-        type: 'bar',
+        type: 'line',
         stack: 'sleep',
+        smooth: true,
+        symbol: 'none',
         emphasis: {
           focus: 'series'
         },
-        itemStyle: {
-          color: '#5ad8a6'
+        lineStyle: {
+          width: 0
+        },
+        areaStyle: {
+          color: '#5ad8a6',
+          opacity: 0.8
         },
         data: lightSleep
       },
       {
         name: 'REM',
-        type: 'bar',
+        type: 'line',
         stack: 'sleep',
+        smooth: true,
+        symbol: 'none',
         emphasis: {
           focus: 'series'
         },
-        itemStyle: {
-          color: '#f6bd60'
+        lineStyle: {
+          width: 0
+        },
+        areaStyle: {
+          color: '#f6bd60',
+          opacity: 0.8
         },
         data: remSleep
+      },
+      {
+        name: t('chart.awakeSleep'),
+        type: 'line',
+        stack: 'sleep',
+        smooth: true,
+        symbol: 'none',
+        emphasis: {
+          focus: 'series'
+        },
+        lineStyle: {
+          width: 0
+        },
+        areaStyle: {
+          color: '#ee6666',
+          opacity: 0.8
+        },
+        data: awakeSleep
       }
     ]
   };

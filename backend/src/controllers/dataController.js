@@ -100,7 +100,8 @@ export function getDailySummary(req, res) {
         AVG(CAST(json_extract(value, '$.duration') AS INTEGER)) as avg_sleep,
         AVG(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as avg_deep_sleep,
         AVG(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as avg_light_sleep,
-        AVG(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as avg_rem_sleep
+        AVG(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as avg_rem_sleep,
+        AVG(CAST(json_extract(value, '$.sleep_awake_duration') AS INTEGER)) as avg_awake_sleep
       FROM fitness_data
       WHERE date = '${date}' AND key = 'sleep'
     `);
@@ -108,12 +109,14 @@ export function getDailySummary(req, res) {
     const totalDeepSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][1] || 0 : 0;
     const totalLightSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][2] || 0 : 0;
     const totalRemSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][3] || 0 : 0;
+    const totalAwakeSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][4] || 0 : 0;
     
     // Convert to hours with 1 decimal place
     const sleepHours = totalSleepMinutes > 0 ? (totalSleepMinutes / 60).toFixed(1) : 0;
     const deepSleepHours = totalDeepSleepMinutes > 0 ? (totalDeepSleepMinutes / 60).toFixed(1) : 0;
     const lightSleepHours = totalLightSleepMinutes > 0 ? (totalLightSleepMinutes / 60).toFixed(1) : 0;
     const remSleepHours = totalRemSleepMinutes > 0 ? (totalRemSleepMinutes / 60).toFixed(1) : 0;
+    const awakeSleepHours = totalAwakeSleepMinutes > 0 ? (totalAwakeSleepMinutes / 60).toFixed(1) : 0;
 
     // Get sport records count, total duration, and total calories
     const sportResult = db.exec(`
@@ -141,6 +144,7 @@ export function getDailySummary(req, res) {
       deepSleepHours: parseFloat(deepSleepHours),
       lightSleepHours: parseFloat(lightSleepHours),
       remSleepHours: parseFloat(remSleepHours),
+      awakeSleepHours: parseFloat(awakeSleepHours),
       sportCount,
       totalDurationMinutes,
       sportCalories
@@ -355,5 +359,96 @@ export function getFilterOptions(req, res) {
   } catch (error) {
     console.error('Error getting filter options:', error);
     res.status(500).json({ error: 'Failed to fetch filter options' });
+  }
+}
+
+/**
+ * Get sleep timeline for a specific date
+ */
+export function getSleepTimeline(req, res) {
+  try {
+    const { date } = req.params;
+    const cacheKey = `sleep_timeline_${date}`;
+
+    // Check cache
+    const cached = cacheManager.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const db = databaseService.getDb();
+
+    // Get sleep data with items array
+    const result = db.exec(`
+      SELECT value FROM fitness_data
+      WHERE date = '${date}' AND key = 'sleep'
+      LIMIT 1
+    `);
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      return res.json({
+        date,
+        bedtime: null,
+        wakeUpTime: null,
+        totalDuration: 0,
+        segments: []
+      });
+    }
+
+    const sleepData = JSON.parse(result[0].values[0][0]);
+
+    if (!sleepData.items || sleepData.items.length === 0) {
+      return res.json({
+        date,
+        bedtime: null,
+        wakeUpTime: null,
+        totalDuration: sleepData.duration || 0,
+        segments: []
+      });
+    }
+
+    // State mapping: 2=deep, 3=light, 4=rem, 5=awake
+    const stateMap = {
+      2: 'deep',
+      3: 'light',
+      4: 'rem',
+      5: 'awake'
+    };
+
+    // Convert items to segments with formatted time
+    const segments = sleepData.items.map(item => {
+      const startDate = new Date(item.start_time * 1000);
+      const endDate = new Date(item.end_time * 1000);
+      const duration = Math.round((item.end_time - item.start_time) / 60); // in minutes
+
+      return {
+        startTime: startDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        endTime: endDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        state: stateMap[item.state] || 'unknown',
+        duration: duration,
+        startTimestamp: item.start_time,
+        endTimestamp: item.end_time
+      };
+    });
+
+    // Format bedtime and wakeUpTime
+    const bedtime = sleepData.bedtime ? new Date(sleepData.bedtime * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+    const wakeUpTime = sleepData.wake_up_time ? new Date(sleepData.wake_up_time * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+
+    const timeline = {
+      date,
+      bedtime,
+      wakeUpTime,
+      totalDuration: sleepData.duration || 0,
+      segments
+    };
+
+    // Cache the result
+    cacheManager.set(cacheKey, timeline, config.cacheTTL.summary);
+
+    res.json(timeline);
+  } catch (error) {
+    console.error('Error getting sleep timeline:', error);
+    res.status(500).json({ error: 'Failed to fetch sleep timeline' });
   }
 }

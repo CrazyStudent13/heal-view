@@ -4,7 +4,8 @@ import {
   getDailySummary,
   getTimeSeries,
   getSportRecords,
-  getFilterOptions
+  getFilterOptions,
+  getSleepTimeline
 } from '../controllers/dataController.js';
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.get('/sports', getSportRecords);
 
 // Get filter options
 router.get('/filters/options', getFilterOptions);
+
+// Get sleep timeline for a specific date
+router.get('/sleep/timeline/:date', getSleepTimeline);
 
 export default router;

@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getDailySummary, getTimeSeries, getSportRecords } from '../api/fitnessApi.js';
+import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline } from '../api/fitnessApi.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});
   const timeSeriesData = ref({});
   const sportRecords = ref([]);
+  const sleepTimelines = ref({});
   const loading = ref(false);
   const error = ref(null);
 
@@ -82,23 +83,51 @@ export const useDataStore = defineStore('data', () => {
   }
 
   /**
+   * Fetch sleep timeline for a date
+   */
+  async function fetchSleepTimeline(date) {
+    // Return cached data if available
+    if (sleepTimelines.value[date]) {
+      return sleepTimelines.value[date];
+    }
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const timeline = await getSleepTimeline(date);
+      sleepTimelines.value[date] = timeline;
+      return timeline;
+    } catch (err) {
+      error.value = err.message;
+      console.error('Failed to fetch sleep timeline:', err);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
    * Clear cache
    */
   function clearCache() {
     dailySummaries.value = {};
     timeSeriesData.value = {};
     sportRecords.value = [];
+    sleepTimelines.value = {};
   }
 
   return {
     dailySummaries,
     timeSeriesData,
     sportRecords,
+    sleepTimelines,
     loading,
     error,
     fetchDailySummary,
     fetchTimeSeries,
     fetchSportRecords,
+    fetchSleepTimeline,
     clearCache
   };
 });

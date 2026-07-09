@@ -10,7 +10,8 @@
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
       <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
-      <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+      <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" />
+      <SleepChart v-if="chartType === 'sleep' && !sleepTimelineData && hasData" :data="chartData" />
     </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
@@ -36,6 +37,7 @@ import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
 import StressChart from './StressChart.vue';
 import SleepChart from './SleepChart.vue';
+import SleepTimelineChart from './SleepTimelineChart.vue';
 import DailySportChart from './DailySportChart.vue';
 import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
 
@@ -55,6 +57,10 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  sleepTimelineData: {
+    type: Object,
+    default: null
   }
 });
 

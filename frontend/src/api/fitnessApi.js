@@ -34,3 +34,10 @@ export function getSportRecords(params = {}) {
 export function getFilterOptions() {
   return apiClient.get('/filters/options');
 }
+
+/**
+ * Get sleep timeline for a specific date
+ */
+export function getSleepTimeline(date) {
+  return apiClient.get(`/sleep/timeline/${date}`);
+}
