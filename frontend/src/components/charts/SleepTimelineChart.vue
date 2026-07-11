@@ -156,34 +156,26 @@ function buildChart() {
 
   // ---- 心率热力图数据 ----
   const hrSeriesData = [];
+  let hrMin = 50, hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
   if (hrRaw && hrRaw.length > 0) {
     const hrPoints = hrRaw.filter(p => p.value > 0);
     if (hrPoints.length > 0) {
-      const hrMin = Math.min(...hrPoints.map(p => p.value));
-      const hrMax = Math.max(...hrPoints.map(p => p.value));
-      const hrRange = hrMax - hrMin || 1;
-      const hrOpacity = (val) => 0.05 + ((val - hrMin) / hrRange) * 0.45;
+      hrMin = Math.min(...hrPoints.map(p => p.value));
+      hrMax = Math.max(...hrPoints.map(p => p.value));
 
-      // 获取当天 0 点的 Unix 时间戳（秒），用于转换心率时间
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
       segs.forEach(seg => {
         const sm = t2m(seg.startTime);
         const em = t2m(seg.endTime);
         const inRange = hrPoints.filter(p => {
-          // 心率 time 是 Unix 时间戳（秒），转为当天分钟数
           const pm = Math.round((p.time - day0) / 60);
           return pm >= sm && pm < em;
         });
         if (inRange.length > 0) {
           const avgHR = Math.round(inRange.reduce((a, b) => a + b.value, 0) / inRange.length);
-          hrSeriesData.push({
-            value: [sm, em, avgHR],
-            itemStyle: {
-              color: `rgba(255, 60, 60, ${hrOpacity(avgHR).toFixed(2)})`
-            }
-          });
+          hrSeriesData.push({ value: [sm, em, avgHR], _avgHR: avgHR, _segTime: `${seg.startTime}-${seg.endTime}` });
         }
       });
     }
@@ -197,6 +189,14 @@ function buildChart() {
       borderColor: '#333',
       textStyle: { color: '#ddd', fontSize: 13 },
       formatter: p => {
+        if (p.seriesName === 'hrHeatmap') {
+          const d = p.data;
+          const hr = d._avgHR || 0;
+          const intensity = hr > 85 ? '#ff4d4f' : hr > 70 ? '#ff9f43' : '#aaa';
+          return `<strong>${d._segTime}</strong><br/>
+            <span style="color:${intensity};font-size:18px;font-weight:700;">♥ ${hr} bpm</span><br/>
+            <span style="color:#888;font-size:11px;">该时段平均心率</span>`;
+        }
         const s = segs[p.dataIndex]; if (!s) return '';
         const st = sNorm(s.state);
         const cfg = stageConfig[st] || stageConfig.light;
@@ -206,7 +206,7 @@ function buildChart() {
           ${cfg.label}：${d}分钟`;
       }
     },
-    grid: { left: 8, right: 8, bottom: 30, top: 8, containLabel: false },
+    grid: { left: 8, right: 44, bottom: 30, top: 8, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -225,6 +225,23 @@ function buildChart() {
       axisTick: { show: false },
       splitLine: { show: false }
     },
+    visualMap: hrSeriesData.length > 0 ? {
+      min: hrMin,
+      max: hrMax,
+      dimension: 2,
+      seriesIndex: 1,
+      inRange: { color: ['rgba(20,20,20,0)', '#ff3d2e'] },
+      outOfRange: { color: ['rgba(20,20,20,0)'] },
+      orient: 'vertical',
+      right: 6,
+      top: 'center',
+      itemWidth: 10,
+      itemHeight: 100,
+      text: [`${hrMax}`, `${hrMin}`],
+      textStyle: { color: '#999', fontSize: 10 },
+      calculable: false,
+      show: true
+    } : undefined,
     series: [{
       type: 'custom',
       encode: { x: [1, 2], y: 0 },
@@ -264,6 +281,7 @@ function buildChart() {
     },
     // 心率热力图覆盖层
     ...(hrSeriesData.length > 0 ? [{
+      name: 'hrHeatmap',
       type: 'custom',
       encode: { x: [0, 1], y: 2 },
       renderItem: (params, api) => {
