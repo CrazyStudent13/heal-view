@@ -47,8 +47,10 @@
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
-            <div class="stat-value">{{ metrics.bmi || 0 }}</div>
-            <div class="stat-sub">{{ bmiCategoryText }}</div>
+            <div class="bmi-value-row">
+              <span class="stat-value">{{ metrics.bmi || 0 }}</span>
+              <el-tag v-if="metrics.bmi" :type="bmiTagType" size="small">{{ bmiCategory }}</el-tag>
+            </div>
           </div>
         </div>
 
@@ -86,8 +88,7 @@
             <div class="stat-header">
               <span class="stat-label">{{ t('weight.highestWeight') }}</span>
             </div>
-            <div class="stat-value">{{ highestWeightDisplay }} {{ t('weight.kg') }}</div>
-            <div v-if="highestWeightDate" class="stat-sub">{{ highestWeightDate }}</div>
+            <div class="stat-value">{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">（{{ highestWeightDate }}）</span></div>
           </div>
         </div>
 
@@ -169,16 +170,23 @@ const highestWeightDate = computed(() => {
   return typeof hw === 'object' ? hw.date : '';
 });
 
-// BMI category text
-const bmiCategoryText = computed(() => {
-  if (!metrics.value || !metrics.value.bmi) return '';
-  const bmi = metrics.value.bmi;
-  const ref = metrics.value.bmiReference;
-  if (!ref) return '';
-  if (bmi < 18.5) return t('weight.bmiCategoryCurrent') + '「' + t('weight.bmiUnderweight') + '」(< 18.5)';
-  if (bmi < 24) return t('weight.bmiCategoryCurrent') + '「' + t('weight.bmiNormal') + '」(18.5-24)';
-  if (bmi < 28) return t('weight.bmiCategoryCurrent') + '「' + t('weight.bmiOverweight') + '」(24-28)';
-  return t('weight.bmiCategoryCurrent') + '「' + t('weight.bmiObese') + '」(≥ 28)';
+// BMI category label for tag display
+const bmiCategory = computed(() => {
+  const bmi = metrics.value?.bmi;
+  if (!bmi) return '';
+  if (bmi < 18.5) return t('weight.bmiUnderweight');
+  if (bmi < 24) return t('weight.bmiNormal');
+  if (bmi < 28) return t('weight.bmiOverweight');
+  return t('weight.bmiObese');
+});
+
+const bmiTagType = computed(() => {
+  const bmi = metrics.value?.bmi;
+  if (!bmi) return 'info';
+  if (bmi < 18.5) return 'primary';
+  if (bmi < 24) return 'success';
+  if (bmi < 28) return 'warning';
+  return 'danger';
 });
 
 // Initial → target weight display
@@ -190,22 +198,34 @@ const initTargetDisplay = computed(() => {
   return t('weight.noTarget');
 });
 
-// BMI tooltip with reference table
+// BMI tooltip with horizontal reference table
 const bmiTooltipContent = computed(() => {
   const ref = metrics.value?.bmiReference;
   if (!ref) return t('weight.bmiFormula') + '<br/>' + t('weight.bmiDesc');
-  
-  const lines = [
-    t('weight.bmiFormula'),
-    t('weight.bmiDesc') + '（' + ref.userHeight + 'cm）',
-    '',
-    '--- ' + t('weight.bmi') + ' ' + t('chart.formula') + ' ' + t('chart.description') + ' ---',
-    t('weight.bmiUnderweight') + ' (&lt;18.5): &lt; ' + ref.underweight.weight + 'kg',
-    t('weight.bmiNormal') + ' (18.5-24): ' + ref.underweight.weight + ' - ' + ref.normal.weight + 'kg',
-    t('weight.bmiOverweight') + ' (24-28): ' + ref.normal.weight + ' - ' + ref.overweight.weight + 'kg',
-    t('weight.bmiObese') + ' (≥28): &gt; ' + ref.overweight.weight + 'kg'
-  ];
-  return lines.join('<br/>');
+
+  return `<div style="line-height:1.8">
+    ${t('weight.bmiFormula')} &nbsp; ${t('weight.bmiDesc')}（${ref.userHeight}cm）
+    <table style="margin-top:6px;border-collapse:collapse;width:100%;text-align:center">
+      <tr>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t('weight.bmiUnderweight')}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#52c41a;color:#fff;font-weight:600">${t('weight.bmiNormal')}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#fa8c16;color:#fff;font-weight:600">${t('weight.bmiOverweight')}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#ff4d4f;color:#fff;font-weight:600">${t('weight.bmiObese')}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt;18.5</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">18.5-24</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">24-28</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#ff4d4f">≥28</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt; ${ref.underweight.weight}kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">${ref.underweight.weight}-${ref.normal.weight}kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">${ref.normal.weight}-${ref.overweight.weight}kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#ff4d4f">&gt; ${ref.overweight.weight}kg</td>
+      </tr>
+    </table>
+  </div>`;
 });
 
 // Calories tooltip: breakdown of BMR + sport calories
@@ -600,6 +620,19 @@ const handleResize = () => {
   font-weight: 600;
   color: var(--text-primary, #303133);
   line-height: 1.2;
+}
+
+.bmi-value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hw-date {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary, #909399);
+  margin-left: 2px;
 }
 
 .stat-sub {

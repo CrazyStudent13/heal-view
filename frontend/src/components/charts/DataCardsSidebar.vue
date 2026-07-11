@@ -81,24 +81,6 @@
       </el-card>
 
       <el-card 
-        v-if="isCompareMode"
-        class="card-item clickable"
-        :class="{ active: currentChartType === 'calories' }"
-        shadow="hover"
-        @click="$emit('chart-change', 'calories')"
-      >
-        <div class="card-content">
-          <div class="card-icon calories">
-            <span class="icon-text">🔥</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.avgCalories') }}</div>
-            <div class="card-value">{{ formatNumber(displayData.avgCalories) }} kcal</div>
-          </div>
-        </div>
-      </el-card>
-
-      <el-card 
         class="card-item clickable"
         :class="{ active: currentChartType === 'heartrate' }"
         shadow="hover"
@@ -117,23 +99,6 @@
 
       <el-card 
         class="card-item clickable"
-        :class="{ active: currentChartType === 'stress' }"
-        shadow="hover"
-        @click="$emit('chart-change', 'stress')"
-      >
-        <div class="card-content">
-          <div class="card-icon stress">
-            <span class="icon-text">📊</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ isCompareMode ? t('data.avgStress') : t('data.stress') }}</div>
-            <div class="card-value">{{ displayData.avgStress }}</div>
-          </div>
-        </div>
-      </el-card>
-
-      <el-card 
-        class="card-item clickable"
         :class="{ active: currentChartType === 'sleep' }"
         shadow="hover"
         @click="$emit('chart-change', 'sleep')"
@@ -145,6 +110,24 @@
           <div class="card-info">
             <div class="card-label">{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</div>
             <div class="card-value">{{ displayData.avgSleepHours }} h</div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-card 
+        v-if="isCompareMode"
+        class="card-item clickable"
+        :class="{ active: currentChartType === 'calories' }"
+        shadow="hover"
+        @click="$emit('chart-change', 'calories')"
+      >
+        <div class="card-content">
+          <div class="card-icon calories">
+            <span class="icon-text">🔥</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">{{ t('data.avgCalories') }}</div>
+            <div class="card-value">{{ formatNumber(displayData.avgCalories) }} kcal</div>
           </div>
         </div>
       </el-card>
@@ -214,7 +197,6 @@ const displayData = computed(() => {
     const avgSteps = Math.round(props.chartData.reduce((acc, item) => acc + item.steps, 0) / props.chartData.length);
     const avgCalories = Math.round(props.chartData.reduce((acc, item) => acc + item.calories, 0) / props.chartData.length);
     const avgHeartRate = Math.round(props.chartData.reduce((acc, item) => acc + item.avgHeartRate, 0) / props.chartData.length);
-    const avgStress = Math.round(props.chartData.reduce((acc, item) => acc + item.avgStress, 0) / props.chartData.length);
     const avgSleepHours = (props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length).toFixed(1);
 
     const avgWeightItems = props.chartData.filter(item => item.avgWeight && item.avgWeight > 0);
@@ -222,14 +204,13 @@ const displayData = computed(() => {
       ? (avgWeightItems.reduce((acc, item) => acc + item.avgWeight, 0) / avgWeightItems.length).toFixed(1)
       : '--';
 
-    return { avgSteps, avgCalories, avgHeartRate, avgStress, avgSleepHours, avgWeight };
+    return { avgSteps, avgCalories, avgHeartRate, avgSleepHours, avgWeight };
   } else {
     const item = props.chartData[0];
     return {
       avgSteps: item.steps || 0,
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
-      avgStress: item.avgStress || 0,
       avgSleepHours: item.sleepHours || 0,
       avgWeight: item.avgWeight || 0
     };
@@ -321,11 +302,6 @@ function formatNumber(num) {
 .card-icon.heartrate {
   background: #fff1f0;
   color: #ff4d4f;
-}
-
-.card-icon.stress {
-  background: #f9f0ff;
-  color: #722ed1;
 }
 
 .card-icon.sleep {

@@ -12,7 +12,6 @@
       <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" />
       <SleepChart v-if="chartType === 'sleep' && !sleepTimelineData && hasData" :data="chartData" />
     </template>
@@ -22,7 +21,6 @@
       <StepsChart v-if="chartType === 'steps'" :data="chartData" :loading="loading" />
       <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
       <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
-      <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
       <WeightChart v-if="chartType === 'weight'" :weight-data="weightData" :loading="loading" />
     </template>
@@ -39,7 +37,6 @@ import { computed } from 'vue';
 import StepsChart from './StepsChart.vue';
 import CaloriesChart from './CaloriesChart.vue';
 import HeartRateChart from './HeartRateChart.vue';
-import StressChart from './StressChart.vue';
 import SleepChart from './SleepChart.vue';
 import SleepTimelineChart from './SleepTimelineChart.vue';
 import DailySportChart from './DailySportChart.vue';
