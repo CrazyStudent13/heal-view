@@ -185,7 +185,7 @@ const bmiCategoryText = computed(() => {
 const initTargetDisplay = computed(() => {
   const init = metrics.value?.initialWeight;
   const target = metrics.value?.targetWeight;
-  if (init && target) return `${init} → ${target} ${t('weight.kg')}`;
+  if (init && target) return `${init}${t('weight.kg')} / ${target}${t('weight.kg')}`;
   if (target) return `${target} ${t('weight.kg')}`;
   return t('weight.noTarget');
 });
@@ -313,7 +313,7 @@ const updateChart = () => {
       return parseFloat((initW + (targetW - initW) * ratio).toFixed(1));
     });
     series.push({
-      name: `${t('weight.initialWeight')} → ${t('weight.targetWeight')}`,
+      name: t('weight.targetWeight'),
       type: 'line',
       symbol: 'none',
       lineStyle: {
@@ -326,7 +326,7 @@ const updateChart = () => {
       },
       data: trendData
     });
-    legendData.push(`${t('weight.initialWeight')} → ${t('weight.targetWeight')}`);
+    legendData.push(t('weight.targetWeight'));
   } else if (metrics.value?.targetWeight) {
     // Fallback: horizontal target line if no initial weight
     const targetLine = Array(dates.length).fill(metrics.value.targetWeight);
