@@ -7,6 +7,7 @@ import {
   getFilterOptions,
   getSleepTimeline
 } from '../controllers/dataController.js';
+import { getWeightData } from '../controllers/weightController.js';
 
 const router = express.Router();
 
@@ -27,5 +28,8 @@ router.get('/filters/options', getFilterOptions);
 
 // Get sleep timeline for a specific date
 router.get('/sleep/timeline/:date', getSleepTimeline);
+
+// Get weight data with optional date range
+router.get('/weight/data', getWeightData);
 
 export default router;

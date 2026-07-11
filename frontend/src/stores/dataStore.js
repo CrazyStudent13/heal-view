@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline } from '../api/fitnessApi.js';
+import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData } from '../api/fitnessApi.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});
   const timeSeriesData = ref({});
   const sportRecords = ref([]);
   const sleepTimelines = ref({});
+  const weightData = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
@@ -108,6 +109,26 @@ export const useDataStore = defineStore('data', () => {
   }
 
   /**
+   * Fetch weight data with optional date range
+   */
+  async function fetchWeightData(params = {}) {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const data = await getWeightData(params);
+      weightData.value = data;
+      return data;
+    } catch (err) {
+      error.value = err.message;
+      console.error('Failed to fetch weight data:', err);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
    * Clear cache
    */
   function clearCache() {
@@ -115,6 +136,7 @@ export const useDataStore = defineStore('data', () => {
     timeSeriesData.value = {};
     sportRecords.value = [];
     sleepTimelines.value = {};
+    weightData.value = null;
   }
 
   return {
@@ -122,12 +144,14 @@ export const useDataStore = defineStore('data', () => {
     timeSeriesData,
     sportRecords,
     sleepTimelines,
+    weightData,
     loading,
     error,
     fetchDailySummary,
     fetchTimeSeries,
     fetchSportRecords,
     fetchSleepTimeline,
+    fetchWeightData,
     clearCache
   };
 });

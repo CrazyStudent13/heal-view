@@ -110,6 +110,24 @@
           </div>
         </div>
       </el-card>
+
+      <el-card 
+        v-if="isCompareMode"
+        class="card-item clickable"
+        :class="{ active: currentChartType === 'weight' }"
+        shadow="hover"
+        @click="$emit('chart-change', 'weight')"
+      >
+        <div class="card-content">
+          <div class="card-icon weight">
+            <span class="icon-text">⚖️</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">{{ t('data.avgWeight') }}</div>
+            <div class="card-value">{{ displayData.avgWeight }} kg</div>
+          </div>
+        </div>
+      </el-card>
     </div>
 
     <el-empty v-else :description="t('chart.selectDate')" :image-size="100" />
@@ -165,7 +183,12 @@ const displayData = computed(() => {
     const avgStress = Math.round(props.chartData.reduce((acc, item) => acc + item.avgStress, 0) / props.chartData.length);
     const avgSleepHours = (props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length).toFixed(1);
 
-    return { avgSteps, avgCalories, avgHeartRate, avgStress, avgSleepHours };
+    const avgWeightItems = props.chartData.filter(item => item.avgWeight && item.avgWeight > 0);
+    const avgWeight = avgWeightItems.length > 0
+      ? (avgWeightItems.reduce((acc, item) => acc + item.avgWeight, 0) / avgWeightItems.length).toFixed(1)
+      : '--';
+
+    return { avgSteps, avgCalories, avgHeartRate, avgStress, avgSleepHours, avgWeight };
   } else {
     const item = props.chartData[0];
     return {
@@ -173,7 +196,8 @@ const displayData = computed(() => {
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
       avgStress: item.avgStress || 0,
-      avgSleepHours: item.sleepHours || 0
+      avgSleepHours: item.sleepHours || 0,
+      avgWeight: item.avgWeight || 0
     };
   }
 });
@@ -273,6 +297,11 @@ function formatNumber(num) {
 .card-icon.sleep {
   background: #fff7e6;
   color: #fa8c16;
+}
+
+.card-icon.weight {
+  background: #f9f0ff;
+  color: #722ed1;
 }
 
 .card-info {

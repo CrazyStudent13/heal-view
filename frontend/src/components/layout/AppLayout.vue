@@ -61,6 +61,7 @@
           :view-mode="viewMode"
           :loading="loading"
           :sleep-timeline-data="sleepTimelineData"
+          :weight-data="weightData"
         />
       </div>
     </div>
@@ -104,6 +105,7 @@ const viewMode = ref('single'); // Default to single day mode for debugging
 const currentChartType = ref('sport'); // Default to sport records in single mode
 const chartData = ref([]);
 const sleepTimelineData = ref(null);
+const weightData = ref(null);
 const loading = ref(false);
 
 const dateStore = useDateStore();
@@ -118,6 +120,11 @@ async function handleChartChange(type) {
     sleepTimelineData.value = await dataStore.fetchSleepTimeline(dateStore.selectedDate);
   } else if (type !== 'sleep') {
     sleepTimelineData.value = null;
+  }
+  
+  // Fetch weight data when switching to weight chart in compare mode
+  if (type === 'weight' && viewMode.value === 'compare') {
+    await fetchWeightData();
   }
 }
 
@@ -169,6 +176,74 @@ async function fetchCompareData(dates) {
   }
   chartData.value = data.sort((a, b) => new Date(a.date) - new Date(b.date));
   loading.value = false;
+  
+  // Async fetch weight data for sidebar card display (don't block loading)
+  fetchWeightDataForSidebar(dates);
+}
+
+// Fetch weight data only for sidebar display (no loading state change)
+async function fetchWeightDataForSidebar(dates) {
+  if (dates.length === 0) return;
+  
+  try {
+    const sorted = [...dates].sort();
+    const startDate = sorted[0];
+    const endDate = sorted[sorted.length - 1];
+    
+    const data = await dataStore.fetchWeightData({ startDate, endDate });
+    
+    if (data && data.dailyData) {
+      const weightChartData = data.dailyData.map(item => ({
+        date: item.date,
+        avgWeight: item.avgWeight
+      }));
+      if (weightChartData.length > 0) {
+        const mergedData = chartData.value.map(item => {
+          const weightItem = weightChartData.find(w => w.date === item.date);
+          return weightItem ? { ...item, avgWeight: weightItem.avgWeight } : item;
+        });
+        chartData.value = mergedData;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch weight data for sidebar:', error);
+  }
+}
+
+// Fetch weight data for the current date range
+async function fetchWeightData() {
+  if (dateStore.selectedDates.length === 0) return;
+  
+  try {
+    const sorted = [...dateStore.selectedDates].sort();
+    const startDate = sorted[0];
+    const endDate = sorted[sorted.length - 1];
+    
+    loading.value = true;
+    const data = await dataStore.fetchWeightData({ startDate, endDate });
+    weightData.value = data;
+    
+    // Also update chartData with weight info for sidebar card display
+    if (data && data.dailyData) {
+      const weightChartData = data.dailyData.map(item => ({
+        date: item.date,
+        avgWeight: item.avgWeight
+      }));
+      // Merge weight data into chartData for sidebar display
+      if (weightChartData.length > 0) {
+        const mergedData = chartData.value.map(item => {
+          const weightItem = weightChartData.find(w => w.date === item.date);
+          return weightItem ? { ...item, avgWeight: weightItem.avgWeight } : item;
+        });
+        chartData.value = mergedData;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch weight data:', error);
+    weightData.value = null;
+  } finally {
+    loading.value = false;
+  }
 }
 
 // Get last 30 days with training data
@@ -225,6 +300,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 watch(() => dateStore.selectedDates, async (newDates) => {
   if (viewMode.value === 'compare') {
     currentChartType.value = 'steps';
+    weightData.value = null; // Clear weight data on mode switch
     await fetchCompareData(newDates);
   }
 }, { deep: true });
@@ -236,6 +312,7 @@ watch(viewMode, async (newMode) => {
   
   // Clear sleep timeline data when switching modes
   sleepTimelineData.value = null;
+  weightData.value = null; // Clear weight data on mode switch
   
   if (newMode === 'single') {
     // Switch to single mode

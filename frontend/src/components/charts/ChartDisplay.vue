@@ -21,6 +21,7 @@
       <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
       <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+      <WeightChart v-if="chartType === 'weight'" :weight-data="weightData" :loading="loading" />
     </template>
 
     <!-- Empty state for compare mode -->
@@ -40,6 +41,7 @@ import SleepChart from './SleepChart.vue';
 import SleepTimelineChart from './SleepTimelineChart.vue';
 import DailySportChart from './DailySportChart.vue';
 import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
+import WeightChart from './WeightChart.vue';
 
 const props = defineProps({
   chartData: {
@@ -59,6 +61,10 @@ const props = defineProps({
     default: false
   },
   sleepTimelineData: {
+    type: Object,
+    default: null
+  },
+  weightData: {
     type: Object,
     default: null
   }

@@ -41,3 +41,10 @@ export function getFilterOptions() {
 export function getSleepTimeline(date) {
   return apiClient.get(`/sleep/timeline/${date}`);
 }
+
+/**
+ * Get weight data with optional date range
+ */
+export function getWeightData(params = {}) {
+  return apiClient.get('/weight/data', { params });
+}
