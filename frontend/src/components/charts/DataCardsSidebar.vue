@@ -44,7 +44,25 @@
           </div>
         </div>
       </el-card>
-
+      
+      <el-card 
+        v-if="isCompareMode"
+        class="card-item clickable"
+        :class="{ active: currentChartType === 'weight' }"
+        shadow="hover"
+        @click="$emit('chart-change', 'weight')"
+      >
+        <div class="card-content">
+          <div class="card-icon weight">
+            <span class="icon-text">⚖️</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">{{ t('data.avgWeight') }}</div>
+            <div class="card-value">{{ displayData.avgWeight }} kg</div>
+          </div>
+        </div>
+      </el-card>
+      
       <el-card 
         class="card-item clickable"
         :class="{ active: currentChartType === 'steps' }"
@@ -127,24 +145,6 @@
           <div class="card-info">
             <div class="card-label">{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</div>
             <div class="card-value">{{ displayData.avgSleepHours }} h</div>
-          </div>
-        </div>
-      </el-card>
-
-      <el-card 
-        v-if="isCompareMode"
-        class="card-item clickable"
-        :class="{ active: currentChartType === 'weight' }"
-        shadow="hover"
-        @click="$emit('chart-change', 'weight')"
-      >
-        <div class="card-content">
-          <div class="card-icon weight">
-            <span class="icon-text">⚖️</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.avgWeight') }}</div>
-            <div class="card-value">{{ displayData.avgWeight }} kg</div>
           </div>
         </div>
       </el-card>

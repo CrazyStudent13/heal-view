@@ -163,6 +163,7 @@ const bmiTagType = computed(() => {
   font-size: 18px;
   color: var(--text-primary);
   font-weight: 600;
+  text-align: left;
 }
 
 .info-section {

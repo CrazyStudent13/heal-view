@@ -104,7 +104,7 @@ const isDarkMode = computed({
 });
 
 const viewMode = ref('single'); // Default to single day mode for debugging
-const currentChartType = ref('sport'); // Default to sport records in single mode
+const currentChartType = ref('personal'); // Default to personal/basic info in single mode
 const chartData = ref([]);
 const sleepTimelineData = ref(null);
 const weightData = ref(null);
@@ -311,7 +311,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 // Watch for changes in compare mode
 watch(() => dateStore.selectedDates, async (newDates) => {
   if (viewMode.value === 'compare') {
-    currentChartType.value = 'steps';
+    currentChartType.value = 'weight';
     weightData.value = null; // Clear weight data on mode switch
     await fetchCompareData(newDates);
   }
@@ -320,7 +320,7 @@ watch(() => dateStore.selectedDates, async (newDates) => {
 // Watch for view mode changes
 watch(viewMode, async (newMode) => {
   // Set default chart type based on mode
-  currentChartType.value = newMode === 'single' ? 'sport' : 'steps';
+  currentChartType.value = newMode === 'single' ? 'personal' : 'weight';
   
   // Clear sleep timeline data when switching modes
   sleepTimelineData.value = null;
@@ -342,6 +342,7 @@ watch(viewMode, async (newMode) => {
     const last30Days = getLast30Days();
     dateStore.selectedDates = last30Days;
     await fetchCompareData(last30Days);
+    await fetchWeightData();
   }
 });
 
