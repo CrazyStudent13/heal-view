@@ -44,9 +44,11 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore';
+import { useDataStore } from '../../stores/dataStore';
 
 const localeStore = useLocaleStore();
 function t(key) { return localeStore.t(key); }
+const dataStore = useDataStore();
 
 const props = defineProps({
   data: { type: Object, required: true },
@@ -56,6 +58,7 @@ const props = defineProps({
 const chartRef = ref(null);
 let chartInstance = null;
 const timelineData = ref(props.data);
+const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
 const avgHeartRateDisplay = computed(() =>
   props.avgHeartRate ? `${props.avgHeartRate} bpm` : '-- bpm'
@@ -151,6 +154,41 @@ function buildChart() {
     return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
   });
 
+  // ---- 心率热力图数据 ----
+  const hrSeriesData = [];
+  const hrRaw = heartRateTS.value?.data;
+  if (hrRaw && hrRaw.length > 0) {
+    const hrPoints = hrRaw.filter(p => p.value > 0);
+    if (hrPoints.length > 0) {
+      const hrMin = Math.min(...hrPoints.map(p => p.value));
+      const hrMax = Math.max(...hrPoints.map(p => p.value));
+      const hrRange = hrMax - hrMin || 1;
+      const hrOpacity = (val) => 0.05 + ((val - hrMin) / hrRange) * 0.45;
+
+      // 获取当天 0 点的 Unix 时间戳（秒），用于转换心率时间
+      const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
+
+      segs.forEach(seg => {
+        const sm = t2m(seg.startTime);
+        const em = t2m(seg.endTime);
+        const inRange = hrPoints.filter(p => {
+          // 心率 time 是 Unix 时间戳（秒），转为当天分钟数
+          const pm = Math.round((p.time - day0) / 60);
+          return pm >= sm && pm < em;
+        });
+        if (inRange.length > 0) {
+          const avgHR = Math.round(inRange.reduce((a, b) => a + b.value, 0) / inRange.length);
+          hrSeriesData.push({
+            value: [sm, em, avgHR],
+            itemStyle: {
+              color: `rgba(255, 60, 60, ${hrOpacity(avgHR).toFixed(2)})`
+            }
+          });
+        }
+      });
+    }
+  }
+
   const option = {
     backgroundColor: bg,
     tooltip: {
@@ -223,7 +261,29 @@ function buildChart() {
         };
       },
       data: seriesData
-    }]
+    },
+    // 心率热力图覆盖层
+    ...(hrSeriesData.length > 0 ? [{
+      type: 'custom',
+      encode: { x: [0, 1], y: 2 },
+      renderItem: (params, api) => {
+        const startVal = api.value(0);
+        const endVal = api.value(1);
+        const pointStart = api.coord([startVal, 0]);
+        const pointEnd = api.coord([endVal, 1]);
+        const x = pointStart[0] - 0.5;
+        const w = Math.max(1, pointEnd[0] - pointStart[0] + 1);
+        const h = pointStart[1] - pointEnd[1];
+        const rectShape = echarts.graphic.clipRectByRect(
+          { x, y: pointEnd[1], width: w, height: h },
+          { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
+        );
+        return rectShape && { type: 'rect', shape: rectShape, style: api.style() };
+      },
+      data: hrSeriesData,
+      z: 5
+    }] : [])
+    ]
   };
 
   chartInstance.setOption(option, true);
@@ -231,7 +291,13 @@ function buildChart() {
 
 const initChart = () => { if (chartRef.value) { chartInstance = echarts.init(chartRef.value); buildChart(); } };
 
-watch(() => props.data, nd => { timelineData.value = nd; if (nd?.segments?.length) buildChart(); }, { deep: true });
+watch(() => props.data, async nd => {
+  timelineData.value = nd;
+  if (nd?.date) {
+    heartRateTS.value = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
+  }
+  buildChart();
+}, { deep: true, immediate: true });
 
 onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', () => chartInstance?.resize()); });
 onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', () => chartInstance?.resize()); });
