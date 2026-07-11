@@ -93,15 +93,14 @@ export function getDailySummary(req, res) {
     `);
     const avgStress = stressResult.length > 0 ? Math.round(stressResult[0].values[0][0] || 0) : 0;
 
-    // Get sleep duration - extract from sleep JSON (duration field in minutes)
-    // Use AVG instead of SUM because there may be duplicate records for the same day
+    // Get sleep duration - use MAX to pick the longest sleep record (avoid averaging naps with night sleep)
     const sleepResult = db.exec(`
       SELECT 
-        AVG(CAST(json_extract(value, '$.duration') AS INTEGER)) as avg_sleep,
-        AVG(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as avg_deep_sleep,
-        AVG(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as avg_light_sleep,
-        AVG(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as avg_rem_sleep,
-        AVG(CAST(json_extract(value, '$.sleep_awake_duration') AS INTEGER)) as avg_awake_sleep
+        MAX(CAST(json_extract(value, '$.duration') AS INTEGER)) as max_sleep,
+        MAX(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as max_deep_sleep,
+        MAX(CAST(json_extract(value, '$.sleep_light_duration') AS INTEGER)) as max_light_sleep,
+        MAX(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as max_rem_sleep,
+        MAX(CAST(json_extract(value, '$.sleep_awake_duration') AS INTEGER)) as max_awake_sleep
       FROM fitness_data
       WHERE date = '${date}' AND key = 'sleep'
     `);
@@ -378,11 +377,10 @@ export function getSleepTimeline(req, res) {
 
     const db = databaseService.getDb();
 
-    // Get sleep data with items array
+    // Get ALL sleep records for the date (may have multiple: nap + night sleep)
     const result = db.exec(`
       SELECT value FROM fitness_data
       WHERE date = '${date}' AND key = 'sleep'
-      LIMIT 1
     `);
 
     if (result.length === 0 || result[0].values.length === 0) {
@@ -395,7 +393,33 @@ export function getSleepTimeline(req, res) {
       });
     }
 
-    const sleepData = JSON.parse(result[0].values[0][0]);
+    // Parse all records and pick the one with the most items (detailed sleep data)
+    let bestSleepData = null;
+    let maxItems = -1;
+    for (const row of result[0].values) {
+      try {
+        const parsed = JSON.parse(row[0]);
+        const itemCount = (parsed.items && parsed.items.length) || 0;
+        if (itemCount > maxItems) {
+          maxItems = itemCount;
+          bestSleepData = parsed;
+        }
+      } catch (e) {
+        // Skip malformed records
+      }
+    }
+
+    if (!bestSleepData) {
+      return res.json({
+        date,
+        bedtime: null,
+        wakeUpTime: null,
+        totalDuration: 0,
+        segments: []
+      });
+    }
+
+    const sleepData = bestSleepData;
 
     if (!sleepData.items || sleepData.items.length === 0) {
       return res.json({

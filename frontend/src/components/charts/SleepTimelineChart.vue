@@ -1,414 +1,269 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">{{ t('chart.sleepTimeline') }}</h3>
-    
-    <!-- Summary info -->
-    <div v-if="timelineData" class="summary-info">
-      <div class="info-item">
-        <span class="label">{{ t('chart.bedtime') }}:</span>
-        <span class="value">{{ timelineData.bedtime || '--' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="label">{{ t('chart.wakeUpTime') }}:</span>
-        <span class="value">{{ timelineData.wakeUpTime || '--' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="label">{{ t('data.sleep') }}:</span>
-        <span class="value">{{ timelineData.totalDuration }} {{ t('chart.minutes') }}</span>
-      </div>
+    <div v-if="hasData" class="sleep-overview-cards">
+      <el-card class="overview-card" shadow="hover">
+        <div class="overview-card-content">
+          <div class="card-icon sleep-icon"><span class="icon-text">🌙</span></div>
+          <div class="card-info">
+            <div class="card-label">总睡眠（{{ timelineData.bedtime }} → {{ timelineData.wakeUpTime }}）</div>
+            <div class="card-value">{{ totalSleepDuration }}</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card class="overview-card" shadow="hover">
+        <div class="overview-card-content">
+          <div class="card-icon heart-icon"><span class="icon-text">❤️</span></div>
+          <div class="card-info">
+            <div class="card-label">睡眠平均心率</div>
+            <div class="card-value">{{ avgHeartRateDisplay }}</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card class="overview-card" shadow="hover">
+        <div class="overview-card-content">
+          <div class="card-icon interrupt-icon"><span class="icon-text">⏰</span></div>
+          <div class="card-info">
+            <div class="card-label">中断次数</div>
+            <div class="card-value-row">
+              <span class="card-value">{{ awakeEpisodes }} 次</span>
+              <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
+            </div>
+          </div>
+        </div>
+      </el-card>
     </div>
-    
+    <div v-else-if="timelineData" class="summary-info">
+      <span>{{ t('chart.bedtime') }}: {{ timelineData.bedtime || '--' }}</span>
+      <span>{{ t('chart.wakeUpTime') }}: {{ timelineData.wakeUpTime || '--' }}</span>
+    </div>
     <div ref="chartRef" class="chart"></div>
-    
-    <!-- Time labels at bottom -->
-    <div v-if="timelineData && timelineData.segments && timelineData.segments.length > 0" class="time-labels">
-      <span class="time-label start">{{ timelineData.bedtime }} {{ t('chart.bedtimeLabel') }}</span>
-      <span class="time-label end">{{ timelineData.wakeUpTime }} {{ t('chart.wakeUpLabel') }}</span>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore';
 
 const localeStore = useLocaleStore();
-
-// Translation function
-function t(key) {
-  return localeStore.t(key);
-}
+function t(key) { return localeStore.t(key); }
 
 const props = defineProps({
-  data: {
-    type: Object,
-    required: true
-  }
+  data: { type: Object, required: true },
+  avgHeartRate: { type: Number, default: null }
 });
 
 const chartRef = ref(null);
 let chartInstance = null;
-
 const timelineData = ref(props.data);
+const hasData = computed(() => timelineData.value?.segments?.length > 0);
+const avgHeartRateDisplay = computed(() =>
+  props.avgHeartRate ? `${props.avgHeartRate} bpm` : '-- bpm'
+);
 
-// Track which legend items are selected (visible)
-const legendSelected = ref({
-  deep: true,
-  light: true,
-  rem: true,
-  awake: true
+// ---- 阶段配置：4 层堆叠，各占 0.25 高度 ----
+const stageConfig = {
+  deep:  { color: '#2A35C0', label: '深睡',     yIdx: 0 },
+  light: { color: '#29B6F6', label: '浅睡',     yIdx: 1 },
+  rem:   { color: '#1DE9B6', label: '快速眼动', yIdx: 2 },
+  awake: { color: '#FFAB00', label: '清醒',     yIdx: 3 }
+};
+
+function sNorm(st) { return typeof st === 'string' ? st.toLowerCase() : String(st).toLowerCase(); }
+function t2m(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fmtDur(min) {
+  if (!min) return '0分钟';
+  const h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? `${h}小时${m > 0 ? m + '分钟' : ''}` : `${m}分钟`;
+}
+
+const stageDurations = computed(() => {
+  const d = { deep: 0, light: 0, rem: 0, awake: 0 };
+  timelineData.value?.segments?.forEach(s => {
+    const st = sNorm(s.state);
+    if (d[st] !== undefined) d[st] += t2m(s.endTime) - t2m(s.startTime);
+  });
+  return d;
+});
+const totalSleepMinutes = computed(() => Object.values(stageDurations.value).reduce((a, b) => a + b, 0));
+const totalSleepDuration = computed(() => fmtDur(totalSleepMinutes.value));
+const awakeEpisodes = computed(() =>
+  timelineData.value?.segments?.filter(s => sNorm(s.state) === 'awake').length || 0
+);
+const interruptDesc = computed(() => {
+  const c = awakeEpisodes.value;
+  if (c === 0) return '整夜安睡'; if (c === 1) return '轻微中断';
+  if (c <= 3) return '正常范围'; return '中断偏多';
+});
+const interruptTagType = computed(() => {
+  const c = awakeEpisodes.value;
+  if (c === 0) return 'success'; if (c === 1) return 'warning';
+  if (c <= 3) return ''; return 'danger';
 });
 
-// State color mapping
-const stateColors = {
-  deep: '#5b8ff9',
-  light: '#5ad8a6',
-  rem: '#f6bd60',
-  awake: '#ee6666'
-};
+// ---- 图表核心 ----
+function buildChart() {
+  if (!chartInstance || !hasData.value) return;
 
-const stateNames = {
-  deep: t('chart.deep'),
-  light: t('chart.light'),
-  rem: t('chart.rem'),
-  awake: t('chart.awake')
-};
-
-const initChart = () => {
-  if (!chartRef.value) return;
-  chartInstance = echarts.init(chartRef.value);
-  
-  // Listen to legend select events
-  chartInstance.on('legendselectchanged', (params) => {
-    const selected = params.selected;
-    // Update our tracking state
-    legendSelected.value.deep = selected[stateNames.deep] !== false;
-    legendSelected.value.light = selected[stateNames.light] !== false;
-    legendSelected.value.rem = selected[stateNames.rem] !== false;
-    legendSelected.value.awake = selected[stateNames.awake] !== false;
-    
-    // Re-render the chart with updated visibility
-    updateChart();
-  });
-  
-  updateChart();
-};
-
-const updateChart = () => {
-  if (!chartInstance || !props.data || !props.data.segments || props.data.segments.length === 0) return;
-
-  const segments = props.data.segments;
-  
-  // Debug: log first segment to see data structure
-  console.log('[SleepTimelineChart] First segment:', segments[0]);
-  console.log('[SleepTimelineChart] State value:', segments[0].state, 'Type:', typeof segments[0].state);
-  console.log('[SleepTimelineChart] Is state a string?', typeof segments[0].state === 'string');
-  console.log('[SleepTimelineChart] State toString():', String(segments[0].state));
-  
-  // Get theme colors
-  const isDark = document.documentElement.classList.contains('dark-theme');
-  const textColor = isDark ? '#a8a8a8' : '#606266';
-  const axisLineColor = isDark ? '#3a3a3a' : '#e8e8e8';
-  const gridColor = isDark ? '#3a3a3a' : '#ebeef5';
-
-  // Convert time strings to minutes from midnight for easier calculation
-  const timeToMinutes = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  // Build bar series data - each segment is a separate bar
-  const barData = segments.map((seg, index) => {
-    const startMinutes = timeToMinutes(seg.startTime);
-    const endMinutes = timeToMinutes(seg.endTime);
-    const duration = endMinutes - startMinutes;
-    
-    // Ensure state is a string and lowercase
-    let stateValue = seg.state;
-    if (typeof stateValue !== 'string') {
-      stateValue = String(stateValue).toLowerCase();
-    } else {
-      stateValue = stateValue.toLowerCase();
+  // ---- 预处理：强制首尾相连 + 填充缝隙为清醒 ----
+  const rawSegs = timelineData.value.segments;
+  const segs = [];
+  for (let i = 0; i < rawSegs.length; i++) {
+    const cur = { ...rawSegs[i] };
+    if (i > 0) {
+      // 首尾相连
+      cur.startTime = rawSegs[i - 1].endTime;
     }
-    
-    console.log(`[SleepTimelineChart] Segment ${index}: startTime=${seg.startTime}, endTime=${seg.endTime}, state=${stateValue}, duration=${duration}`);
-    
-    // Check if this state should be visible based on legend selection
-    const isVisible = legendSelected.value[stateValue];
-    
-    return {
-      name: `${seg.startTime}-${seg.endTime}`,
-      value: [
-        index,           // y-axis position (all at same level)
-        startMinutes,    // start time in minutes
-        endMinutes,      // end time in minutes
-        stateValue       // state for coloring
-      ],
-      itemStyle: {
-        color: isVisible ? (stateColors[stateValue] || '#999') : 'transparent',
-        opacity: isVisible ? 1 : 0
-      },
-      emphasis: {
-        itemStyle: {
-          opacity: isVisible ? 0.8 : 0
-        }
+    // 如果和上一个色块有时间缝隙，插入清醒填充块
+    if (segs.length > 0) {
+      const prev = segs[segs.length - 1];
+      if (t2m(cur.startTime) > t2m(prev.endTime)) {
+        segs.push({
+          startTime: prev.endTime,
+          endTime: cur.startTime,
+          state: 'awake'
+        });
       }
-    };
-  });
+    }
+    segs.push(cur);
+  }
 
-  // Calculate min and max time for x-axis
-  const minTime = timeToMinutes(segments[0].startTime);
-  const maxTime = timeToMinutes(segments[segments.length - 1].endTime);
-  
-  // Format time for display
-  const formatTime = (minutes) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const bg = '#141414';
+  const txt = '#888';
+  const gridCol = '#2a2a2a';
+
+  const minT = t2m(segs[0].startTime);
+  const maxT = t2m(segs[segs.length - 1].endTime);
+  const pad = Math.max(2, Math.round((maxT - minT) * 0.02));
+
+  // 格式化时间，用 Math.round 避免浮点数显示
+  const fmtT = v => {
+    const m = Math.round(v);
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
+
+  // 构建系列数据：[stageIndex, startMinutes, endMinutes]
+  const seriesData = segs.map(s => {
+    const st = sNorm(s.state);
+    const cfg = stageConfig[st] || stageConfig.light;
+    const sm = Math.round(t2m(s.startTime));
+    const em = Math.round(t2m(s.endTime));
+    return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
+  });
 
   const option = {
+    backgroundColor: bg,
     tooltip: {
       trigger: 'item',
-      formatter: (params) => {
-        const data = params.data.value;
-        const startTime = formatTime(data[1]);
-        const endTime = formatTime(data[2]);
-        const state = data[3];
-        const stateName = stateNames[state] || t('chart.unknown');
-        const duration = data[2] - data[1];
-        
-        return `<strong>${startTime} - ${endTime}</strong><br/>${params.marker}${stateName}<br/>时长: ${duration} 分钟`;
+      backgroundColor: 'rgba(10,10,10,0.92)',
+      borderColor: '#333',
+      textStyle: { color: '#ddd', fontSize: 13 },
+      formatter: p => {
+        const s = segs[p.dataIndex]; if (!s) return '';
+        const st = sNorm(s.state);
+        const cfg = stageConfig[st] || stageConfig.light;
+        const d = Math.round(t2m(s.endTime) - t2m(s.startTime));
+        return `<strong>${s.startTime} - ${s.endTime}</strong><br/>
+          <span style="display:inline-block;width:10px;height:10px;background:${cfg.color};margin-right:6px;border-radius:2px;"></span>
+          ${cfg.label}：${d}分钟`;
       }
     },
-    legend: {
-      data: [
-        { name: stateNames.deep },
-        { name: stateNames.light },
-        { name: stateNames.rem },
-        { name: stateNames.awake }
-      ],
-      right: 10,
-      top: 0,
-      textStyle: {
-        color: textColor
-      },
-      itemWidth: 14,
-      itemHeight: 10
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '10%',
-      top: '15%',
-      containLabel: true
-    },
+    grid: { left: 8, right: 8, bottom: 30, top: 8, containLabel: false },
     xAxis: {
       type: 'value',
-      min: minTime,
-      max: maxTime,
-      axisLabel: {
-        fontSize: 11,
-        color: textColor,
-        formatter: (value) => formatTime(value)
-      },
-      axisLine: {
-        lineStyle: {
-          color: axisLineColor
-        }
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          color: gridColor,
-          type: 'dashed'
-        }
-      }
+      min: Math.round(minT - pad),
+      max: Math.round(maxT + pad),
+      axisLine: { lineStyle: { color: '#333' } },
+      axisTick: { show: false },
+      axisLabel: { color: txt, fontSize: 11, formatter: v => fmtT(v) },
+      splitLine: { show: true, lineStyle: { color: gridCol, type: 'dashed' } }
     },
     yAxis: {
-      type: 'category',
-      data: ['睡眠'],
-      axisLabel: {
-        show: false
-      },
-      axisLine: {
-        show: false
-      },
-      axisTick: {
-        show: false
-      },
-      splitLine: {
-        show: false
-      }
+      type: 'value',
+      min: 0,
+      max: 1,
+      axisLabel: { show: false },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false }
     },
-    series: [
-      // Hidden series for legend items
-      {
-        name: stateNames.deep,
-        type: 'bar',
-        data: [],
-        itemStyle: { color: stateColors.deep }
+    series: [{
+      type: 'custom',
+      encode: { x: [1, 2], y: 0 },
+      renderItem: (params, api) => {
+        // api.value(0)=stageIndex(0-3), api.value(1)=start, api.value(2)=end
+        const catIdx = api.value(0);
+        const startVal = api.value(1);
+        const endVal = api.value(2);
+
+        // 每层 0.25 高：深睡 0-0.25, 浅睡 0.25-0.5, REM 0.5-0.75, 清醒 0.75-1.0
+        const bandBtm = catIdx * 0.25;
+        const bandTop = (catIdx + 1) * 0.25;
+
+        // 左下角：时间起点 + 层级底部
+        const pointStart = api.coord([startVal, bandBtm]);
+        // 右上角：时间终点 + 层级顶部
+        const pointEnd = api.coord([endVal, bandTop]);
+
+        // 左右各延伸 0.5px 让相邻色块微重叠，消除抗锯齿缝隙
+        const x = pointStart[0] - 0.5;
+        const y = pointEnd[1];
+        const w = Math.max(1, pointEnd[0] - pointStart[0] + 1);
+        const h = pointStart[1] - pointEnd[1];
+
+        const rectShape = echarts.graphic.clipRectByRect(
+          { x, y, width: w, height: h },
+          { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
+        );
+
+        return rectShape && {
+          type: 'rect',
+          shape: rectShape,
+          style: api.style()
+        };
       },
-      {
-        name: stateNames.light,
-        type: 'bar',
-        data: [],
-        itemStyle: { color: stateColors.light }
-      },
-      {
-        name: stateNames.rem,
-        type: 'bar',
-        data: [],
-        itemStyle: { color: stateColors.rem }
-      },
-      {
-        name: stateNames.awake,
-        type: 'bar',
-        data: [],
-        itemStyle: { color: stateColors.awake }
-      },
-      // Actual rendering series
-      {
-        name: t('chart.sleepTimeline'),
-        type: 'custom',
-        renderItem: function(params, api) {
-          const categoryIndex = api.value(0);
-          const start = api.coord([api.value(1), categoryIndex]);
-          const end = api.coord([api.value(2), categoryIndex]);
-          const height = api.size([0, 1])[1] * 0.6;
-          
-          const rectShape = echarts.graphic.clipRectByRect(
-            {
-              x: start[0],
-              y: start[1] - height / 2,
-              width: end[0] - start[0],
-              height: height
-            },
-            {
-              x: params.coordSys.x,
-              y: params.coordSys.y,
-              width: params.coordSys.width,
-              height: params.coordSys.height
-            }
-          );
-          
-          return rectShape && {
-            type: 'rect',
-            transition: ['shape'],
-            shape: rectShape,
-            style: api.style()
-          };
-        },
-        encode: {
-          x: [1, 2],
-          y: 0
-        },
-        data: barData
-      }
-    ]
+      data: seriesData
+    }]
   };
 
-  chartInstance.setOption(option);
-};
+  chartInstance.setOption(option, true);
+}
 
-watch(() => props.data, (newData) => {
-  timelineData.value = newData;
-  if (newData && newData.segments && newData.segments.length > 0) {
-    updateChart();
-  }
-}, { deep: true });
+const initChart = () => { if (chartRef.value) { chartInstance = echarts.init(chartRef.value); buildChart(); } };
 
-onMounted(() => {
-  setTimeout(() => {
-    initChart();
-  }, 100);
-  window.addEventListener('resize', handleResize);
-});
+watch(() => props.data, nd => { timelineData.value = nd; if (nd?.segments?.length) buildChart(); }, { deep: true });
 
-onBeforeUnmount(() => {
-  if (chartInstance) {
-    chartInstance.dispose();
-  }
-  window.removeEventListener('resize', handleResize);
-});
-
-const handleResize = () => {
-  chartInstance?.resize();
-};
+onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', () => chartInstance?.resize()); });
+onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', () => chartInstance?.resize()); });
 </script>
 
 <style scoped>
 .chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  background: var(--card-bg); padding: 20px; border-radius: 8px;
+  margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid var(--card-border); min-height: 100%;
+  display: flex; flex-direction: column;
 }
-
-.chart-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-  font-weight: 500;
-  flex-shrink: 0;
+.sleep-overview-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  margin-bottom: 16px; flex-shrink: 0;
 }
-
-.summary-info {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: 6px;
-  flex-shrink: 0;
+.overview-card {
+  border: 2px solid var(--card-border); border-radius: 8px;
+  background: var(--card-bg); transition: all 0.3s;
 }
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.info-item .label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.info-item .value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.chart {
-  width: 100%;
-  flex: 1;
-  min-height: 200px;
-}
-
-.time-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding: 0 4px;
-}
-
-.time-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.time-label.start {
-  text-align: left;
-}
-
-.time-label.end {
-  text-align: right;
-}
+.overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
+.overview-card-content { display: flex; align-items: center; gap: 16px; padding: 4px 0; }
+.card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.icon-text { font-size: 24px; line-height: 1; }
+.sleep-icon { background: #fff7e6; } .heart-icon { background: #fff1f0; } .interrupt-icon { background: #e6f7ff; }
+.card-info { flex: 1; min-width: 0; }
+.card-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+.card-value-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.card-value-row .card-value { margin-bottom: 0; }
+.chart { width: 100%; flex: 1; min-height: 220px; }
+.summary-info { display: flex; gap: 24px; margin-bottom: 12px; padding: 10px 14px; background: var(--bg-secondary); border-radius: 8px; flex-wrap: wrap; color: var(--text-secondary); font-size: 13px; }
+@media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { .sleep-overview-cards { grid-template-columns: repeat(1, 1fr); } }
 </style>
