@@ -48,3 +48,10 @@ export function getSleepTimeline(date) {
 export function getWeightData(params = {}) {
   return apiClient.get('/weight/data', { params });
 }
+
+/**
+ * Get user profile data
+ */
+export function getUserProfile() {
+  return apiClient.get('/user/profile');
+}

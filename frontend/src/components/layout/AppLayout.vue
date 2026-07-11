@@ -49,6 +49,7 @@
           :current-chart-type="currentChartType"
           :view-mode="viewMode"
           :loading="loading"
+          :user-profile="dataStore.userProfile"
           @chart-change="handleChartChange"
         />
       </div>
@@ -62,6 +63,7 @@
           :loading="loading"
           :sleep-timeline-data="sleepTimelineData"
           :weight-data="weightData"
+          :user-profile="dataStore.userProfile"
         />
       </div>
     </div>
@@ -113,6 +115,15 @@ const dataStore = useDataStore();
 
 // Handle chart type change
 async function handleChartChange(type) {
+  // Handle personal data chart type - fetch user profile first
+  if (type === 'personal') {
+    if (!dataStore.userProfile) {
+      loading.value = true;
+      await dataStore.fetchUserProfile();
+      loading.value = false;
+    }
+  }
+
   currentChartType.value = type;
   
   // Fetch sleep timeline when switching to sleep chart in single mode
@@ -275,6 +286,7 @@ async function initDefaultData() {
     const mostRecentDate = sorted[0];
     dateStore.selectedDate = mostRecentDate;
     await fetchSingleDayData(mostRecentDate);
+    await dataStore.fetchUserProfile();
     console.log('Loaded single day data for:', mostRecentDate);
   } else {
     console.warn('No training dates available');

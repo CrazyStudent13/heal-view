@@ -8,6 +8,9 @@
       <!-- Show time series heart rate chart for single day mode -->
       <SingleDayHeartRateChart v-if="chartType === 'heartrate'" />
       
+      <!-- Show personal data view -->
+      <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
+      
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
       <StressChart v-if="chartType === 'stress' && hasData" :data="chartData" />
       <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" />
@@ -42,6 +45,7 @@ import SleepTimelineChart from './SleepTimelineChart.vue';
 import DailySportChart from './DailySportChart.vue';
 import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
 import WeightChart from './WeightChart.vue';
+import PersonalDataView from './PersonalDataView.vue';
 
 const props = defineProps({
   chartData: {
@@ -65,6 +69,10 @@ const props = defineProps({
     default: null
   },
   weightData: {
+    type: Object,
+    default: null
+  },
+  userProfile: {
     type: Object,
     default: null
   }

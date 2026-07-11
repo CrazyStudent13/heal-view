@@ -265,3 +265,66 @@ export async function getWeightData(req, res) {
     res.status(500).json({ error: 'Failed to fetch weight data' });
   }
 }
+
+/**
+ * GET /api/user/profile
+ * Get user profile information
+ */
+export async function getUserProfile(req, res) {
+  try {
+    const cacheKey = 'user_profile';
+
+    // Check cache
+    const cached = cacheManager.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Load user profile
+    const profile = await loadUserProfile();
+
+    // Calculate age
+    const age = calculateAge(profile.birth);
+
+    // Calculate current BMI using latest weight or current weight
+    const currentWeight = profile.currentWeight || 0;
+    const bmi = calculateBMI(currentWeight, profile.height);
+
+    // Calculate BMR
+    const bmr = calculateBMR(currentWeight, profile.height, age, profile.sex);
+
+    // BMI reference table based on user's height
+    const heightM = profile.height / 100;
+    const bmiReference = profile.height > 0 ? {
+      underweight: { bmi: 18.5, weight: parseFloat((18.5 * heightM * heightM).toFixed(1)) },
+      normal: { bmi: 24, weight: parseFloat((24 * heightM * heightM).toFixed(1)) },
+      overweight: { bmi: 28, weight: parseFloat((28 * heightM * heightM).toFixed(1)) },
+      obese: { bmi: 30, weight: parseFloat((30 * heightM * heightM).toFixed(1)) },
+      userHeight: profile.height
+    } : null;
+
+    const response = {
+      height: profile.height,
+      weight: currentWeight,
+      sex: profile.sex,
+      birth: profile.birth,
+      age,
+      bmi,
+      initialWeight: profile.initialWeight || null,
+      targetWeight: profile.targetWeight || null,
+      targetBMI: profile.targetBMI || null,
+      dailyCalGoal: profile.dailyCalGoal || null,
+      vo2Max: profile.vo2Max || null,
+      bmr,
+      bmiReference
+    };
+
+    // Cache the result
+    cacheManager.set(cacheKey, response, config.cacheTTL.summary);
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+}

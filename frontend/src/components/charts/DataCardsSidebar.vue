@@ -25,6 +25,26 @@
     </div>
     
     <div class="cards-list" v-else-if="hasData">
+      <!-- Personal data card - only show in single mode -->
+      <el-card 
+        v-if="!isCompareMode"
+        class="card-item clickable"
+        :class="{ active: currentChartType === 'personal' }"
+        shadow="hover"
+        @click="$emit('chart-change', 'personal')"
+      >
+        <div class="card-content">
+          <div class="card-icon personal">
+            <span class="icon-text">👤</span>
+          </div>
+          <div class="card-info">
+            <div class="card-label">{{ t('data.personalInfo') }}</div>
+            <div class="card-value" v-if="userProfile && userProfile.weight">{{ userProfile.weight }} kg</div>
+            <div class="card-value" v-else>{{ t('data.viewDetails') }}</div>
+          </div>
+        </div>
+      </el-card>
+
       <el-card 
         class="card-item clickable"
         :class="{ active: currentChartType === 'steps' }"
@@ -162,12 +182,26 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  userProfile: {
+    type: Object,
+    default: null
   }
 });
 
 defineEmits(['chart-change']);
 
 const isCompareMode = computed(() => props.viewMode === 'compare');
+
+// BMI category short label for sidebar card
+const bmiCategoryShort = computed(() => {
+  if (!props.userProfile || !props.userProfile.bmi) return '';
+  const bmi = props.userProfile.bmi;
+  if (bmi < 18.5) return t('personal.bmiUnderweight');
+  if (bmi < 24) return t('personal.bmiNormal');
+  if (bmi < 28) return t('personal.bmiOverweight');
+  return t('personal.bmiObese');
+});
 
 const hasData = computed(() => props.chartData.length > 0);
 
@@ -304,6 +338,11 @@ function formatNumber(num) {
   color: #722ed1;
 }
 
+.card-icon.personal {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
 .card-info {
   flex: 1;
 }
@@ -318,5 +357,11 @@ function formatNumber(num) {
   font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.card-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 </style>

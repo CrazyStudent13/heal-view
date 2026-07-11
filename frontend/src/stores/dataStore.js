@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData } from '../api/fitnessApi.js';
+import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData, getUserProfile } from '../api/fitnessApi.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});
@@ -8,6 +8,7 @@ export const useDataStore = defineStore('data', () => {
   const sportRecords = ref([]);
   const sleepTimelines = ref({});
   const weightData = ref(null);
+  const userProfile = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
@@ -129,6 +130,31 @@ export const useDataStore = defineStore('data', () => {
   }
 
   /**
+   * Fetch user profile data
+   */
+  async function fetchUserProfile() {
+    // Return cached data if available
+    if (userProfile.value) {
+      return userProfile.value;
+    }
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const data = await getUserProfile();
+      userProfile.value = data;
+      return data;
+    } catch (err) {
+      error.value = err.message;
+      console.error('Failed to fetch user profile:', err);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
    * Clear cache
    */
   function clearCache() {
@@ -137,6 +163,7 @@ export const useDataStore = defineStore('data', () => {
     sportRecords.value = [];
     sleepTimelines.value = {};
     weightData.value = null;
+    userProfile.value = null;
   }
 
   return {
@@ -145,6 +172,7 @@ export const useDataStore = defineStore('data', () => {
     sportRecords,
     sleepTimelines,
     weightData,
+    userProfile,
     loading,
     error,
     fetchDailySummary,
@@ -152,6 +180,7 @@ export const useDataStore = defineStore('data', () => {
     fetchSportRecords,
     fetchSleepTimeline,
     fetchWeightData,
+    fetchUserProfile,
     clearCache
   };
 });
