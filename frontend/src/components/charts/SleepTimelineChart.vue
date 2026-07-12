@@ -154,7 +154,7 @@ function buildChart() {
     return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
   });
 
-  // ---- 心率热力图：逐分钟细竖线渲染 ----
+  // ---- 心率热力图：2分钟窗口 + shadowBlur 柔化 ----
   const hrSeriesData = [];
   let hrMin = 50, hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
@@ -165,20 +165,21 @@ function buildChart() {
       hrMax = Math.max(...hrPoints.map(p => p.value));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
-      // 按分钟聚合心率
-      const minMap = new Map();
+      // 按2分钟窗口聚合
+      const winMap = new Map();
+      const WIN = 2;
       hrPoints.forEach(p => {
         const m = Math.round((p.time - day0) / 60);
-        if (!minMap.has(m)) minMap.set(m, []);
-        minMap.get(m).push(p.value);
+        const w = Math.floor(m / WIN) * WIN;
+        if (!winMap.has(w)) winMap.set(w, []);
+        winMap.get(w).push(p.value);
       });
 
-      // 每分钟一条细竖线（宽度=1分钟）
-      minMap.forEach((vals, minute) => {
+      winMap.forEach((vals, minute) => {
         const avgHR = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
         const fmtMin = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
         hrSeriesData.push({
-          value: [minute, minute + 1, avgHR],
+          value: [minute, minute + WIN, avgHR],
           _avgHR: avgHR,
           _time: fmtMin
         });
@@ -235,7 +236,7 @@ function buildChart() {
       max: hrMax,
       dimension: 2,
       seriesIndex: 1,
-      inRange: { color: ['#333', '#ff2d1a'] },
+      inRange: { color: ['#2a2a2a', '#d44a3a'] },
       outOfRange: { color: ['#2a2a2a'] },
       orient: 'vertical',
       right: 6,
@@ -294,14 +295,16 @@ function buildChart() {
         const endVal = api.value(1);
         const pointStart = api.coord([startVal, 0]);
         const pointEnd = api.coord([endVal, 1]);
-        const x = pointStart[0] - 0.5;
-        const w = Math.max(1, pointEnd[0] - pointStart[0] + 1);
+        const x = pointStart[0];
+        const w = Math.max(1, pointEnd[0] - pointStart[0]);
         const h = pointStart[1] - pointEnd[1];
         const rectShape = echarts.graphic.clipRectByRect(
           { x, y: pointEnd[1], width: w, height: h },
           { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
         );
-        return rectShape && { type: 'rect', shape: rectShape, style: api.style() };
+        if (!rectShape) return null;
+        const s = api.style();
+        return { type: 'rect', shape: rectShape, style: { fill: s.fill, shadowBlur: 4, shadowColor: s.fill } };
       },
       data: hrSeriesData,
       z: 5
