@@ -220,7 +220,8 @@ function buildChart() {
       textStyle: { color: '#ddd', fontSize: 13 },
       axisPointer: {
         type: 'cross',
-        crossStyle: { color: '#666' },
+        crossStyle: { color: '#444' },
+        lineStyle: { type: 'dashed', opacity: 0.3 },
         label: {
           show: true,
           backgroundColor: '#333',
@@ -267,7 +268,7 @@ function buildChart() {
       type: 'value',
       min: Math.round(minT - pad),
       max: Math.round(maxT + pad),
-      axisLine: { lineStyle: { color: '#333' } },
+      axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { color: txt, fontSize: 11, formatter: v => fmtT(v) },
       splitLine: { show: true, lineStyle: { color: gridCol, type: 'dashed' } }
