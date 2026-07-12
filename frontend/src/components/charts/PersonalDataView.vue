@@ -159,7 +159,7 @@ const bmiTagType = computed(() => {
 }
 
 .section-title {
-  margin: 0 0 16px 0;
+  margin: 0 0 24px 0;
   font-size: 18px;
   color: var(--text-primary);
   font-weight: 600;
@@ -168,10 +168,10 @@ const bmiTagType = computed(() => {
 
 .info-section {
   background: var(--card-bg);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
+  border: 2px solid var(--card-border);
 }
 
 /* 统一两个表格的标签列宽度，让分割线对齐 */
