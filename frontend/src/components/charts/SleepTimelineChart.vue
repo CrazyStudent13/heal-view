@@ -234,7 +234,7 @@ function buildChart() {
       formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return '';
         const xMin = Math.round(params[0].axisValue);
-        const t = `${String(Math.floor(xMin / 60)).padStart(2, '0')}:${String(xMin % 60).padStart(2, '0')}`;
+        const t = `${String(Math.floor((xMin % 1440) / 60)).padStart(2, '0')}:${String((xMin % 1440) % 60).padStart(2, '0')}`;
         // 查睡眠阶段
         let foundSeg = null;
         for (const seg of segs) {
