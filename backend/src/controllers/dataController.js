@@ -57,44 +57,44 @@ export function getDailySummary(req, res) {
 
     // Get steps summary from aggregated_data table (daily totals)
     // Use MAX to get non-zero values since there may be duplicate records
-    const stepsResult = db.exec(`
+    const stepsResult = databaseService.query(`
       SELECT 
         MAX(CAST(json_extract(value, '$.steps') AS INTEGER)) as total_steps,
         MAX(CAST(json_extract(value, '$.distance') AS INTEGER)) as total_distance
       FROM aggregated_data
-      WHERE date = '${date}' AND key = 'steps'
-    `);
+      WHERE date = ? AND key = 'steps'
+    `, [date]);
     const totalSteps = stepsResult.length > 0 ? stepsResult[0].values[0][0] || 0 : 0;
     const totalDistance = stepsResult.length > 0 ? stepsResult[0].values[0][1] || 0 : 0;
 
     // Get calories summary from aggregated_data table (daily totals)
-    const caloriesResult = db.exec(`
+    const caloriesResult = databaseService.query(`
       SELECT CAST(json_extract(value, '$.calories') AS INTEGER) as total_calories
       FROM aggregated_data
-      WHERE date = '${date}' AND key = 'steps'
-    `);
+      WHERE date = ? AND key = 'steps'
+    `, [date]);
     const totalCalories = caloriesResult.length > 0 ? caloriesResult[0].values[0][0] || 0 : 0;
 
     // Get heart rate average - extract from JSON (uses 'bpm' field)
-    const hrResult = db.exec(`
+    const hrResult = databaseService.query(`
       SELECT AVG(CAST(json_extract(value, '$.bpm') AS INTEGER)) as avg_hr, 
              MAX(CAST(json_extract(value, '$.bpm') AS INTEGER)) as max_hr
       FROM fitness_data
-      WHERE date = '${date}' AND key = 'heart_rate'
-    `);
+      WHERE date = ? AND key = 'heart_rate'
+    `, [date]);
     const avgHeartRate = hrResult.length > 0 ? Math.round(hrResult[0].values[0][0] || 0) : 0;
     const maxHeartRate = hrResult.length > 0 ? hrResult[0].values[0][1] || 0 : 0;
 
     // Get stress average - extract from JSON (uses 'stress' field)
-    const stressResult = db.exec(`
+    const stressResult = databaseService.query(`
       SELECT AVG(CAST(json_extract(value, '$.stress') AS INTEGER)) as avg_stress
       FROM fitness_data
-      WHERE date = '${date}' AND key = 'stress'
-    `);
+      WHERE date = ? AND key = 'stress'
+    `, [date]);
     const avgStress = stressResult.length > 0 ? Math.round(stressResult[0].values[0][0] || 0) : 0;
 
     // Get sleep duration - use MAX to pick the longest sleep record (avoid averaging naps with night sleep)
-    const sleepResult = db.exec(`
+    const sleepResult = databaseService.query(`
       SELECT 
         MAX(CAST(json_extract(value, '$.duration') AS INTEGER)) as max_sleep,
         MAX(CAST(json_extract(value, '$.sleep_deep_duration') AS INTEGER)) as max_deep_sleep,
@@ -102,8 +102,8 @@ export function getDailySummary(req, res) {
         MAX(CAST(json_extract(value, '$.sleep_rem_duration') AS INTEGER)) as max_rem_sleep,
         MAX(CAST(json_extract(value, '$.sleep_awake_duration') AS INTEGER)) as max_awake_sleep
       FROM fitness_data
-      WHERE date = '${date}' AND key = 'sleep'
-    `);
+      WHERE date = ? AND key = 'sleep'
+    `, [date]);
     const totalSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][0] || 0 : 0;
     const totalDeepSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][1] || 0 : 0;
     const totalLightSleepMinutes = sleepResult.length > 0 ? sleepResult[0].values[0][2] || 0 : 0;
@@ -178,18 +178,18 @@ export function getTimeSeries(req, res) {
     let tableName = 'fitness_data';
     let keyFilter = metric;
 
-    // Map metric to table and key
+    // Map metric to table and key (whitelist validation prevents injection)
     if (['steps', 'calories', 'heart_rate', 'stress'].includes(metric)) {
       tableName = 'fitness_data';
       keyFilter = metric;
     }
 
-    const result = db.exec(`
+    const result = databaseService.query(`
       SELECT time, value
       FROM ${tableName}
-      WHERE date = '${date}' AND key = '${keyFilter}'
+      WHERE date = ? AND key = ?
       ORDER BY time ASC
-    `);
+    `, [date, keyFilter]);
 
     const data = result.length > 0
       ? result[0].values.map(row => {
@@ -262,20 +262,24 @@ export function getSportRecords(req, res) {
     const db = databaseService.getDb();
 
     let query = `SELECT * FROM sport_records WHERE 1=1`;
+    const params = [];
 
     if (startDate) {
-      query += ` AND date >= '${startDate}'`;
+      query += ` AND date >= ?`;
+      params.push(startDate);
     }
     if (endDate) {
-      query += ` AND date <= '${endDate}'`;
+      query += ` AND date <= ?`;
+      params.push(endDate);
     }
     if (category) {
-      query += ` AND category = '${category}'`;
+      query += ` AND category = ?`;
+      params.push(category);
     }
 
     query += ` ORDER BY time DESC`;
 
-    const result = db.exec(query);
+    const result = databaseService.query(query, params);
 
     let records = result.length > 0
       ? result[0].values.map(row => {
@@ -378,10 +382,10 @@ export function getSleepTimeline(req, res) {
     const db = databaseService.getDb();
 
     // Get ALL sleep records for the date (may have multiple: nap + night sleep)
-    const result = db.exec(`
+    const result = databaseService.query(`
       SELECT value FROM fitness_data
-      WHERE date = '${date}' AND key = 'sleep'
-    `);
+      WHERE date = ? AND key = 'sleep'
+    `, [date]);
 
     if (result.length === 0 || result[0].values.length === 0) {
       return res.json({

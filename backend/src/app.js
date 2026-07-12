@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { config } from './config/index.js';
 import { databaseService } from './services/database.js';
 import apiRoutes from './routes/api.js';
@@ -7,6 +8,7 @@ import apiRoutes from './routes/api.js';
 const app = express();
 
 // Middleware
+app.use(compression()); // Gzip compression
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

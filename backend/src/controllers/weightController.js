@@ -154,15 +154,18 @@ export async function getWeightData(req, res) {
       FROM fitness_data
       WHERE key = 'weight'
     `;
+    const params = [];
     if (startDate) {
-      query += ` AND date >= '${startDate}'`;
+      query += ` AND date >= ?`;
+      params.push(startDate);
     }
     if (endDate) {
-      query += ` AND date <= '${endDate}'`;
+      query += ` AND date <= ?`;
+      params.push(endDate);
     }
     query += ` GROUP BY date ORDER BY date ASC`;
 
-    const weightResult = db.exec(query);
+    const weightResult = databaseService.query(query, params);
 
     const dailyData = [];
     if (weightResult.length > 0) {
@@ -222,11 +225,12 @@ export async function getWeightData(req, res) {
         FROM sport_records
         WHERE 1=1
     `;
-    if (startDate) sportQuery += ` AND date >= '${startDate}'`;
-    if (endDate) sportQuery += ` AND date <= '${endDate}'`;
+    const sportParams = [];
+    if (startDate) { sportQuery += ` AND date >= ?`; sportParams.push(startDate); }
+    if (endDate) { sportQuery += ` AND date <= ?`; sportParams.push(endDate); }
     sportQuery += ` GROUP BY date )`;
     
-    const sportResult = db.exec(sportQuery);
+    const sportResult = databaseService.query(sportQuery, sportParams);
     if (sportResult.length > 0 && sportResult[0].values[0][0]) {
       avgSportCalories = Math.round(sportResult[0].values[0][0]);
     }

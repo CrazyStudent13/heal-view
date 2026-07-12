@@ -90,6 +90,29 @@ class DatabaseService {
   }
 
   /**
+   * Execute a parameterized query (safe against SQL injection)
+   * @param {string} sql - SQL with ? placeholders
+   * @param {Array} params - Values to bind to placeholders
+   * @returns {Array} Same format as db.exec(): [{ columns: [...], values: [[...], ...] }]
+   */
+  query(sql, params = []) {
+    const stmt = this.db.prepare(sql);
+    if (params.length > 0) {
+      stmt.bind(params);
+    }
+
+    const columns = stmt.getColumnNames();
+    const values = [];
+    while (stmt.step()) {
+      values.push(stmt.get());
+    }
+    stmt.free();
+
+    if (values.length === 0) return [];
+    return [{ columns, values }];
+  }
+
+  /**
    * Get database instance
    */
   getDb() {
