@@ -186,7 +186,6 @@ function buildChart() {
   // 心率轴范围取整
   const hrAxisMin = Math.floor(hrMin / 5) * 5;
   const hrAxisMax = Math.ceil(hrMax / 5) * 5;
-  const hrMid = Math.round((hrAxisMin + hrAxisMax) / 2);
 
   // 隐藏的触碰点：每个睡眠段中点，用于 axis trigger 匹配
   const sleepHoverPts = segs.map(s => {
@@ -262,7 +261,7 @@ function buildChart() {
         return `<strong>${t}</strong><br/>${html || '无数据'}`;
       }
     },
-    grid: { left: 48, right: 48, bottom: 30, top: 32, containLabel: false },
+    grid: { left: 48, right: 8, bottom: 30, top: 32, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -294,19 +293,13 @@ function buildChart() {
       axisTick: { show: false },
       splitLine: { show: false }
     },
-    // 右侧心率刻度轴
+    // 右侧心率刻度轴（完全隐藏，仅作数据映射）
     ...(hrLineData.length > 0 ? [{
       type: 'value',
+      show: false,
       min: hrAxisMin,
       max: hrAxisMax,
-      interval: hrMid - hrAxisMin,
-      axisLabel: {
-        show: true,
-        color: '#999',
-        fontSize: 10,
-        formatter: v => v + ' bpm',
-        margin: 4
-      },
+      axisLabel: { show: false },
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { show: false },
