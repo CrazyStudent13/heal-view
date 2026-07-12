@@ -154,7 +154,7 @@ function buildChart() {
     return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
   });
 
-  // ---- 心率热力图数据 ----
+  // ---- 心率热力图：逐分钟细竖线渲染 ----
   const hrSeriesData = [];
   let hrMin = 50, hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
@@ -163,20 +163,25 @@ function buildChart() {
     if (hrPoints.length > 0) {
       hrMin = Math.min(...hrPoints.map(p => p.value));
       hrMax = Math.max(...hrPoints.map(p => p.value));
-
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
-      segs.forEach(seg => {
-        const sm = t2m(seg.startTime);
-        const em = t2m(seg.endTime);
-        const inRange = hrPoints.filter(p => {
-          const pm = Math.round((p.time - day0) / 60);
-          return pm >= sm && pm < em;
+      // 按分钟聚合心率
+      const minMap = new Map();
+      hrPoints.forEach(p => {
+        const m = Math.round((p.time - day0) / 60);
+        if (!minMap.has(m)) minMap.set(m, []);
+        minMap.get(m).push(p.value);
+      });
+
+      // 每分钟一条细竖线（宽度=1分钟）
+      minMap.forEach((vals, minute) => {
+        const avgHR = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+        const fmtMin = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+        hrSeriesData.push({
+          value: [minute, minute + 1, avgHR],
+          _avgHR: avgHR,
+          _time: fmtMin
         });
-        if (inRange.length > 0) {
-          const avgHR = Math.round(inRange.reduce((a, b) => a + b.value, 0) / inRange.length);
-          hrSeriesData.push({ value: [sm, em, avgHR], _avgHR: avgHR, _segTime: `${seg.startTime}-${seg.endTime}` });
-        }
       });
     }
   }
@@ -192,10 +197,10 @@ function buildChart() {
         if (p.seriesName === 'hrHeatmap') {
           const d = p.data;
           const hr = d._avgHR || 0;
-          const intensity = hr > 85 ? '#ff4d4f' : hr > 70 ? '#ff9f43' : '#aaa';
-          return `<strong>${d._segTime}</strong><br/>
+          const intensity = hr > 85 ? '#ff4d4f' : hr > 70 ? '#ff9f43' : '#ccc';
+          return `<strong>${d._time}</strong><br/>
             <span style="color:${intensity};font-size:18px;font-weight:700;">♥ ${hr} bpm</span><br/>
-            <span style="color:#888;font-size:11px;">该时段平均心率</span>`;
+            <span style="color:#888;font-size:11px;">平均心率：${hr} bpm</span>`;
         }
         const s = segs[p.dataIndex]; if (!s) return '';
         const st = sNorm(s.state);
@@ -230,8 +235,8 @@ function buildChart() {
       max: hrMax,
       dimension: 2,
       seriesIndex: 1,
-      inRange: { color: ['rgba(20,20,20,0)', '#ff3d2e'] },
-      outOfRange: { color: ['rgba(20,20,20,0)'] },
+      inRange: { color: ['#333', '#ff2d1a'] },
+      outOfRange: { color: ['#2a2a2a'] },
       orient: 'vertical',
       right: 6,
       top: 'center',
