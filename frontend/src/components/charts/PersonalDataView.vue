@@ -145,7 +145,6 @@ const bmiTagType = computed(() => {
 .personal-data-view {
   height: 100%;
   overflow-y: auto;
-  padding: 20px;
 }
 
 .loading-container {
