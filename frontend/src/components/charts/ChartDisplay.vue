@@ -12,8 +12,8 @@
       <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
-      <SleepChart v-if="chartType === 'sleep' && !sleepTimelineData && hasData" :data="chartData" />
+      <SleepTimelineChart v-if="chartType === 'sleep' && hasValidSleepData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
+      <SleepChart v-if="chartType === 'sleep' && !hasValidSleepData && hasData" :data="chartData" />
     </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
@@ -77,6 +77,14 @@ const props = defineProps({
 
 const hasData = computed(() => props.chartData.length > 0);
 
+// Check if sleep timeline data is valid (has segments or total duration > 0)
+const hasValidSleepData = computed(() => {
+  if (!props.sleepTimelineData) return false;
+  // Check if there are segments or total duration > 0
+  return (props.sleepTimelineData.segments && props.sleepTimelineData.segments.length > 0) || 
+         (props.sleepTimelineData.totalDuration && props.sleepTimelineData.totalDuration > 0);
+});
+
 // 单日模式下的平均心率（用于睡眠卡片）
 const singleAvgHeartRate = computed(() => {
   if (props.chartData.length > 0 && props.chartData[0].avgHeartRate) {
@@ -97,5 +105,9 @@ const singleAvgHeartRate = computed(() => {
   color: #999;
   background: #fff;
   border-radius: 8px;
+  height: 100%; /* Fill entire container height to match sidebar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <div class="chart-container">
-    <div v-if="hasData" class="sleep-overview-cards">
+  <div class="chart-container" v-if="hasData">
+    <div class="sleep-overview-cards">
       <el-card class="overview-card" shadow="hover">
         <div class="overview-card-content">
           <div class="card-icon sleep-icon"><span class="icon-text">🌙</span></div>
@@ -32,17 +32,17 @@
         </div>
       </el-card>
     </div>
-    <div v-else-if="timelineData" class="summary-info">
-      <span>{{ t('chart.bedtime') }}: {{ timelineData.bedtime || '--' }}</span>
-      <span>{{ t('chart.wakeUpTime') }}: {{ timelineData.wakeUpTime || '--' }}</span>
-    </div>
     <div ref="chartRef" class="chart"></div>
+  </div>
+  <div class="empty-state" v-else>
+    <el-empty :description="t('chart.noSleepData')" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
+import { ElEmpty } from 'element-plus';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useDataStore } from '../../stores/dataStore';
 
@@ -108,7 +108,20 @@ const interruptTagType = computed(() => {
 
 // ---- 图表核心 ----
 function buildChart() {
-  if (!chartInstance || !hasData.value) return;
+  if (!hasData.value) return;
+
+  // Dispose old chart instance and create new one to avoid artifacts
+  if (chartInstance) {
+    chartInstance.clear(); // Clear all elements first
+    chartInstance.dispose();
+    chartInstance = null;
+  }
+  
+  if (chartRef.value) {
+    chartInstance = echarts.init(chartRef.value);
+  } else {
+    return;
+  }
 
   // ---- 预处理：强制首尾相连 + 填充缝隙为清醒 ----
   const rawSegs = timelineData.value.segments;
@@ -142,9 +155,11 @@ function buildChart() {
     segs.push(cur);
   }
 
-  const bg = '#141414';
-  const txt = '#888';
-  const gridCol = '#2a2a2a';
+  // Get theme-aware colors from CSS variables
+  const rootStyle = getComputedStyle(document.documentElement);
+  const bg = rootStyle.getPropertyValue('--card-bg').trim() || '#ffffff';
+  const txt = rootStyle.getPropertyValue('--text-secondary').trim() || '#999';
+  const gridCol = document.documentElement.classList.contains('dark') ? '#2a2a2a' : '#e0e0e0';
 
   const minT = toContMin(segs[0].startTime);
   const maxT = toContMin(segs[segs.length - 1].endTime);
@@ -176,11 +191,18 @@ function buildChart() {
       hrMax = Math.max(...hrPoints.map(p => p.value));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
+      // Filter heart rate data to only include points within chart X axis range
       hrPoints.forEach(p => {
         let m = Math.round((p.time - day0) / 60);
         if (crossesMidnight && m < 720) m += 1440;
-        hrLineData.push([m, p.value]);
+        // Only add points within chart X axis range to avoid ECharts connecting out-of-range points
+        if (m >= minT - pad && m <= maxT + pad) {
+          hrLineData.push([m, p.value]);
+        }
       });
+      
+      // Sort heart rate data by X value (time) to ensure correct line rendering
+      hrLineData.sort((a, b) => a[0] - b[0]);
     }
   }
   // 心率轴范围取整
@@ -197,6 +219,16 @@ function buildChart() {
 
   const option = {
     backgroundColor: bg,
+    title: {
+      text: '睡眠分析',
+      left: 10,
+      top: 10,
+      textStyle: {
+        color: document.documentElement.classList.contains('dark') ? '#ddd' : '#333',
+        fontSize: 16,
+        fontWeight: 600
+      }
+    },
     legend: {
       data: [
         { name: stageConfig.deep.label, itemStyle: { color: stageConfig.deep.color } },
@@ -205,12 +237,13 @@ function buildChart() {
         { name: stageConfig.awake.label, itemStyle: { color: stageConfig.awake.color } },
         ...(hrLineData.length > 0 ? [{ name: '心率', itemStyle: { color: '#ff6b35' } }] : [])
       ],
-      top: 0,
-      left: 'center',
-      textStyle: { color: '#aaa', fontSize: 11 },
+      orient: 'vertical', // 垂直排列
+      right: 10,
+      top: 50,
+      textStyle: { color: txt, fontSize: 11 },
       itemWidth: 12,
       itemHeight: 8,
-      itemGap: 14
+      itemGap: 10
     },
     tooltip: {
       trigger: 'axis',
@@ -261,7 +294,7 @@ function buildChart() {
         return `<strong>${t}</strong><br/>${html || '无数据'}`;
       }
     },
-    grid: { left: 48, right: 8, bottom: 30, top: 32, containLabel: false },
+    grid: { left: 48, right: 80, bottom: 30, top: 60, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -377,7 +410,15 @@ function buildChart() {
   chartInstance.setOption(option, true);
 }
 
-const initChart = () => { if (chartRef.value) { chartInstance = echarts.init(chartRef.value); buildChart(); } };
+const initChart = () => { 
+  if (chartRef.value && hasData.value && !chartInstance) { 
+    chartInstance = echarts.init(chartRef.value); 
+    buildChart(); 
+  } else if (chartInstance && hasData.value) {
+    // Chart already exists, just rebuild
+    buildChart();
+  }
+};
 
 watch(() => props.data, async nd => {
   timelineData.value = nd;
@@ -386,8 +427,23 @@ watch(() => props.data, async nd => {
     const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
     if (hr?.data?.length) heartRateTS.value = hr;
   }
-  buildChart();
+  // Wait for DOM to update before building chart
+  await new Promise(resolve => setTimeout(resolve, 50));
+  if (chartInstance) {
+    // Chart already initialized, just rebuild with new data
+    buildChart();
+  }
+  // If chart not initialized yet, it will be handled by watch(hasData)
 }, { deep: true, immediate: true });
+
+// Watch hasData changes to re-init chart when data becomes available
+watch(hasData, async (newVal) => {
+  if (newVal && !chartInstance && chartRef.value) {
+    // Chart instance doesn't exist but we have data, initialize it
+    await new Promise(resolve => setTimeout(resolve, 100));
+    initChart();
+  }
+});
 
 onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', () => chartInstance?.resize()); });
 onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', () => chartInstance?.resize()); });
@@ -419,6 +475,13 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .card-value-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .card-value-row .card-value { margin-bottom: 0; }
 .chart { width: 100%; flex: 1; min-height: 220px; }
+.empty-state {
+  text-align: center;
+  height: 100%; /* Fill entire container height to match sidebar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .summary-info { display: flex; gap: 24px; margin-bottom: 12px; padding: 10px 14px; background: var(--bg-secondary); border-radius: 8px; flex-wrap: wrap; color: var(--text-secondary); font-size: 13px; }
 @media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 500px) { .sleep-overview-cards { grid-template-columns: repeat(1, 1fr); } }

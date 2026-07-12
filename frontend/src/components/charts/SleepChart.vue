@@ -1,13 +1,17 @@
 <template>
-  <div class="chart-container">
+  <div class="chart-container" v-if="hasValidData">
     <h3 class="chart-title">{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</h3>
     <div ref="chartRef" class="chart"></div>
+  </div>
+  <div class="empty-state" v-else>
+    <el-empty :description="t('chart.noSleepData')" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import * as echarts from 'echarts';
+import { ElEmpty } from 'element-plus';
 import { useLocaleStore } from '../../stores/localeStore';
 
 const localeStore = useLocaleStore();
@@ -26,6 +30,20 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+
+// Check if there is valid sleep data
+const hasValidData = computed(() => {
+  if (!props.data || props.data.length === 0) return false;
+  
+  // Check if at least one date has sleep data
+  return props.data.some(item => {
+    const totalSleep = (item.deepSleepHours || 0) + 
+                       (item.lightSleepHours || 0) + 
+                       (item.remSleepHours || 0) +
+                       (item.awakeSleepHours || 0);
+    return totalSleep > 0;
+  });
+});
 
 const initChart = () => {
   if (!chartRef.value) return;
@@ -240,7 +258,7 @@ const handleResize = () => {
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
-  height: 100%; /* Use full height to match sidebar */
+  max-height: 500px;
   display: flex;
   flex-direction: column;
 }
@@ -255,7 +273,16 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  flex: 1; /* Take remaining space */
+  height: 400px;
   min-height: 300px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
 }
 </style>

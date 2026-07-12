@@ -54,6 +54,7 @@ export const useLocaleStore = defineStore('locale', () => {
       
       // Charts
       'chart.noData': '请在顶部选择日期查看数据',
+      'chart.noSleepData': '该日期没有睡眠数据',
       'chart.selectDate': '请在顶部选择日期',
       'chart.trend': '趋势',
       'chart.heartRateMonitor': '心率监测',
@@ -235,6 +236,7 @@ export const useLocaleStore = defineStore('locale', () => {
       
       // Charts
       'chart.noData': 'Please select a date above to view data',
+      'chart.noSleepData': 'No sleep data for this date',
       'chart.selectDate': 'Please select a date above',
       'chart.trend': 'Trend',
       'chart.heartRateMonitor': 'Heart Rate Monitor',
