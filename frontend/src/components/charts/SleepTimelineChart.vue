@@ -110,6 +110,15 @@ function buildChart() {
 
   // ---- 预处理：强制首尾相连 + 填充缝隙为清醒 ----
   const rawSegs = timelineData.value.segments;
+
+  // 跨午夜处理：提前判断
+  const crossesMidnight = rawSegs.length > 0 && t2m(rawSegs[0].startTime) > t2m(rawSegs[rawSegs.length - 1].endTime);
+  const toContMin = (t) => {
+    let m = t2m(t);
+    if (crossesMidnight && m < 720) m += 1440;
+    return m;
+  };
+
   const segs = [];
   for (let i = 0; i < rawSegs.length; i++) {
     const cur = { ...rawSegs[i] };
@@ -120,7 +129,7 @@ function buildChart() {
     // 如果和上一个色块有时间缝隙，插入清醒填充块
     if (segs.length > 0) {
       const prev = segs[segs.length - 1];
-      if (t2m(cur.startTime) > t2m(prev.endTime)) {
+      if (toContMin(cur.startTime) > toContMin(prev.endTime)) {
         segs.push({
           startTime: prev.endTime,
           endTime: cur.startTime,
@@ -135,13 +144,13 @@ function buildChart() {
   const txt = '#888';
   const gridCol = '#2a2a2a';
 
-  const minT = t2m(segs[0].startTime);
-  const maxT = t2m(segs[segs.length - 1].endTime);
+  const minT = toContMin(segs[0].startTime);
+  const maxT = toContMin(segs[segs.length - 1].endTime);
   const pad = Math.max(2, Math.round((maxT - minT) * 0.02));
 
-  // 格式化时间，用 Math.round 避免浮点数显示
+  // 格式化时间
   const fmtT = v => {
-    const m = Math.round(v);
+    const m = Math.round(v) % 1440;
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
 
@@ -149,8 +158,8 @@ function buildChart() {
   const seriesData = segs.map(s => {
     const st = sNorm(s.state);
     const cfg = stageConfig[st] || stageConfig.light;
-    const sm = Math.round(t2m(s.startTime));
-    const em = Math.round(t2m(s.endTime));
+    const sm = Math.round(toContMin(s.startTime));
+    const em = Math.round(toContMin(s.endTime));
     return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
   });
 
@@ -166,7 +175,8 @@ function buildChart() {
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
       hrPoints.forEach(p => {
-        const m = Math.round((p.time - day0) / 60);
+        let m = Math.round((p.time - day0) / 60);
+        if (crossesMidnight && m < 720) m += 1440;
         hrLineData.push([m, p.value]);
       });
     }
@@ -227,7 +237,9 @@ function buildChart() {
         // 查睡眠阶段
         let foundSeg = null;
         for (const seg of segs) {
-          if (xMin >= t2m(seg.startTime) && xMin < t2m(seg.endTime)) { foundSeg = seg; break; }
+          const sm = toContMin(seg.startTime);
+          const em = toContMin(seg.endTime);
+          if (xMin >= sm && xMin < em) { foundSeg = seg; break; }
         }
         // 查心率
         let foundHR = null;
@@ -346,7 +358,7 @@ function buildChart() {
         return rectShape && {
           type: 'rect',
           shape: rectShape,
-          style: api.style()
+          style: { fill: segs[params.dataIndex] ? stageConfig[sNorm(segs[params.dataIndex].state)]?.color || '#999' : '#999' }
         };
       },
       data: seriesData
