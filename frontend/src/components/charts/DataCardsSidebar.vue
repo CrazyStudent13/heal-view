@@ -255,6 +255,10 @@ function formatNumber(num) {
   min-height: 90px;
 }
 
+.card-item :deep(.el-card__body) {
+  padding: 16px 20px;
+}
+
 .card-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
