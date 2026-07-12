@@ -33,3 +33,22 @@ npm-debug.log*
 # Temporary files
 backend/check*.js
 backend/test*.js
+backend/verify*.js
+
+# Screenshots and debug images (root level only)
+/screenshot_*.png
+/sleep_*.png
+/sleep_chart_*.png
+/sleep_fullpage_*.png
+/sleep_heatmap_*.png
+/sleep_hr_*.png
+/sleep_verify_*.png
+
+# Debug scripts (root level)
+check_*.py
+
+# PDF files
+*.pdf
+
+# Utility scripts (debug)
+restart-backend.ps1
