@@ -154,8 +154,8 @@ function buildChart() {
     return { value: [cfg.yIdx, sm, em], itemStyle: { color: cfg.color } };
   });
 
-  // ---- 心率热力图：2分钟窗口 + shadowBlur 柔化 ----
-  const hrSeriesData = [];
+  // ---- 心率折线数据 ----
+  const hrLineData = [];
   let hrMin = 50, hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
   if (hrRaw && hrRaw.length > 0) {
@@ -164,25 +164,12 @@ function buildChart() {
       hrMin = Math.min(...hrPoints.map(p => p.value));
       hrMax = Math.max(...hrPoints.map(p => p.value));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
+      const hrRange = hrMax - hrMin || 1;
 
-      // 按2分钟窗口聚合
-      const winMap = new Map();
-      const WIN = 2;
       hrPoints.forEach(p => {
         const m = Math.round((p.time - day0) / 60);
-        const w = Math.floor(m / WIN) * WIN;
-        if (!winMap.has(w)) winMap.set(w, []);
-        winMap.get(w).push(p.value);
-      });
-
-      winMap.forEach((vals, minute) => {
-        const avgHR = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-        const fmtMin = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
-        hrSeriesData.push({
-          value: [minute, minute + WIN, avgHR],
-          _avgHR: avgHR,
-          _time: fmtMin
-        });
+        const scaledY = (p.value - hrMin) / hrRange;
+        hrLineData.push([m, scaledY, p.value]);
       });
     }
   }
@@ -194,25 +181,39 @@ function buildChart() {
       backgroundColor: 'rgba(10,10,10,0.92)',
       borderColor: '#333',
       textStyle: { color: '#ddd', fontSize: 13 },
-      formatter: p => {
-        if (p.seriesName === 'hrHeatmap') {
-          const d = p.data;
-          const hr = d._avgHR || 0;
-          const intensity = hr > 85 ? '#ff4d4f' : hr > 70 ? '#ff9f43' : '#ccc';
-          return `<strong>${d._time}</strong><br/>
-            <span style="color:${intensity};font-size:18px;font-weight:700;">♥ ${hr} bpm</span><br/>
-            <span style="color:#888;font-size:11px;">平均心率：${hr} bpm</span>`;
+      formatter: (p) => {
+        if (!p || !p.value) return '';
+        const v = p.value;
+        // 取时间：line系列[0]是分钟，custom系列[1]是startMinutes
+        const xMin = (p.seriesName === 'sleep') ? v[1] : v[0];
+        const t = `${String(Math.floor(xMin / 60)).padStart(2, '0')}:${String(xMin % 60).padStart(2, '0')}`;
+        let html = '';
+        // 查找对应的睡眠阶段
+        let foundSeg = null;
+        for (const seg of segs) {
+          const sm = t2m(seg.startTime);
+          const em = t2m(seg.endTime);
+          if (xMin >= sm && xMin < em) { foundSeg = seg; break; }
         }
-        const s = segs[p.dataIndex]; if (!s) return '';
-        const st = sNorm(s.state);
-        const cfg = stageConfig[st] || stageConfig.light;
-        const d = Math.round(t2m(s.endTime) - t2m(s.startTime));
-        return `<strong>${s.startTime} - ${s.endTime}</strong><br/>
-          <span style="display:inline-block;width:10px;height:10px;background:${cfg.color};margin-right:6px;border-radius:2px;"></span>
-          ${cfg.label}：${d}分钟`;
+        if (foundSeg) {
+          const st = sNorm(foundSeg.state);
+          const cfg = stageConfig[st] || stageConfig.light;
+          html += `<span style="display:inline-block;width:10px;height:10px;background:${cfg.color};margin-right:6px;border-radius:2px;"></span>${cfg.label}`;
+        }
+        // 查找对应心率
+        let foundHR = null;
+        for (const d of hrLineData) {
+          if (Math.abs(d[0] - xMin) <= 1) { foundHR = d[2]; break; }
+        }
+        if (foundHR != null) {
+          const int = foundHR > 85 ? '#ff6b6b' : foundHR > 70 ? '#ffa94d' : '#ccc';
+          html += html ? '&nbsp;|&nbsp;' : '';
+          html += `<span style="color:${int};font-weight:700;">♥ ${foundHR} bpm</span>`;
+        }
+        return `<strong>${t}</strong><br/>${html}`;
       }
     },
-    grid: { left: 8, right: 44, bottom: 30, top: 8, containLabel: false },
+    grid: { left: 8, right: 8, bottom: 30, top: 8, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -231,24 +232,8 @@ function buildChart() {
       axisTick: { show: false },
       splitLine: { show: false }
     },
-    visualMap: hrSeriesData.length > 0 ? {
-      min: hrMin,
-      max: hrMax,
-      dimension: 2,
-      seriesIndex: 1,
-      inRange: { color: ['#2a2a2a', '#d44a3a'] },
-      outOfRange: { color: ['#2a2a2a'] },
-      orient: 'vertical',
-      right: 6,
-      top: 'center',
-      itemWidth: 10,
-      itemHeight: 100,
-      text: [`${hrMax}`, `${hrMin}`],
-      textStyle: { color: '#999', fontSize: 10 },
-      calculable: false,
-      show: true
-    } : undefined,
     series: [{
+      name: 'sleep',
       type: 'custom',
       encode: { x: [1, 2], y: 0 },
       renderItem: (params, api) => {
@@ -285,29 +270,16 @@ function buildChart() {
       },
       data: seriesData
     },
-    // 心率热力图覆盖层
-    ...(hrSeriesData.length > 0 ? [{
-      name: 'hrHeatmap',
-      type: 'custom',
-      encode: { x: [0, 1], y: 2 },
-      renderItem: (params, api) => {
-        const startVal = api.value(0);
-        const endVal = api.value(1);
-        const pointStart = api.coord([startVal, 0]);
-        const pointEnd = api.coord([endVal, 1]);
-        const x = pointStart[0];
-        const w = Math.max(1, pointEnd[0] - pointStart[0]);
-        const h = pointStart[1] - pointEnd[1];
-        const rectShape = echarts.graphic.clipRectByRect(
-          { x, y: pointEnd[1], width: w, height: h },
-          { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
-        );
-        if (!rectShape) return null;
-        const s = api.style();
-        return { type: 'rect', shape: rectShape, style: { fill: s.fill, shadowBlur: 4, shadowColor: s.fill } };
-      },
-      data: hrSeriesData,
-      z: 5
+    // 心率平滑折线
+    ...(hrLineData.length > 0 ? [{
+      name: 'heartRate',
+      type: 'line',
+      smooth: 0.4,
+      data: hrLineData,
+      symbol: 'none',
+      showSymbol: false,
+      lineStyle: { color: '#ff6b35', width: 1.5 },
+      z: 20
     }] : [])
     ]
   };
