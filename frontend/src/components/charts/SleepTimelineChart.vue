@@ -176,46 +176,70 @@ function buildChart() {
   const hrAxisMax = Math.ceil(hrMax / 5) * 5;
   const hrMid = Math.round((hrAxisMin + hrAxisMax) / 2);
 
+  // 隐藏的触碰点：每个睡眠段中点，用于 axis trigger 匹配
+  const sleepHoverPts = segs.map(s => {
+    const st = sNorm(s.state);
+    const cfg = stageConfig[st] || stageConfig.light;
+    const mid = (t2m(s.startTime) + t2m(s.endTime)) / 2;
+    return { value: [mid, cfg.yIdx], _st: st, _cfg: cfg };
+  });
+
   const option = {
     backgroundColor: bg,
+    legend: {
+      data: [
+        { name: stageConfig.deep.label, itemStyle: { color: stageConfig.deep.color } },
+        { name: stageConfig.light.label, itemStyle: { color: stageConfig.light.color } },
+        { name: stageConfig.rem.label, itemStyle: { color: stageConfig.rem.color } },
+        { name: stageConfig.awake.label, itemStyle: { color: stageConfig.awake.color } },
+        ...(hrLineData.length > 0 ? [{ name: '心率', itemStyle: { color: '#ff6b35' } }] : [])
+      ],
+      top: 0,
+      left: 'center',
+      textStyle: { color: '#aaa', fontSize: 11 },
+      itemWidth: 12,
+      itemHeight: 8,
+      itemGap: 14
+    },
     tooltip: {
-      trigger: 'item',
+      trigger: 'axis',
       backgroundColor: 'rgba(10,10,10,0.92)',
-      borderColor: '#333',
+      borderColor: '#555',
       textStyle: { color: '#ddd', fontSize: 13 },
-      formatter: (p) => {
-        if (!p || !p.value) return '';
-        const v = p.value;
-        // 取时间：line系列[0]是分钟，custom系列[1]是startMinutes
-        const xMin = (p.seriesName === 'sleep') ? v[1] : v[0];
+      axisPointer: {
+        type: 'cross',
+        crossStyle: { color: '#666' },
+        label: { show: true, backgroundColor: '#333', color: '#ddd' }
+      },
+      formatter: (params) => {
+        if (!Array.isArray(params) || params.length === 0) return '';
+        const xMin = Math.round(params[0].axisValue);
         const t = `${String(Math.floor(xMin / 60)).padStart(2, '0')}:${String(xMin % 60).padStart(2, '0')}`;
-        let html = '';
-        // 查找对应的睡眠阶段
+        // 查睡眠阶段
         let foundSeg = null;
         for (const seg of segs) {
-          const sm = t2m(seg.startTime);
-          const em = t2m(seg.endTime);
-          if (xMin >= sm && xMin < em) { foundSeg = seg; break; }
+          if (xMin >= t2m(seg.startTime) && xMin < t2m(seg.endTime)) { foundSeg = seg; break; }
         }
-        if (foundSeg) {
-          const st = sNorm(foundSeg.state);
-          const cfg = stageConfig[st] || stageConfig.light;
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${cfg.color};margin-right:6px;border-radius:2px;"></span>${cfg.label}`;
-        }
-        // 查找对应心率
+        // 查心率
         let foundHR = null;
         for (const d of hrLineData) {
           if (Math.abs(d[0] - xMin) <= 1) { foundHR = d[1]; break; }
         }
-        if (foundHR != null) {
-          const int = foundHR > 85 ? '#ff6b6b' : foundHR > 70 ? '#ffa94d' : '#ccc';
-          html += html ? '&nbsp;|&nbsp;' : '';
-          html += `<span style="color:${int};font-weight:700;">♥ ${foundHR} bpm</span>`;
+        let html = '';
+        if (foundSeg) {
+          const st2 = sNorm(foundSeg.state);
+          const cfg2 = stageConfig[st2] || stageConfig.light;
+          html += `<span style="display:inline-block;width:10px;height:10px;background:${cfg2.color};margin-right:6px;border-radius:2px;"></span>${cfg2.label}`;
         }
-        return `<strong>${t}</strong><br/>${html}`;
+        if (foundHR != null) {
+          const int2 = foundHR > 85 ? '#ff6b6b' : foundHR > 70 ? '#ffa94d' : '#ccc';
+          html += html ? '&nbsp;|&nbsp;' : '';
+          html += `<span style="color:${int2};font-weight:700;">♥ ${foundHR} bpm</span>`;
+        }
+        return `<strong>${t}</strong><br/>${html || '无数据'}`;
       }
     },
-    grid: { left: 8, right: 48, bottom: 30, top: 8, containLabel: false },
+    grid: { left: 48, right: 48, bottom: 30, top: 32, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -229,7 +253,20 @@ function buildChart() {
       type: 'value',
       min: 0,
       max: 1,
-      axisLabel: { show: false },
+      axisLabel: {
+        show: true,
+        color: '#999',
+        fontSize: 10,
+        formatter: (v) => {
+          if (v >= 0.05 && v <= 0.2) return '深睡';
+          if (v >= 0.3 && v <= 0.45) return '浅睡';
+          if (v >= 0.55 && v <= 0.7) return 'REM';
+          if (v >= 0.8 && v <= 0.95) return '清醒';
+          return '';
+        },
+        interval: 0.125,
+        margin: 4
+      },
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { show: false }
@@ -253,7 +290,21 @@ function buildChart() {
       position: 'right'
     }] : [])
     ],
-    series: [{
+    series: [
+      // 隐藏柱系列：仅为图例提供颜色标记
+      { name: stageConfig.deep.label, type: 'bar', data: [], itemStyle: { color: stageConfig.deep.color } },
+      { name: stageConfig.light.label, type: 'bar', data: [], itemStyle: { color: stageConfig.light.color } },
+      { name: stageConfig.rem.label, type: 'bar', data: [], itemStyle: { color: stageConfig.rem.color } },
+      { name: stageConfig.awake.label, type: 'bar', data: [], itemStyle: { color: stageConfig.awake.color } },
+      // 隐藏散点：为 axis trigger 提供睡眠段匹配点
+      ...(sleepHoverPts.length > 0 ? [{
+        name: 'sleepPt',
+        type: 'scatter',
+        symbolSize: 0,
+        data: sleepHoverPts,
+        z: 1
+      }] : []),
+      {
       name: 'sleep',
       type: 'custom',
       encode: { x: [1, 2], y: 0 },
@@ -300,9 +351,9 @@ function buildChart() {
       data: hrLineData,
       symbol: 'circle',
       symbolSize: 4,
-      showSymbol: false,
+      showSymbol: true,
       lineStyle: { color: '#ff6b35', width: 2, shadowBlur: 8, shadowColor: 'rgba(255,107,53,0.6)' },
-      itemStyle: { color: '#ff6b35', borderColor: '#fff', borderWidth: 1 },
+      itemStyle: { color: '#ff6b35', borderColor: '#fff', borderWidth: 1.5 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: 'rgba(255,107,53,0.2)' },
