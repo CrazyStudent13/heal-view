@@ -269,7 +269,7 @@ function buildChart() {
         formatter: (v) => {
           if (v >= 0.05 && v <= 0.2) return '深睡';
           if (v >= 0.3 && v <= 0.45) return '浅睡';
-          if (v >= 0.55 && v <= 0.7) return 'REM';
+          if (v >= 0.55 && v <= 0.7) return '快速眼动';
           if (v >= 0.8 && v <= 0.95) return '清醒';
           return '';
         },
