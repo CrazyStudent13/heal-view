@@ -209,7 +209,16 @@ function buildChart() {
       axisPointer: {
         type: 'cross',
         crossStyle: { color: '#666' },
-        label: { show: true, backgroundColor: '#333', color: '#ddd' }
+        label: {
+          show: true,
+          backgroundColor: '#333',
+          color: '#ddd',
+          fontSize: 11,
+          formatter: (v) => {
+            const m = Math.round(v.value);
+            return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+          }
+        }
       },
       formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return '';
