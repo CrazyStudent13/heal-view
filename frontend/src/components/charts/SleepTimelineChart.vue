@@ -69,7 +69,7 @@ const stageConfig = {
   deep:  { color: '#2A35C0', label: '深睡',     yIdx: 0 },
   light: { color: '#29B6F6', label: '浅睡',     yIdx: 1 },
   rem:   { color: '#1DE9B6', label: '快速眼动', yIdx: 2 },
-  awake: { color: '#78909C', label: '清醒',     yIdx: 3 }
+  awake: { color: '#FFAB00', label: '清醒',     yIdx: 3 }
 };
 
 function sNorm(st) { return typeof st === 'string' ? st.toLowerCase() : String(st).toLowerCase(); }
