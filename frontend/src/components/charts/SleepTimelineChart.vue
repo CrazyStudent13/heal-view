@@ -164,15 +164,17 @@ function buildChart() {
       hrMin = Math.min(...hrPoints.map(p => p.value));
       hrMax = Math.max(...hrPoints.map(p => p.value));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
-      const hrRange = hrMax - hrMin || 1;
 
       hrPoints.forEach(p => {
         const m = Math.round((p.time - day0) / 60);
-        const scaledY = (p.value - hrMin) / hrRange;
-        hrLineData.push([m, scaledY, p.value]);
+        hrLineData.push([m, p.value]);
       });
     }
   }
+  // 心率轴范围取整
+  const hrAxisMin = Math.floor(hrMin / 5) * 5;
+  const hrAxisMax = Math.ceil(hrMax / 5) * 5;
+  const hrMid = Math.round((hrAxisMin + hrAxisMax) / 2);
 
   const option = {
     backgroundColor: bg,
@@ -203,7 +205,7 @@ function buildChart() {
         // 查找对应心率
         let foundHR = null;
         for (const d of hrLineData) {
-          if (Math.abs(d[0] - xMin) <= 1) { foundHR = d[2]; break; }
+          if (Math.abs(d[0] - xMin) <= 1) { foundHR = d[1]; break; }
         }
         if (foundHR != null) {
           const int = foundHR > 85 ? '#ff6b6b' : foundHR > 70 ? '#ffa94d' : '#ccc';
@@ -213,7 +215,7 @@ function buildChart() {
         return `<strong>${t}</strong><br/>${html}`;
       }
     },
-    grid: { left: 8, right: 8, bottom: 30, top: 8, containLabel: false },
+    grid: { left: 8, right: 48, bottom: 30, top: 8, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -223,7 +225,7 @@ function buildChart() {
       axisLabel: { color: txt, fontSize: 11, formatter: v => fmtT(v) },
       splitLine: { show: true, lineStyle: { color: gridCol, type: 'dashed' } }
     },
-    yAxis: {
+    yAxis: [{
       type: 'value',
       min: 0,
       max: 1,
@@ -232,6 +234,25 @@ function buildChart() {
       axisTick: { show: false },
       splitLine: { show: false }
     },
+    // 右侧心率刻度轴
+    ...(hrLineData.length > 0 ? [{
+      type: 'value',
+      min: hrAxisMin,
+      max: hrAxisMax,
+      interval: hrMid - hrAxisMin,
+      axisLabel: {
+        show: true,
+        color: '#999',
+        fontSize: 10,
+        formatter: v => v + ' bpm',
+        margin: 4
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,0.06)', type: 'dashed' } },
+      position: 'right'
+    }] : [])
+    ],
     series: [{
       name: 'sleep',
       type: 'custom',
@@ -274,11 +295,21 @@ function buildChart() {
     ...(hrLineData.length > 0 ? [{
       name: 'heartRate',
       type: 'line',
+      yAxisIndex: 1,
       smooth: 0.4,
       data: hrLineData,
-      symbol: 'none',
+      symbol: 'circle',
+      symbolSize: 4,
       showSymbol: false,
-      lineStyle: { color: '#ff6b35', width: 1.5 },
+      lineStyle: { color: '#ff6b35', width: 2, shadowBlur: 8, shadowColor: 'rgba(255,107,53,0.6)' },
+      itemStyle: { color: '#ff6b35', borderColor: '#fff', borderWidth: 1 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(255,107,53,0.2)' },
+          { offset: 1, color: 'rgba(255,107,53,0)' }
+        ])
+      },
+      emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff', symbolSize: 8 } },
       z: 20
     }] : [])
     ]
