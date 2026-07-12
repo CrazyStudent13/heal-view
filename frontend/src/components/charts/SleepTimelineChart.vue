@@ -394,8 +394,10 @@ const initChart = () => { if (chartRef.value) { chartInstance = echarts.init(cha
 
 watch(() => props.data, async nd => {
   timelineData.value = nd;
+  heartRateTS.value = null;
   if (nd?.date) {
-    heartRateTS.value = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
+    const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
+    if (hr?.data?.length) heartRateTS.value = hr;
   }
   buildChart();
 }, { deep: true, immediate: true });
