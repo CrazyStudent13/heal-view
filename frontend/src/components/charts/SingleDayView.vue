@@ -128,7 +128,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -154,19 +154,23 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 }
 
 .card-icon.steps {
-  background: #e6f7ff;
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .card-icon.calories {
-  background: #f6ffed;
+  background: rgba(103, 194, 58, 0.1);
+  color: var(--success-color);
 }
 
 .card-icon.heartrate {
-  background: #fff1f0;
+  background: rgba(245, 108, 108, 0.1);
+  color: var(--danger-color);
 }
 
 .card-icon.stress {
-  background: #f9f0ff;
+  background: rgba(192, 132, 252, 0.1);
+  color: #a855f7;
 }
 
 .card-content {
@@ -175,19 +179,19 @@ watch(() => dateStore.selectedDate, async (newDate) => {
 
 .card-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .card-value {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .loading-state, .empty-state {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-secondary);
 }
 </style>

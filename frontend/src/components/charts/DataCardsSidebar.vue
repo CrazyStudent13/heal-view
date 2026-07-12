@@ -290,33 +290,33 @@ function formatNumber(num) {
 }
 
 .card-icon.steps {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .card-icon.calories {
-  background: #f6ffed;
-  color: #52c41a;
+  background: rgba(103, 194, 58, 0.12);
+  color: var(--success-color);
 }
 
 .card-icon.heartrate {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: rgba(245, 108, 108, 0.12);
+  color: var(--danger-color);
 }
 
 .card-icon.sleep {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: rgba(250, 140, 22, 0.12);
+  color: var(--warning-color);
 }
 
 .card-icon.weight {
-  background: #f9f0ff;
-  color: #722ed1;
+  background: rgba(192, 132, 252, 0.12);
+  color: #a855f7;
 }
 
 .card-icon.personal {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .card-info {

@@ -250,7 +250,7 @@ watch(() => props.viewMode, () => {
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -270,8 +270,8 @@ watch(() => props.viewMode, () => {
 }
 
 .card.clickable.active {
-  border: 2px solid #1890ff;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
 }
 
 .card-icon {
@@ -285,23 +285,23 @@ watch(() => props.viewMode, () => {
 }
 
 .card-icon.steps {
-  background: #e6f7ff;
+  background: var(--primary-light);
 }
 
 .card-icon.calories {
-  background: #f6ffed;
+  background: rgba(103, 194, 58, 0.12);
 }
 
 .card-icon.heartrate {
-  background: #fff1f0;
+  background: rgba(245, 108, 108, 0.12);
 }
 
 .card-icon.stress {
-  background: #f9f0ff;
+  background: rgba(192, 132, 252, 0.12);
 }
 
 .card-icon.sleep {
-  background: #fff7e6;
+  background: rgba(250, 140, 22, 0.12);
 }
 
 .card-icon.sleep::before {
@@ -315,14 +315,14 @@ watch(() => props.viewMode, () => {
 
 .card-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .card-value {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .chart-section {
@@ -332,6 +332,6 @@ watch(() => props.viewMode, () => {
 .empty-state, .loading-state {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-secondary);
 }
 </style>

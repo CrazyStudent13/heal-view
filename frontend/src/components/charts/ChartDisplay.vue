@@ -102,10 +102,10 @@ const singleAvgHeartRate = computed(() => {
 .empty-state, .loading-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
-  background: #fff;
+  color: var(--text-secondary);
+  background: var(--card-bg);
   border-radius: 8px;
-  height: 100%; /* Fill entire container height to match sidebar */
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

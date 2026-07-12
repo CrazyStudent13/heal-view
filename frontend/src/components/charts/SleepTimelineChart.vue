@@ -468,7 +468,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .overview-card-content { display: flex; align-items: center; gap: 16px; padding: 4px 0; }
 .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .icon-text { font-size: 24px; line-height: 1; }
-.sleep-icon { background: #fff7e6; } .heart-icon { background: #fff1f0; } .interrupt-icon { background: #e6f7ff; }
+.sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
 .card-info { flex: 1; min-width: 0; }
 .card-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
 .card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); }
