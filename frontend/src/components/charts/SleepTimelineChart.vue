@@ -365,17 +365,9 @@ function buildChart() {
       yAxisIndex: 1,
       smooth: 0.4,
       data: hrLineData,
-      symbol: 'circle',
-      symbolSize: 4,
-      showSymbol: true,
-      lineStyle: { color: '#ff6b35', width: 2, shadowBlur: 8, shadowColor: 'rgba(255,107,53,0.6)' },
-      itemStyle: { color: '#ff6b35', borderColor: '#fff', borderWidth: 1.5 },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(255,107,53,0.2)' },
-          { offset: 1, color: 'rgba(255,107,53,0)' }
-        ])
-      },
+      symbol: 'none',
+      lineStyle: { color: '#ff6b35', width: 2 },
+      itemStyle: { color: '#ff6b35' },
       emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff', symbolSize: 8 } },
       z: 20
     }] : [])
