@@ -12,7 +12,7 @@
       <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" />
+      <SleepTimelineChart v-if="chartType === 'sleep' && sleepTimelineData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
       <SleepChart v-if="chartType === 'sleep' && !sleepTimelineData && hasData" :data="chartData" />
     </template>
 
@@ -76,6 +76,14 @@ const props = defineProps({
 });
 
 const hasData = computed(() => props.chartData.length > 0);
+
+// 单日模式下的平均心率（用于睡眠卡片）
+const singleAvgHeartRate = computed(() => {
+  if (props.chartData.length > 0 && props.chartData[0].avgHeartRate) {
+    return props.chartData[0].avgHeartRate;
+  }
+  return null;
+});
 </script>
 
 <style scoped>

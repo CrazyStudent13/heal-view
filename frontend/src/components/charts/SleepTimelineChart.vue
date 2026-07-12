@@ -84,7 +84,9 @@ const stageDurations = computed(() => {
   const d = { deep: 0, light: 0, rem: 0, awake: 0 };
   timelineData.value?.segments?.forEach(s => {
     const st = sNorm(s.state);
-    if (d[st] !== undefined) d[st] += t2m(s.endTime) - t2m(s.startTime);
+    let dur = t2m(s.endTime) - t2m(s.startTime);
+    if (dur < 0) dur += 1440; // 跨午夜修正
+    if (d[st] !== undefined) d[st] += dur;
   });
   return d;
 });
