@@ -219,9 +219,8 @@ function buildChart() {
       borderColor: '#555',
       textStyle: { color: '#ddd', fontSize: 13 },
       axisPointer: {
-        type: 'cross',
-        crossStyle: { color: '#444' },
-        lineStyle: { type: 'dashed', opacity: 0.3 },
+        type: 'line',
+        lineStyle: { color: '#444', type: 'dashed', opacity: 0.3 },
         label: {
           show: true,
           backgroundColor: '#333',
@@ -310,7 +309,7 @@ function buildChart() {
       },
       axisLine: { show: false },
       axisTick: { show: false },
-      splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,0.06)', type: 'dashed' } },
+      splitLine: { show: false },
       position: 'right'
     }] : [])
     ],
