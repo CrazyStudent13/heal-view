@@ -52,21 +52,29 @@ const loading = ref(false);
 // Calculate metrics from heart rate data
 const hasData = computed(() => heartRateData.value.length > 0);
 
+function isValidHeartRate(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
+}
+
 const minHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => item.value || 0);
+  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  if (values.length === 0) return 0;
   return Math.min(...values);
 });
 
 const maxHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => item.value || 0);
+  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  if (values.length === 0) return 0;
   return Math.max(...values);
 });
 
 const avgHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => item.value || 0);
+  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  if (values.length === 0) return 0;
   const sum = values.reduce((acc, val) => acc + val, 0);
   return Math.round(sum / values.length);
 });
@@ -81,12 +89,14 @@ const restingHR = computed(() => {
   });
   
   if (morningData.length > 0) {
-    const morningValues = morningData.map(item => item.value || 0);
+    const morningValues = morningData.map(item => Number(item.value)).filter(isValidHeartRate);
+    if (morningValues.length === 0) return minHR.value;
     return Math.min(...morningValues);
   }
   
   // If no morning data, use overall minimum as fallback
-  const allValues = heartRateData.value.map(item => item.value || 0);
+  const allValues = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  if (allValues.length === 0) return 0;
   return Math.min(...allValues);
 });
 
@@ -115,7 +125,7 @@ const updateChart = () => {
 
   // Create a map of existing data by rounding to nearest hour
   const dataByHour = new Map();
-  heartRateData.value.forEach(item => {
+  heartRateData.value.filter(item => isValidHeartRate(item.value)).forEach(item => {
     const date = new Date(item.time * 1000);
     const hourKey = `${date.getHours().toString().padStart(2, '0')}:00`;
     
@@ -123,12 +133,12 @@ const updateChart = () => {
     if (dataByHour.has(hourKey)) {
       const existing = dataByHour.get(hourKey);
       dataByHour.set(hourKey, {
-        sum: existing.sum + (item.value || 0),
+        sum: existing.sum + Number(item.value),
         count: existing.count + 1
       });
     } else {
       dataByHour.set(hourKey, {
-        sum: item.value || 0,
+        sum: Number(item.value),
         count: 1
       });
     }
@@ -246,7 +256,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
   try {
     const hrData = await dataStore.fetchTimeSeries(newDate, 'heart_rate');
     if (hrData) {
-      heartRateData.value = hrData.data || [];
+      heartRateData.value = (hrData.data || []).filter(item => isValidHeartRate(item.value));
     } else {
       heartRateData.value = [];
     }

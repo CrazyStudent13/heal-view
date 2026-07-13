@@ -42,31 +42,64 @@ const chartRef = ref(null);
 let chartInstance = null;
 
 // Calculate metrics from heart rate data
-const hasData = computed(() => props.data.length > 0);
+function isValidHeartRate(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
+}
+
+function firstValidHeartRate(...values) {
+  return values.find(value => isValidHeartRate(value));
+}
+
+const validHeartRateData = computed(() => {
+  return props.data.filter(item =>
+    isValidHeartRate(item.avgHeartRate) ||
+    isValidHeartRate(item.maxHeartRate) ||
+    isValidHeartRate(item.minHeartRate)
+  );
+});
+
+const hasData = computed(() => validHeartRateData.value.length > 0);
 
 const minHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = props.data.map(item => item.avgHeartRate || 0);
+  const values = validHeartRateData.value
+    .map(item => firstValidHeartRate(item.minHeartRate, item.avgHeartRate))
+    .filter(isValidHeartRate)
+    .map(Number);
+  if (values.length === 0) return 0;
   return Math.min(...values);
 });
 
 const maxHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = props.data.map(item => item.maxHeartRate || 0);
+  const values = validHeartRateData.value
+    .map(item => firstValidHeartRate(item.maxHeartRate, item.avgHeartRate))
+    .filter(isValidHeartRate)
+    .map(Number);
+  if (values.length === 0) return 0;
   return Math.max(...values);
 });
 
 const avgHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = props.data.map(item => item.avgHeartRate || 0);
+  const values = validHeartRateData.value
+    .map(item => item.avgHeartRate)
+    .filter(isValidHeartRate)
+    .map(Number);
+  if (values.length === 0) return 0;
   const sum = values.reduce((acc, val) => acc + val, 0);
   return Math.round(sum / values.length);
 });
 
 const restingHR = computed(() => {
   if (!hasData.value) return 0;
-  // For multi-day comparison, use the minimum average heart rate across all days
-  const values = props.data.map(item => item.avgHeartRate || 0);
+  // For multi-day comparison, prefer daily minimum heart rate, fallback to daily average.
+  const values = validHeartRateData.value
+    .map(item => firstValidHeartRate(item.minHeartRate, item.avgHeartRate))
+    .filter(isValidHeartRate)
+    .map(Number);
+  if (values.length === 0) return 0;
   return Math.min(...values);
 });
 
@@ -83,13 +116,30 @@ const updateChart = () => {
   const config = useHeartRateChartConfig();
 
   // Extract dates and heart rates from data
-  const dates = props.data.map(item => item.date);
-  const avgHR = props.data.map(item => item.avgHeartRate);
-  const maxHR = props.data.map(item => item.maxHeartRate);
+  const dates = validHeartRateData.value.map(item => item.date);
+  const avgHR = validHeartRateData.value.map(item => isValidHeartRate(item.avgHeartRate) ? Number(item.avgHeartRate) : null);
+  const maxHR = validHeartRateData.value.map(item => {
+    const value = firstValidHeartRate(item.maxHeartRate, item.avgHeartRate);
+    return isValidHeartRate(value) ? Number(value) : null;
+  });
+
+  if (dates.length === 0) {
+    chartInstance.clear();
+    return;
+  }
 
   config.xAxis.data = dates;
   config.series[0].data = avgHR;
   config.series[1].data = maxHR;
+
+  const yValues = [...avgHR, ...maxHR].filter(isValidHeartRate).map(Number);
+  if (yValues.length > 0) {
+    const minValue = Math.min(...yValues);
+    const maxValue = Math.max(...yValues);
+    const padding = Math.max(Math.round((maxValue - minValue) * 0.15), 5);
+    config.yAxis.min = Math.max(30, Math.floor((minValue - padding) / 5) * 5);
+    config.yAxis.max = Math.ceil((maxValue + padding) / 5) * 5;
+  }
 
   chartInstance.setOption(config);
 };

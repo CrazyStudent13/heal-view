@@ -255,10 +255,11 @@ const handleResize = () => {
   background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
-  max-height: 500px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -273,16 +274,20 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  height: 400px;
+  flex: 1;
   min-height: 300px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 20px;
   color: #999;
   background: var(--card-bg);
   border-radius: 8px;
   border: 1px solid var(--card-border);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

@@ -232,21 +232,19 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function getDefaultSingleDate() {
+  if (store.selectedDate) return store.selectedDate;
+  if (store.dateList.length === 0) return '';
+
+  const today = formatDate(new Date());
+  return store.dateList.includes(today) ? today : store.dateList[0];
+}
+
 // Initialize
 onMounted(() => {
   // Set initial date in single mode
   if (props.viewMode === 'single') {
-    // If there's a previously selected date, use it; otherwise use current date
-    if (store.selectedDate) {
-      selectedSingleDate.value = store.selectedDate;
-    } else if (store.dateList.length > 0) {
-      // Use the most recent date from the list
-      selectedSingleDate.value = store.dateList[0];
-    } else {
-      // Use today's date as fallback
-      const today = new Date();
-      selectedSingleDate.value = formatDate(today);
-    }
+    selectedSingleDate.value = getDefaultSingleDate();
   }
   
   // Set initial date range in compare mode
@@ -265,14 +263,7 @@ watch(() => props.viewMode, (newMode) => {
     dateRange.value = [];
     
     // Set initial date in single mode
-    if (store.selectedDate) {
-      selectedSingleDate.value = store.selectedDate;
-    } else if (store.dateList.length > 0) {
-      selectedSingleDate.value = store.dateList[0];
-    } else {
-      const today = new Date();
-      selectedSingleDate.value = formatDate(today);
-    }
+    selectedSingleDate.value = getDefaultSingleDate();
   } else if (store.selectedDates.length > 0) {
     // Update date range display when switching to compare mode
     const sorted = [...store.selectedDates].sort((a, b) => new Date(a) - new Date(b));
@@ -287,6 +278,18 @@ watch(() => store.selectedDates, (newDates) => {
   if (props.viewMode === 'compare' && newDates.length > 0) {
     const sorted = [...newDates].sort((a, b) => new Date(a) - new Date(b));
     dateRange.value = [sorted[0], sorted[sorted.length - 1]];
+  }
+}, { deep: true });
+
+watch(() => store.selectedDate, (newDate) => {
+  if (props.viewMode === 'single') {
+    selectedSingleDate.value = newDate || getDefaultSingleDate();
+  }
+});
+
+watch(() => store.dateList, () => {
+  if (props.viewMode === 'single' && !selectedSingleDate.value) {
+    selectedSingleDate.value = getDefaultSingleDate();
   }
 }, { deep: true });
 </script>

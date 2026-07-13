@@ -2,6 +2,13 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getDates, getDailySummary } from '../api/fitnessApi.js';
 
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const useDateStore = defineStore('date', () => {
   const dateList = ref([]);
   const datesWithTraining = ref(new Set()); // Dates that have training data
@@ -45,9 +52,10 @@ export const useDateStore = defineStore('date', () => {
       }
       datesWithTraining.value = trainingSet;
 
-      // Auto-select the most recent date
+      // Auto-select today when available, otherwise use the latest date with data.
       if (dateList.value.length > 0 && !selectedDate.value) {
-        selectedDate.value = dateList.value[0];
+        const today = formatLocalDate(new Date());
+        selectedDate.value = dateList.value.includes(today) ? today : dateList.value[0];
       }
     } catch (err) {
       error.value = err.message;

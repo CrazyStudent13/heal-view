@@ -60,8 +60,12 @@ let chartInstance = null;
 const timelineData = ref(props.data);
 const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
+function isValidHeartRate(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
+}
 const avgHeartRateDisplay = computed(() =>
-  props.avgHeartRate ? `${props.avgHeartRate} bpm` : '-- bpm'
+  isValidHeartRate(props.avgHeartRate) ? `${props.avgHeartRate} bpm` : '-- bpm'
 );
 
 // ---- 阶段配置：4 层堆叠，各占 0.25 高度 ----
@@ -185,10 +189,10 @@ function buildChart() {
   let hrMin = 50, hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
   if (hrRaw && hrRaw.length > 0) {
-    const hrPoints = hrRaw.filter(p => p.value > 0);
+    const hrPoints = hrRaw.filter(p => isValidHeartRate(p.value));
     if (hrPoints.length > 0) {
-      hrMin = Math.min(...hrPoints.map(p => p.value));
-      hrMax = Math.max(...hrPoints.map(p => p.value));
+      hrMin = Math.min(...hrPoints.map(p => Number(p.value)));
+      hrMax = Math.max(...hrPoints.map(p => Number(p.value)));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
       // Filter heart rate data to only include points within chart X axis range
@@ -197,7 +201,7 @@ function buildChart() {
         if (crossesMidnight && m < 720) m += 1440;
         // Only add points within chart X axis range to avoid ECharts connecting out-of-range points
         if (m >= minT - pad && m <= maxT + pad) {
-          hrLineData.push([m, p.value]);
+          hrLineData.push([m, Number(p.value)]);
         }
       });
       
@@ -425,7 +429,12 @@ watch(() => props.data, async nd => {
   heartRateTS.value = null;
   if (nd?.date) {
     const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
-    if (hr?.data?.length) heartRateTS.value = hr;
+    if (hr?.data?.length) {
+      heartRateTS.value = {
+        ...hr,
+        data: hr.data.filter(item => isValidHeartRate(item.value))
+      };
+    }
   }
   // Wait for DOM to update before building chart
   await new Promise(resolve => setTimeout(resolve, 50));

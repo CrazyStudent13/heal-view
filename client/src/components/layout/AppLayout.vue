@@ -109,9 +109,52 @@ const chartData = ref([]);
 const sleepTimelineData = ref(null);
 const weightData = ref(null);
 const loading = ref(false);
+const initializing = ref(false);
+let singleFetchSeq = 0;
+let compareFetchSeq = 0;
+let sleepFetchSeq = 0;
+let weightFetchSeq = 0;
+let weightSidebarFetchSeq = 0;
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultSingleDate() {
+  if (dateStore.selectedDate) return dateStore.selectedDate;
+  if (dateStore.dateList.length === 0) return null;
+
+  const today = formatLocalDate(new Date());
+  return dateStore.dateList.includes(today) ? today : dateStore.dateList[0];
+}
+
+function isCompareChartType(type) {
+  return ['weight', 'steps', 'heartrate', 'sleep', 'calories'].includes(type);
+}
+
+function datesKey(dates) {
+  return [...dates].sort().join('|');
+}
+
+async function fetchSleepTimelineForDate(date) {
+  const requestId = ++sleepFetchSeq;
+  if (!date) {
+    sleepTimelineData.value = null;
+    return;
+  }
+
+  sleepTimelineData.value = null;
+  const timeline = await dataStore.fetchSleepTimeline(date);
+  if (requestId === sleepFetchSeq && dateStore.selectedDate === date && currentChartType.value === 'sleep') {
+    sleepTimelineData.value = timeline;
+  }
+}
 
 // Handle chart type change
 async function handleChartChange(type) {
@@ -128,7 +171,7 @@ async function handleChartChange(type) {
   
   // Fetch sleep timeline when switching to sleep chart in single mode
   if (type === 'sleep' && viewMode.value === 'single' && dateStore.selectedDate) {
-    sleepTimelineData.value = await dataStore.fetchSleepTimeline(dateStore.selectedDate);
+    await fetchSleepTimelineForDate(dateStore.selectedDate);
   } else if (type !== 'sleep') {
     sleepTimelineData.value = null;
   }
@@ -141,13 +184,20 @@ async function handleChartChange(type) {
 
 // Fetch data for single mode
 async function fetchSingleDayData(date) {
+  const requestId = ++singleFetchSeq;
+
   if (!date) {
     chartData.value = [];
+    loading.value = false;
     return;
   }
 
   loading.value = true;
   const summary = await dataStore.fetchDailySummary(date);
+  if (requestId !== singleFetchSeq || viewMode.value !== 'single' || dateStore.selectedDate !== date) {
+    return;
+  }
+
   if (summary) {
     chartData.value = [{
       date: summary.date,
@@ -155,6 +205,7 @@ async function fetchSingleDayData(date) {
       distance: summary.distance,
       calories: summary.calories,
       avgHeartRate: summary.avgHeartRate,
+      minHeartRate: summary.minHeartRate,
       maxHeartRate: summary.maxHeartRate,
       avgStress: summary.avgStress,
       sleepHours: summary.sleepHours || 0,
@@ -167,13 +218,20 @@ async function fetchSingleDayData(date) {
   } else {
     chartData.value = [];
   }
-  loading.value = false;
+
+  if (requestId === singleFetchSeq) {
+    loading.value = false;
+  }
 }
 
 // Fetch data for compare mode
-async function fetchCompareData(dates) {
+async function fetchCompareData(dates, options = {}) {
+  const { includeWeightForSidebar = true } = options;
+  const requestId = ++compareFetchSeq;
+
   if (dates.length === 0) {
     chartData.value = [];
+    loading.value = false;
     return;
   }
 
@@ -185,16 +243,24 @@ async function fetchCompareData(dates) {
       data.push(summary);
     }
   }
+  if (requestId !== compareFetchSeq || viewMode.value !== 'compare') {
+    return;
+  }
+
   chartData.value = data.sort((a, b) => new Date(a.date) - new Date(b.date));
   loading.value = false;
   
   // Async fetch weight data for sidebar card display (don't block loading)
-  fetchWeightDataForSidebar(dates);
+  if (includeWeightForSidebar) {
+    fetchWeightDataForSidebar(dates);
+  }
 }
 
 // Fetch weight data only for sidebar display (no loading state change)
 async function fetchWeightDataForSidebar(dates) {
+  const requestId = ++weightSidebarFetchSeq;
   if (dates.length === 0) return;
+  const requestedKey = datesKey(dates);
   
   try {
     const sorted = [...dates].sort();
@@ -202,6 +268,13 @@ async function fetchWeightDataForSidebar(dates) {
     const endDate = sorted[sorted.length - 1];
     
     const data = await dataStore.fetchWeightData({ startDate, endDate });
+    if (
+      requestId !== weightSidebarFetchSeq ||
+      viewMode.value !== 'compare' ||
+      requestedKey !== datesKey(dateStore.selectedDates)
+    ) {
+      return;
+    }
     
     if (data && data.dailyData) {
       const weightChartData = data.dailyData.map(item => ({
@@ -222,16 +295,26 @@ async function fetchWeightDataForSidebar(dates) {
 }
 
 // Fetch weight data for the current date range
-async function fetchWeightData() {
-  if (dateStore.selectedDates.length === 0) return;
+async function fetchWeightData(dates = dateStore.selectedDates) {
+  const requestId = ++weightFetchSeq;
+  weightSidebarFetchSeq++;
+  if (dates.length === 0) {
+    weightData.value = null;
+    loading.value = false;
+    return;
+  }
   
   try {
-    const sorted = [...dateStore.selectedDates].sort();
+    const sorted = [...dates].sort();
     const startDate = sorted[0];
     const endDate = sorted[sorted.length - 1];
     
     loading.value = true;
     const data = await dataStore.fetchWeightData({ startDate, endDate });
+    if (requestId !== weightFetchSeq || viewMode.value !== 'compare') {
+      return;
+    }
+
     weightData.value = data;
     
     // Also update chartData with weight info for sidebar card display
@@ -251,9 +334,13 @@ async function fetchWeightData() {
     }
   } catch (error) {
     console.error('Failed to fetch weight data:', error);
-    weightData.value = null;
+    if (requestId === weightFetchSeq) {
+      weightData.value = null;
+    }
   } finally {
-    loading.value = false;
+    if (requestId === weightFetchSeq) {
+      loading.value = false;
+    }
   }
 }
 
@@ -269,51 +356,64 @@ function getLast30Days() {
 
 // Initialize default data
 async function initDefaultData() {
+  initializing.value = true;
   loading.value = true;
-  
-  // Wait for date list to be loaded
-  if (dateStore.dateList.length === 0) {
-    await dateStore.fetchDateList();
+
+  try {
+    // Wait for date list to be loaded
+    if (dateStore.dateList.length === 0) {
+      await dateStore.fetchDateList();
+    }
+    
+    // Set default to single mode for debugging
+    viewMode.value = 'single';
+    
+    // Keep the date picker and loaded data on the same default date.
+    const defaultDate = getDefaultSingleDate();
+    if (defaultDate) {
+      dateStore.selectDate(defaultDate);
+      await fetchSingleDayData(defaultDate);
+      await dataStore.fetchUserProfile();
+      console.log('Loaded single day data for:', defaultDate);
+    } else {
+      console.warn('No dates available');
+    }
+  } finally {
+    loading.value = false;
+    initializing.value = false;
   }
-  
-  // Set default to single mode for debugging
-  viewMode.value = 'single';
-  
-  // Select the most recent date with training data
-  const trainingDates = dateStore.trainingDates;
-  if (trainingDates.length > 0) {
-    const sorted = [...trainingDates].sort((a, b) => new Date(b) - new Date(a));
-    const mostRecentDate = sorted[0];
-    dateStore.selectedDate = mostRecentDate;
-    await fetchSingleDayData(mostRecentDate);
-    await dataStore.fetchUserProfile();
-    console.log('Loaded single day data for:', mostRecentDate);
-  } else {
-    console.warn('No training dates available');
-  }
-  
-  loading.value = false;
 }
 
 // Watch for changes in single mode
 watch(() => dateStore.selectedDate, async (newDate) => {
+  if (initializing.value) return;
+
   if (viewMode.value === 'single') {
     // Keep current chart type when switching dates in single mode
     await fetchSingleDayData(newDate);
     
     // Re-fetch sleep timeline if currently viewing sleep chart
     if (currentChartType.value === 'sleep' && newDate) {
-      sleepTimelineData.value = await dataStore.fetchSleepTimeline(newDate);
+      await fetchSleepTimelineForDate(newDate);
     }
   }
 });
 
 // Watch for changes in compare mode
 watch(() => dateStore.selectedDates, async (newDates) => {
+  if (initializing.value) return;
+
   if (viewMode.value === 'compare') {
-    currentChartType.value = 'weight';
-    weightData.value = null; // Clear weight data on mode switch
-    await fetchCompareData(newDates);
+    if (!isCompareChartType(currentChartType.value)) {
+      currentChartType.value = 'weight';
+    }
+
+    if (currentChartType.value === 'weight') {
+      await fetchCompareData(newDates, { includeWeightForSidebar: false });
+      await fetchWeightData(newDates);
+    } else {
+      await fetchCompareData(newDates);
+    }
   }
 }, { deep: true });
 
@@ -330,8 +430,11 @@ watch(viewMode, async (newMode) => {
     // Switch to single mode
     // If no date is selected, use the most recent date
     // Otherwise, keep the previously selected date
-    if (!dateStore.selectedDate && dateStore.dateList.length > 0) {
-      dateStore.selectedDate = dateStore.dateList[0];
+    if (!dateStore.selectedDate) {
+      const defaultDate = getDefaultSingleDate();
+      if (defaultDate) {
+        dateStore.selectDate(defaultDate);
+      }
     }
     
     if (dateStore.selectedDate) {

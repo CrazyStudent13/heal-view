@@ -2,6 +2,11 @@ import { databaseService } from '../services/database.js';
 import { cacheManager } from '../services/cacheManager.js';
 import { config } from '../config/index.js';
 
+function isPositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
+}
+
 /**
  * Get list of unique dates (descending order)
  */
@@ -75,15 +80,21 @@ export function getDailySummary(req, res) {
     `, [date]);
     const totalCalories = caloriesResult.length > 0 ? caloriesResult[0].values[0][0] || 0 : 0;
 
-    // Get heart rate average - extract from JSON (uses 'bpm' field)
+    // Get heart rate metrics - extract from JSON and ignore missing/zero bpm values.
     const hrResult = databaseService.query(`
-      SELECT AVG(CAST(json_extract(value, '$.bpm') AS INTEGER)) as avg_hr, 
-             MAX(CAST(json_extract(value, '$.bpm') AS INTEGER)) as max_hr
-      FROM fitness_data
-      WHERE date = ? AND key = 'heart_rate'
+      SELECT AVG(bpm) as avg_hr,
+             MAX(bpm) as max_hr,
+             MIN(bpm) as min_hr
+      FROM (
+        SELECT CAST(json_extract(value, '$.bpm') AS INTEGER) as bpm
+        FROM fitness_data
+        WHERE date = ? AND key = 'heart_rate'
+      )
+      WHERE bpm IS NOT NULL AND bpm > 0
     `, [date]);
     const avgHeartRate = hrResult.length > 0 ? Math.round(hrResult[0].values[0][0] || 0) : 0;
     const maxHeartRate = hrResult.length > 0 ? hrResult[0].values[0][1] || 0 : 0;
+    const minHeartRate = hrResult.length > 0 ? hrResult[0].values[0][2] || 0 : 0;
 
     // Get stress average - extract from JSON (uses 'stress' field)
     const stressResult = databaseService.query(`
@@ -137,6 +148,7 @@ export function getDailySummary(req, res) {
       distance: totalDistance,
       calories: totalCalories,
       avgHeartRate,
+      minHeartRate,
       maxHeartRate,
       avgStress,
       sleepHours: parseFloat(sleepHours),
@@ -184,10 +196,15 @@ export function getTimeSeries(req, res) {
       keyFilter = metric;
     }
 
+    const heartRateFilter = metric === 'heart_rate'
+      ? ` AND CAST(json_extract(value, '$.bpm') AS REAL) > 0`
+      : '';
+
     const result = databaseService.query(`
       SELECT time, value
       FROM ${tableName}
       WHERE date = ? AND key = ?
+      ${heartRateFilter}
       ORDER BY time ASC
     `, [date, keyFilter]);
 
@@ -200,7 +217,7 @@ export function getTimeSeries(req, res) {
             
             // Extract the appropriate field based on metric type
             if (metric === 'heart_rate') {
-              value = jsonValue.bpm || 0;
+              value = isPositiveNumber(jsonValue.bpm) ? Number(jsonValue.bpm) : null;
             } else if (metric === 'stress') {
               value = jsonValue.stress || 0;
             } else if (metric === 'steps') {
@@ -213,7 +230,10 @@ export function getTimeSeries(req, res) {
             }
           } catch (e) {
             // If parsing fails, try to parse as float directly
-            value = parseFloat(row[1]) || 0;
+            const parsed = parseFloat(row[1]);
+            value = metric === 'heart_rate'
+              ? (isPositiveNumber(parsed) ? parsed : null)
+              : (parsed || 0);
           }
           
           return {
@@ -223,9 +243,13 @@ export function getTimeSeries(req, res) {
         })
       : [];
 
+    const filteredData = metric === 'heart_rate'
+      ? data.filter(item => isPositiveNumber(item.value))
+      : data;
+
     // Remove duplicates - keep only unique time entries
     const seen = new Set();
-    const uniqueData = data.filter(item => {
+    const uniqueData = filteredData.filter(item => {
       if (seen.has(item.time)) {
         return false;
       }

@@ -75,7 +75,7 @@
           </div>
           <div class="card-info">
             <div class="card-label">{{ isCompareMode ? t('data.avgSteps') : t('data.steps') }}</div>
-            <div class="card-value">{{ formatNumber(displayData.avgSteps) }}</div>
+            <div class="card-value">{{ formatSteps(displayData.avgSteps) }}</div>
           </div>
         </div>
       </el-card>
@@ -188,20 +188,28 @@ const bmiCategoryShort = computed(() => {
 
 const hasData = computed(() => props.chartData.length > 0);
 
+function isPositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
+}
+
 const displayData = computed(() => {
   if (props.chartData.length === 0) {
-    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0, avgSleepHours: 0 };
+    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0, avgSleepHours: 0, avgWeight: '--' };
   }
 
   if (isCompareMode.value) {
-    const avgSteps = Math.round(props.chartData.reduce((acc, item) => acc + item.steps, 0) / props.chartData.length);
-    const avgCalories = Math.round(props.chartData.reduce((acc, item) => acc + item.calories, 0) / props.chartData.length);
-    const avgHeartRate = Math.round(props.chartData.reduce((acc, item) => acc + item.avgHeartRate, 0) / props.chartData.length);
+    const avgSteps = Math.round(props.chartData.reduce((acc, item) => acc + (Number(item.steps) || 0), 0) / props.chartData.length);
+    const avgCalories = Math.round(props.chartData.reduce((acc, item) => acc + (Number(item.calories) || 0), 0) / props.chartData.length);
+    const heartRateItems = props.chartData.filter(item => isPositiveNumber(item.avgHeartRate));
+    const avgHeartRate = heartRateItems.length > 0
+      ? Math.round(heartRateItems.reduce((acc, item) => acc + Number(item.avgHeartRate), 0) / heartRateItems.length)
+      : 0;
     const avgSleepHours = (props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length).toFixed(1);
 
-    const avgWeightItems = props.chartData.filter(item => item.avgWeight && item.avgWeight > 0);
+    const avgWeightItems = props.chartData.filter(item => isPositiveNumber(item.avgWeight));
     const avgWeight = avgWeightItems.length > 0
-      ? (avgWeightItems.reduce((acc, item) => acc + item.avgWeight, 0) / avgWeightItems.length).toFixed(1)
+      ? (avgWeightItems.reduce((acc, item) => acc + Number(item.avgWeight), 0) / avgWeightItems.length).toFixed(1)
       : '--';
 
     return { avgSteps, avgCalories, avgHeartRate, avgSleepHours, avgWeight };
@@ -218,7 +226,12 @@ const displayData = computed(() => {
 });
 
 function formatNumber(num) {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (num === '--') return num;
+  return (Number(num) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function formatSteps(num) {
+  return `${formatNumber(num)} ${t('chart.unitSteps')}`;
 }
 </script>
 
