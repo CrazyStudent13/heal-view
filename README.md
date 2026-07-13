@@ -74,7 +74,7 @@ npm run dev
 ## 项目结构
 
 ```
-healView/
+heal-view/
 ├── backend/                    # 后端服务
 │   ├── src/
 │   │   ├── config/            # 配置文件
