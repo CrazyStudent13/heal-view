@@ -1,7 +1,7 @@
 {
-  "name": "mifitness-backend",
+  "name": "heal-view-server",
   "version": "1.0.0",
-  "description": "MiFitness health data backend API server",
+  "description": "heal-view health data API server",
   "main": "src/app.js",
   "type": "module",
   "scripts": {

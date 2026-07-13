@@ -31,9 +31,9 @@ Thumbs.db
 npm-debug.log*
 
 # Temporary files
-backend/check*.js
-backend/test*.js
-backend/verify*.js
+server/check*.js
+server/test*.js
+server/verify*.js
 
 # Screenshots and debug images (root level only)
 /screenshot_*.png

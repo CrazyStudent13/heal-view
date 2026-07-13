@@ -36,7 +36,7 @@
 
 ```bash
 # 进入后端目录
-cd backend
+cd server
 
 # 安装依赖
 npm install
@@ -56,7 +56,7 @@ npm start
 
 ```bash
 # 进入前端目录
-cd frontend
+cd client
 
 # 安装依赖（如果还未安装）
 npm install
@@ -75,7 +75,7 @@ npm run dev
 
 ```
 heal-view/
-├── backend/                    # 后端服务
+├── server/                    # 后端服务
 │   ├── src/
 │   │   ├── config/            # 配置文件
 │   │   ├── controllers/       # API控制器
@@ -86,7 +86,7 @@ heal-view/
 │   ├── data/                  # CSV源文件目录
 │   └── health_data.db         # SQLite数据库文件
 │
-├── frontend/                  # 前端应用
+├── client/                  # 前端应用
 │   ├── src/
 │   │   ├── api/              # API客户端
 │   │   ├── components/       # Vue组件
@@ -132,7 +132,7 @@ heal-view/
 A: 首次导入129MB的CSV文件可能需要几分钟时间。请耐心等待，导入完成后后续查询会非常快。
 
 ### Q: 如何更新数据？
-A: 将新的CSV文件放入 `backend/data` 目录，然后重新运行 `npm run import`。
+A: 将新的CSV文件放入 `server/data` 目录，然后重新运行 `npm run import`。
 
 ### Q: 可以在手机上访问吗？
 A: 可以。在前端运行时添加 `--host` 参数：`npm run dev -- --host`，然后在同一局域网的设备上访问显示的IP地址。
