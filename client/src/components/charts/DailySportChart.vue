@@ -1,6 +1,6 @@
 <template>
   <div class="daily-sport-chart">
-    <h3 class="chart-title">{{ t('chart.dailySportActivities') }}</h3>
+    <SectionTitle>{{ t('chart.dailySportActivities') }}</SectionTitle>
     
     <!-- Summary cards -->
     <div v-if="sportRecords.length > 0" class="summary-cards">
@@ -172,7 +172,7 @@
     <transition name="slide-fade">
       <div v-if="selectedRecord" class="detail-panel">
         <div class="detail-header">
-          <h3 class="detail-title">运动详情 - {{ selectedRecord.categoryName }}</h3>
+          <SectionTitle>运动详情 - {{ selectedRecord.categoryName }}</SectionTitle>
         </div>
 
         <!-- Rowing Machine Details -->
@@ -204,7 +204,7 @@
           
           <!-- Segments Table -->
           <div v-if="selectedRecord.segments && selectedRecord.segments.length > 0" class="segments-section">
-            <h4 class="section-title">分段详情</h4>
+            <SectionTitle>分段详情</SectionTitle>
             <el-table :data="selectedRecord.segments" size="small" border>
               <el-table-column prop="type" label="类型" width="80" align="center">
                 <template #default="{ row }">
@@ -263,7 +263,7 @@
 
           <!-- Per km pace -->
           <div v-if="selectedRecord.kmPaces && selectedRecord.kmPaces.length > 0" class="km-paces-section">
-            <h4 class="section-title">每公里配速</h4>
+            <SectionTitle>每公里配速</SectionTitle>
             <div class="km-paces-list">
               <div v-for="(pace, index) in selectedRecord.kmPaces" :key="index" class="km-pace-item">
                 <span class="km-label">{{ index + 1 }} km</span>
@@ -300,7 +300,7 @@
 
         <!-- Heart Rate Chart Section -->
         <div class="chart-section">
-          <h4 class="section-title section-title-left">运动心率 (BPM)</h4>
+          <SectionTitle>运动心率 (BPM)</SectionTitle>
           <div class="chart-container" ref="heartRateChartRef"></div>
         </div>
       </div>

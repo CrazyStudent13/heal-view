@@ -1,5 +1,6 @@
 <template>
   <div class="chart-container">
+    <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
     <!-- Heart rate metrics cards -->
     <div class="metrics-cards" v-if="hasData">
       <div class="metric-card">

@@ -24,7 +24,7 @@
 
     <!-- Statistics cards -->
     <div v-if="!loading && metrics" class="stats-card">
-      <h3 class="card-title">{{ t('weight.stats') }}</h3>
+      <SectionTitle>{{ t('weight.stats') }}</SectionTitle>
       <div class="stats-cards">
         <!-- Height / Weight -->
         <div class="stat-item">
@@ -109,7 +109,7 @@
 
     <!-- Chart card -->
     <div v-show="!loading" class="chart-container">
-      <h3 class="chart-title">{{ t('weight.title') }}</h3>
+      <SectionTitle>{{ t('weight.title') }}</SectionTitle>
       <div ref="chartRef" class="chart"></div>
     </div>
   </div>

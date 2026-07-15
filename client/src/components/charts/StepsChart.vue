@@ -28,7 +28,7 @@
     
     <!-- Statistics cards card -->
     <div v-if="!loading && stats" class="stats-card">
-      <h3 class="card-title">{{ t('chart.exerciseStats') }}</h3>
+      <SectionTitle>{{ t('chart.exerciseStats') }}</SectionTitle>
       <div class="stats-cards">
         <div class="stat-item">
           <div class="stat-icon">⏱️</div>
@@ -107,7 +107,7 @@
     
     <!-- Chart card -->
     <div v-show="!loading" class="chart-container">
-      <h3 class="chart-title">{{ t('chart.stepsDistanceTrend') }}</h3>
+      <SectionTitle>{{ t('chart.stepsDistanceTrend') }}</SectionTitle>
       <div ref="chartRef" class="chart"></div>
     </div>
   </div>

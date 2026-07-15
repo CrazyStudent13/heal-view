@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">{{ t('nav.multiDay') }}{{ t('chart.steps') }}{{ t('chart.trend') }}</h3>
+    <SectionTitle>{{ t('nav.multiDay') }}{{ t('chart.steps') }}{{ t('chart.trend') }}</SectionTitle>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>

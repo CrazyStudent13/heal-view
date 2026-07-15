@@ -317,4 +317,38 @@ watch(() => store.dateList, () => {
   color: var(--text-secondary);
   white-space: nowrap;
 }
+
+@media (max-width: 600px) {
+  .top-navbar {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .top-navbar > :deep(.el-divider--vertical) {
+    display: none;
+  }
+
+  .date-section {
+    order: 2;
+    width: 100%;
+  }
+
+  .date-section :deep(.el-date-editor.el-input),
+  .date-section :deep(.el-date-editor--daterange) {
+    flex: 1;
+    min-width: 0;
+    width: auto !important;
+    margin-left: 0 !important;
+  }
+
+  .date-section :deep(.el-button) {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .section-label {
+    display: none;
+  }
+}
 </style>

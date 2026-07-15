@@ -1,6 +1,6 @@
 <template>
   <div class="time-series-chart">
-    <h3 class="chart-title">{{ t('chart.dailyActivityTrend') }}</h3>
+    <SectionTitle>{{ t('chart.dailyActivityTrend') }}</SectionTitle>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>

@@ -16,7 +16,7 @@
       <div v-else-if="profileData" class="content-wrapper">
         <!-- Basic Info Section -->
         <div class="section">
-          <h3 class="section-title">{{ t('personal.basicInfo') }}</h3>
+          <SectionTitle>{{ t('personal.basicInfo') }}</SectionTitle>
           <div class="info-grid">
             <div class="info-item">
               <div class="info-icon">📏</div>
@@ -54,7 +54,7 @@
 
         <!-- Weight Goals Section -->
         <div class="section">
-          <h3 class="section-title">{{ t('personal.weightGoals') }}</h3>
+          <SectionTitle>{{ t('personal.weightGoals') }}</SectionTitle>
           <div class="info-grid">
             <div class="info-item">
               <div class="info-icon">🎯</div>
@@ -92,7 +92,7 @@
 
         <!-- BMI & Health Metrics Section -->
         <div class="section">
-          <h3 class="section-title">{{ t('personal.healthMetrics') }}</h3>
+          <SectionTitle>{{ t('personal.healthMetrics') }}</SectionTitle>
           <div class="metrics-cards">
             <!-- BMI Card -->
             <div class="metric-card bmi-card">
@@ -130,7 +130,7 @@
 
         <!-- BMI Reference Chart -->
         <div class="section" v-if="profileData.bmiReference">
-          <h3 class="section-title">{{ t('personal.bmiReference') }}</h3>
+          <SectionTitle>{{ t('personal.bmiReference') }}</SectionTitle>
           <PersonalDataChart :profile-data="profileData" />
         </div>
       </div>

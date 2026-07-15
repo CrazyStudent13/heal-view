@@ -524,4 +524,30 @@ onMounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
+
+@media (max-width: 900px) {
+  .app-layout {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .content-area {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .sidebar-wrapper {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .chart-area {
+    height: auto;
+    overflow: visible;
+  }
+}
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container" v-if="hasValidData">
-    <h3 class="chart-title">{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</h3>
+    <SectionTitle>{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</SectionTitle>
     <div ref="chartRef" class="chart"></div>
   </div>
   <div class="empty-state" v-else>

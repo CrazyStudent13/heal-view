@@ -1,9 +1,9 @@
 <template>
   <div class="data-cards-sidebar">
-    <h3 class="sidebar-title">
-      <el-icon><DataLine /></el-icon>
+    <SectionTitle :level="1">
+      <template #icon><DataLine /></template>
       {{ t('data.overview') }}
-    </h3>
+    </SectionTitle>
     
     <!-- Skeleton loading state -->
     <div v-if="loading" class="cards-list">
@@ -243,16 +243,6 @@ function formatSteps(num) {
   overflow-y: auto;
 }
 
-.sidebar-title {
-  margin: 0 0 24px 0;
-  font-size: 18px;
-  color: var(--text-primary);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .cards-list {
   display: flex;
   flex-direction: column;
@@ -356,5 +346,27 @@ function formatSteps(num) {
   font-size: 12px;
   color: var(--text-secondary);
   margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .data-cards-sidebar {
+    height: auto;
+    overflow: visible;
+  }
+
+  .cards-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-item {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .cards-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

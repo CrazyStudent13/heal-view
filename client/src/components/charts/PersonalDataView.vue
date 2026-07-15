@@ -9,7 +9,7 @@
     <div v-else-if="profileData" class="content-wrapper">
       <!-- Basic Info -->
       <div class="info-section">
-        <h3 class="section-title">{{ t('personal.basicInfo') }}</h3>
+        <SectionTitle>{{ t('personal.basicInfo') }}</SectionTitle>
         <el-descriptions :column="2" border size="large">
           <el-descriptions-item>
             <template #label>{{ t('personal.height') }} / {{ t('personal.weight') }}</template>
@@ -43,7 +43,7 @@
 
       <!-- Weight Goals -->
       <div class="info-section">
-        <h3 class="section-title">{{ t('personal.weightGoals') }}</h3>
+        <SectionTitle>{{ t('personal.weightGoals') }}</SectionTitle>
         <el-descriptions :column="2" border size="large">
           <el-descriptions-item :label="t('personal.initialWeight')">
             {{ profileData.initialWeight ? profileData.initialWeight + ' kg' : t('personal.notSet') }}

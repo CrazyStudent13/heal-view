@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">{{ t('chart.caloriesBurned') }}</h3>
+    <SectionTitle>{{ t('chart.caloriesBurned') }}</SectionTitle>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>

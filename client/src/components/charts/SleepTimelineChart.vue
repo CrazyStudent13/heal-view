@@ -1,5 +1,5 @@
 <template>
-  <div class="chart-container" v-if="hasData">
+  <div class="sleep-timeline-view" v-if="hasData">
     <div class="sleep-overview-cards">
       <el-card class="overview-card" shadow="hover">
         <div class="overview-card-content">
@@ -32,7 +32,14 @@
         </div>
       </el-card>
     </div>
-    <div ref="chartRef" class="chart"></div>
+    <section class="timeline-card">
+      <SectionTitle>
+        <template #icon><MoonNight /></template>
+        {{ t('chart.sleepTimeline') }}
+      </SectionTitle>
+      <div ref="chartRef" class="chart"></div>
+    </section>
+    <SleepStageAnalysis :segments="timelineData.segments" />
   </div>
   <div class="empty-state" v-else>
     <el-empty :description="t('chart.noSleepData')" />
@@ -45,6 +52,7 @@ import * as echarts from 'echarts';
 import { ElEmpty } from 'element-plus';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useDataStore } from '../../stores/dataStore';
+import SleepStageAnalysis from './SleepStageAnalysis.vue';
 
 const localeStore = useLocaleStore();
 function t(key) { return localeStore.t(key); }
@@ -107,7 +115,7 @@ const interruptDesc = computed(() => {
 const interruptTagType = computed(() => {
   const c = awakeEpisodes.value;
   if (c === 0) return 'success'; if (c === 1) return 'warning';
-  if (c <= 3) return ''; return 'danger';
+  if (c <= 3) return 'info'; return 'danger';
 });
 
 // ---- 图表核心 ----
@@ -223,16 +231,6 @@ function buildChart() {
 
   const option = {
     backgroundColor: bg,
-    title: {
-      text: '睡眠分析',
-      left: 10,
-      top: 10,
-      textStyle: {
-        color: document.documentElement.classList.contains('dark') ? '#ddd' : '#333',
-        fontSize: 16,
-        fontWeight: 600
-      }
-    },
     legend: {
       data: [
         { name: stageConfig.deep.label, itemStyle: { color: stageConfig.deep.color } },
@@ -243,7 +241,7 @@ function buildChart() {
       ],
       orient: 'vertical', // 垂直排列
       right: 10,
-      top: 50,
+      top: 0,
       textStyle: { color: txt, fontSize: 11 },
       itemWidth: 12,
       itemHeight: 8,
@@ -298,7 +296,7 @@ function buildChart() {
         return `<strong>${t}</strong><br/>${html || '无数据'}`;
       }
     },
-    grid: { left: 48, right: 80, bottom: 30, top: 60, containLabel: false },
+    grid: { left: 48, right: 80, bottom: 30, top: 22, containLabel: false },
     xAxis: {
       type: 'value',
       min: Math.round(minT - pad),
@@ -397,7 +395,7 @@ function buildChart() {
     },
     // 心率平滑折线
     ...(hrLineData.length > 0 ? [{
-      name: 'heartRate',
+      name: '心率',
       type: 'line',
       yAxisIndex: 1,
       smooth: 0.4,
@@ -454,16 +452,29 @@ watch(hasData, async (newVal) => {
   }
 });
 
-onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', () => chartInstance?.resize()); });
-onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', () => chartInstance?.resize()); });
+const handleResize = () => chartInstance?.resize();
+
+onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', handleResize); });
+onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', handleResize); });
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg); padding: 20px; border-radius: 8px;
-  margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 1px solid var(--card-border); min-height: 100%;
-  display: flex; flex-direction: column;
+.sleep-timeline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100%;
+  padding-bottom: 20px;
+}
+.timeline-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 330px;
+  padding: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .sleep-overview-cards {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
@@ -472,18 +483,19 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .overview-card {
   border: 2px solid var(--card-border); border-radius: 8px;
   background: var(--card-bg); transition: all 0.3s;
+  min-width: 0;
 }
 .overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
-.overview-card-content { display: flex; align-items: center; gap: 16px; padding: 4px 0; }
+.overview-card-content { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 4px 0; }
 .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .icon-text { font-size: 24px; line-height: 1; }
 .sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
 .card-info { flex: 1; min-width: 0; }
-.card-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
-.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); }
-.card-value-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.card-label { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px; overflow-wrap: anywhere; }
+.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.card-value-row { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
 .card-value-row .card-value { margin-bottom: 0; }
-.chart { width: 100%; flex: 1; min-height: 220px; }
+.chart { width: 100%; flex: 1; min-height: 260px; }
 .empty-state {
   text-align: center;
   height: 100%; /* Fill entire container height to match sidebar */
@@ -492,6 +504,6 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   justify-content: center;
 }
 .summary-info { display: flex; gap: 24px; margin-bottom: 12px; padding: 10px 14px; background: var(--bg-secondary); border-radius: 8px; flex-wrap: wrap; color: var(--text-secondary); font-size: 13px; }
-@media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 500px) { .sleep-overview-cards { grid-template-columns: repeat(1, 1fr); } }
 </style>
