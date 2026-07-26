@@ -367,6 +367,10 @@ watch(() => props.data, (newData) => {
   }
 }, { deep: true });
 
+watch(() => localeStore.currentLocale, () => {
+  if (chartInstance) updateChart();
+});
+
 // Watch for loading state changes to initialize chart when loading finishes
 watch(() => props.loading, async (newLoading) => {
   if (!newLoading && props.data && props.data.length > 0) {

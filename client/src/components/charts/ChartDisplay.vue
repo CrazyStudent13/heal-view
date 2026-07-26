@@ -27,7 +27,7 @@
 
     <!-- Empty state for compare mode -->
     <div v-if="!hasData && !loading && viewMode === 'compare'" class="empty-state">
-      <p>请在顶部选择日期</p>
+      <p>{{ t('chart.selectDate') }}</p>
     </div>
   </div>
 </template>
@@ -43,6 +43,10 @@ import DailySportChart from './DailySportChart.vue';
 import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
 import WeightChart from './WeightChart.vue';
 import PersonalDataView from './PersonalDataView.vue';
+import { useLocaleStore } from '../../stores/localeStore';
+
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 const props = defineProps({
   chartData: {

@@ -10,7 +10,7 @@
             <span class="icon-text">🔥</span>
           </div>
           <div class="card-info">
-            <div class="card-label">累计热量</div>
+            <div class="card-label">{{ t('sport.totalCalories') }}</div>
             <div class="card-value">{{ totalCalories }} kcal</div>
           </div>
         </div>
@@ -22,7 +22,7 @@
             <span class="icon-text">&#9201;</span>
           </div>
           <div class="card-info">
-            <div class="card-label">总时长</div>
+            <div class="card-label">{{ t('sport.totalDuration') }}</div>
             <div class="card-value">{{ formatDuration(totalDuration) }}</div>
           </div>
         </div>
@@ -34,7 +34,7 @@
             <span class="icon-text">&#128099;</span>
           </div>
           <div class="card-info">
-            <div class="card-label">运动总计步数</div>
+            <div class="card-label">{{ t('sport.totalSteps') }}</div>
             <div class="card-value">{{ totalSteps.toLocaleString() }}</div>
           </div>
         </div>
@@ -62,7 +62,7 @@
       <!-- Time column -->
       <el-table-column 
         prop="timeRange" 
-        label="时间区间" 
+        :label="t('chart.timeRange')"
         min-width="140"
         align="center"
       >
@@ -74,13 +74,13 @@
       <!-- Category column -->
       <el-table-column 
         prop="categoryName" 
-        label="运动类型" 
+        :label="t('chart.sportType')"
         min-width="100"
         align="center"
       >
         <template #default="{ row }">
           <el-tag :type="getCategoryTagType(row)" size="small">
-            {{ row.categoryName }}
+            {{ getCategoryName(row) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -88,15 +88,17 @@
       <!-- Duration column -->
       <el-table-column 
         prop="durationText" 
-        label="时长" 
+        :label="t('chart.duration')"
         min-width="90"
         align="center"
-      />
+      >
+        <template #default="{ row }">{{ formatDuration(row.duration) }}</template>
+      </el-table-column>
 
       <!-- Calories column -->
       <el-table-column 
         prop="calories" 
-        label="热量消耗" 
+        :label="t('chart.caloriesBurned')"
         min-width="110"
         align="center"
       >
@@ -108,7 +110,7 @@
       <!-- Average Heart Rate column -->
       <el-table-column 
         prop="avgHrm" 
-        label="平均心率" 
+        :label="t('chart.avgHeartRate')"
         min-width="110"
         align="center"
       >
@@ -121,7 +123,7 @@
       <!-- Max Heart Rate column -->
       <el-table-column 
         prop="maxHrm" 
-        label="最高心率" 
+        :label="t('chart.maxHeartRate')"
         min-width="110"
         align="center"
       >
@@ -133,7 +135,7 @@
 
       <!-- Details column -->
       <el-table-column 
-        label="详细信息" 
+        :label="t('chart.details')"
         min-width="100"
         align="center"
       >
@@ -142,27 +144,27 @@
             <template #content>
               <div class="detail-tooltip">
                 <!-- Walking data -->
-                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.distanceKm">📍 {{ row.distanceKm }} 公里</div>
-                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.avgSpeed">平均速度: {{ row.avgSpeed }} km/h</div>
-                <div v-if="(row.sport_type === 2 || row.sport_type === 22 || row.categoryName === '步行' || row.categoryName === '健走') && row.avgPace">平均配速: {{ formatPace(row.avgPace) }}</div>
+                <div v-if="isWalkingRecord(row) && row.distanceKm">📍 {{ t('sport.distanceValue', { value: row.distanceKm }) }}</div>
+                <div v-if="isWalkingRecord(row) && row.avgSpeed">{{ t('sport.avgSpeedValue', { value: row.avgSpeed }) }}</div>
+                <div v-if="isWalkingRecord(row) && row.avgPace">{{ t('sport.avgPaceValue', { value: formatPace(row.avgPace) }) }}</div>
                 
                 <!-- Elliptical data -->
-                <div v-if="row.sport_type === 11 || row.categoryName === '椭圆机'">
-                  <div v-if="row.steps">步数: {{ row.steps.toLocaleString() }}</div>
-                  <div v-if="row.avgCadence">平均步频: {{ row.avgCadence }} 步/分</div>
-                  <div v-if="row.maxCadence">最高步频: {{ row.maxCadence }} 步/分</div>
+                <div v-if="isEllipticalRecord(row)">
+                  <div v-if="row.steps">{{ t('sport.stepsValue', { value: row.steps.toLocaleString() }) }}</div>
+                  <div v-if="row.avgCadence">{{ t('sport.avgCadenceValue', { value: row.avgCadence }) }}</div>
+                  <div v-if="row.maxCadence">{{ t('sport.maxCadenceValue', { value: row.maxCadence }) }}</div>
                 </div>
                 
                 <!-- Rowing machine data -->
-                <div v-if="row.sport_type === 13 || row.categoryName === '划船机'">
-                  <div v-if="row.strokes">划动次数: {{ row.strokes.toLocaleString() }}</div>
-                  <div v-if="row.segmentCount > 0">组数: {{ row.segmentCount }} 组</div>
-                  <div v-if="row.avgStrokeRate">平均划频: {{ row.avgStrokeRate }} 次/分</div>
-                  <div v-if="row.maxStrokeRate">最高划频: {{ row.maxStrokeRate }} 次/分</div>
+                <div v-if="isRowingRecord(row)">
+                  <div v-if="row.strokes">{{ t('sport.strokesValue', { value: row.strokes.toLocaleString() }) }}</div>
+                  <div v-if="row.segmentCount > 0">{{ t('sport.setsValue', { value: row.segmentCount }) }}</div>
+                  <div v-if="row.avgStrokeRate">{{ t('sport.avgStrokeRateValue', { value: row.avgStrokeRate }) }}</div>
+                  <div v-if="row.maxStrokeRate">{{ t('sport.maxStrokeRateValue', { value: row.maxStrokeRate }) }}</div>
                 </div>
               </div>
             </template>
-            <span class="detail-link">查看详情</span>
+            <span class="detail-link">{{ t('sport.viewDetails') }}</span>
           </el-tooltip>
         </template>
       </el-table-column>
@@ -172,54 +174,54 @@
     <transition name="slide-fade">
       <div v-if="selectedRecord" class="detail-panel">
         <div class="detail-header">
-          <SectionTitle>运动详情 - {{ selectedRecord.categoryName }}</SectionTitle>
+          <SectionTitle>{{ t('sport.detailTitle', { name: getCategoryName(selectedRecord) }) }}</SectionTitle>
         </div>
 
         <!-- Rowing Machine Details -->
-        <div v-if="selectedRecord.sport_type === 13 || selectedRecord.categoryName === '划船机'" class="sport-specific">
+        <div v-if="isRowingRecord(selectedRecord)" class="sport-specific">
           <div class="metrics-grid">
             <div class="metric-item">
-              <span class="metric-label">划动次数</span>
+              <span class="metric-label">{{ t('sport.strokes') }}</span>
               <span class="metric-value">{{ selectedRecord.strokes || '--' }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">组数及平均时长</span>
+              <span class="metric-label">{{ t('sport.setsAndDuration') }}</span>
               <span class="metric-value">
-                {{ selectedRecord.segmentCount || '--' }} 组 * {{ getRowingGroupDuration(selectedRecord) ? formatDuration(getRowingGroupDuration(selectedRecord)) : '--' }}
+                {{ t('sport.setsValue', { value: selectedRecord.segmentCount || '--' }) }} * {{ getRowingGroupDuration(selectedRecord) ? formatDuration(getRowingGroupDuration(selectedRecord)) : '--' }}
               </span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">平均划频</span>
-              <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }} 次/分</span>
+              <span class="metric-label">{{ t('sport.avgStrokeRate') }}</span>
+              <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }}/min</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">最高划频</span>
-              <span class="metric-value">{{ selectedRecord.maxStrokeRate || '--' }} 次/分</span>
+              <span class="metric-label">{{ t('sport.maxStrokeRate') }}</span>
+              <span class="metric-value">{{ selectedRecord.maxStrokeRate || '--' }}/min</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">组间休息时长</span>
+              <span class="metric-label">{{ t('sport.restDuration') }}</span>
               <span class="metric-value">{{ formatDuration(selectedRecord.restTime) }}</span>
             </div>
           </div>
           
           <!-- Segments Table -->
           <div v-if="selectedRecord.segments && selectedRecord.segments.length > 0" class="segments-section">
-            <SectionTitle>分段详情</SectionTitle>
+            <SectionTitle>{{ t('sport.segmentDetails') }}</SectionTitle>
             <el-table :data="selectedRecord.segments" size="small" border>
-              <el-table-column prop="type" label="类型" width="80" align="center">
+              <el-table-column prop="type" :label="t('sport.type')" width="80" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.type === '训练' ? 'success' : 'info'" size="small">
-                    {{ row.type }}
+                  <el-tag :type="isTrainingSegment(row.type) ? 'success' : 'info'" size="small">
+                    {{ getSegmentTypeLabel(row.type) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="duration" label="时长" width="100" align="center">
+              <el-table-column prop="duration" :label="t('chart.duration')" width="100" align="center">
                 <template #default="{ row }">
                   {{ formatDuration(row.duration) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="strokes" label="划次" width="80" align="center" />
-              <el-table-column prop="avgRate" label="平均划频" width="100" align="center">
+              <el-table-column prop="strokes" :label="t('sport.strokeCount')" width="80" align="center" />
+              <el-table-column prop="avgRate" :label="t('sport.avgStrokeRate')" width="100" align="center">
                 <template #default="{ row }">
                   {{ row.avgRate || '--' }}
                 </template>
@@ -229,41 +231,41 @@
         </div>
 
         <!-- Walking Details -->
-        <div v-else-if="selectedRecord.sport_type === 2 || selectedRecord.sport_type === 22 || selectedRecord.categoryName === '步行' || selectedRecord.categoryName === '健走'" class="sport-specific">
+        <div v-else-if="isWalkingRecord(selectedRecord)" class="sport-specific">
           <div class="metrics-grid">
             <div class="metric-item">
-              <span class="metric-label">平均配速</span>
+              <span class="metric-label">{{ t('sport.avgPace') }}</span>
               <span class="metric-value">{{ formatPace(selectedRecord.avgPaceSeconds) }}</span>
             </div>
             <div v-if="selectedRecord.bestPaceSeconds" class="metric-item">
-              <span class="metric-label">最快配速</span>
+              <span class="metric-label">{{ t('sport.fastestPace') }}</span>
               <span class="metric-value">{{ formatPace(selectedRecord.bestPaceSeconds) }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">平均步频</span>
-              <span class="metric-value">{{ selectedRecord.avgCadence || '--' }} 步/分</span>
+              <span class="metric-label">{{ t('sport.avgCadence') }}</span>
+              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' }) }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">最高步频</span>
-              <span class="metric-value">{{ selectedRecord.maxCadence || '--' }} 步/分</span>
+              <span class="metric-label">{{ t('sport.maxCadence') }}</span>
+              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' }) }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">平均步幅</span>
+              <span class="metric-label">{{ t('sport.avgStride') }}</span>
               <span class="metric-value">{{ selectedRecord.avgStride || '--' }} cm</span>
             </div>
             <div v-if="selectedRecord.maxStride" class="metric-item">
-              <span class="metric-label">最大步幅</span>
+              <span class="metric-label">{{ t('sport.maxStride') }}</span>
               <span class="metric-value">{{ selectedRecord.maxStride }} cm</span>
             </div>
             <div v-if="selectedRecord.elevationGain" class="metric-item">
-              <span class="metric-label">累计上升</span>
+              <span class="metric-label">{{ t('sport.elevationGain') }}</span>
               <span class="metric-value">{{ selectedRecord.elevationGain }} m</span>
             </div>
           </div>
 
           <!-- Per km pace -->
           <div v-if="selectedRecord.kmPaces && selectedRecord.kmPaces.length > 0" class="km-paces-section">
-            <SectionTitle>每公里配速</SectionTitle>
+            <SectionTitle>{{ t('sport.perKmPace') }}</SectionTitle>
             <div class="km-paces-list">
               <div v-for="(pace, index) in selectedRecord.kmPaces" :key="index" class="km-pace-item">
                 <span class="km-label">{{ index + 1 }} km</span>
@@ -277,30 +279,30 @@
         </div>
 
         <!-- Elliptical Details -->
-        <div v-else-if="selectedRecord.sport_type === 11 || selectedRecord.categoryName === '椭圆机'" class="sport-specific">
+        <div v-else-if="isEllipticalRecord(selectedRecord)" class="sport-specific">
           <div class="metrics-grid">
             <div class="metric-item" v-if="selectedRecord.distanceKm && selectedRecord.distanceKm !== '0.00'">
-              <span class="metric-label">运动距离</span>
+              <span class="metric-label">{{ t('sport.exerciseDistance') }}</span>
               <span class="metric-value">{{ selectedRecord.distanceKm }} km</span>
             </div>
             <div class="metric-item" v-else-if="selectedRecord.steps">
-              <span class="metric-label">运动步数</span>
+              <span class="metric-label">{{ t('sport.exerciseSteps') }}</span>
               <span class="metric-value">{{ selectedRecord.steps }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">平均步频</span>
-              <span class="metric-value">{{ selectedRecord.avgCadence || '--' }} 步/分</span>
+              <span class="metric-label">{{ t('sport.avgCadence') }}</span>
+              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' }) }}</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">最高步频</span>
-              <span class="metric-value">{{ selectedRecord.maxCadence || '--' }} 步/分</span>
+              <span class="metric-label">{{ t('sport.maxCadence') }}</span>
+              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' }) }}</span>
             </div>
           </div>
         </div>
 
         <!-- Heart Rate Chart Section -->
         <div class="chart-section">
-          <SectionTitle>运动心率 (BPM)</SectionTitle>
+          <SectionTitle>{{ t('sport.exerciseHeartRate') }}</SectionTitle>
           <div class="chart-container" ref="heartRateChartRef"></div>
         </div>
       </div>
@@ -327,13 +329,7 @@ const heartRateChartRef = ref(null);
 let heartRateChart = null;
 
 // Heart rate zones
-const heartRateZones = ref([
-  { name: '热身', duration: 0, color: '#5470c6' },
-  { name: '燃脂', duration: 0, color: '#91cc75' },
-  { name: '有氧', duration: 0, color: '#fac858' },
-  { name: '无氧', duration: 0, color: '#ee6666' },
-  { name: '极限', duration: 0, color: '#73c0de' }
-]);
+const heartRateZones = ref(createHeartRateZones());
 
 // Check if there are valid heart rate zones data
 const hasHeartRateZones = computed(() => {
@@ -382,15 +378,15 @@ function formatTime(timestamp) {
 
 // Format duration from seconds to readable format
 function formatDuration(seconds) {
-  if (!seconds || seconds === 0) return '0分钟';
+  if (!seconds || seconds === 0) return t('sport.zeroMinutes');
   
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   
   if (hours > 0) {
-    return `${hours}小时${minutes}分钟`;
+    return t('sport.durationHoursMinutes', { hours, minutes });
   }
-  return `${minutes}分钟`;
+  return t('sport.durationMinutes', { minutes });
 }
 
 // Format pace from seconds per km to km/h (speed)
@@ -401,78 +397,54 @@ function formatPace(paceSeconds) {
   return `${speedKmh.toFixed(1)} km/h`;
 }
 
-// Get category name in Chinese (based on sport_type or category)
+// Get localized category name based on sport_type or category.
 function getCategoryName(record) {
-  // Try to get from sport_type first (numeric code)
   const sportType = record.sport_type;
   
   if (sportType !== undefined && sportType !== null) {
-    // Map sport_type codes to names (based on actual data from CSV)
     const sportTypeMap = {
-      0: '其他',
-      1: '跑步',
-      2: '步行',
-      3: '骑行',
-      4: '游泳',
-      5: '徒步',
-      6: '户外骑行',
-      7: '健身',
-      8: '自由训练',
-      9: '瑜伽',
-      10: '跳绳',
-      11: '椭圆机',
-      12: '篮球',
-      13: '划船机',
-      14: '羽毛球',
-      15: '户外徒步',
-      16: '网球',
-      17: '排球',
-      18: '高尔夫',
-      19: '滑雪',
-      20: '滑冰',
-      21: '攀岩',
-      22: '户外步行'
+      0: 'other', 1: 'running', 2: 'walking', 3: 'cycling', 4: 'swimming', 5: 'hiking',
+      6: 'outdoorRiding', 7: 'fitness', 8: 'freeTraining', 9: 'yoga', 10: 'jumpRope',
+      11: 'elliptical', 12: 'basketball', 13: 'rowing', 14: 'badminton', 15: 'outdoorHiking',
+      16: 'tennis', 17: 'volleyball', 18: 'golf', 19: 'skiing', 20: 'skating', 21: 'climbing', 22: 'outdoorWalking'
     };
     
     if (sportTypeMap[sportType]) {
-      return sportTypeMap[sportType];
+      return t(`sport.typeName.${sportTypeMap[sportType]}`);
     }
   }
   
-  // Fallback to category field
   const category = record.category || 'other';
   const categoryMap = {
-    'walking': '步行',
-    'running': '跑步',
-    'cycling': '骑行',
-    'outdoor_riding': '户外骑行',
-    'swimming': '游泳',
-    'hiking': '徒步',
-    'outdoor_hiking': '户外徒步',
-    'climbing': '登山',
-    'fitness': '健身',
-    'free_training': '自由训练',
-    'yoga': '瑜伽',
-    'elliptical': '椭圆机',
-    'elliptical_trainer': '椭圆机',
-    'rowing': '划船机',
-    'rowing_machine': '划船机',
-    'jump_rope': '跳绳',
-    'basketball': '篮球',
-    'football': '足球',
-    'badminton': '羽毛球',
-    'table_tennis': '乒乓球',
-    'tennis': '网球',
-    'volleyball': '排球',
-    'golf': '高尔夫',
-    'skiing': '滑雪',
-    'skating': '滑冰',
-    'rock_climbing': '攀岩',
-    'outdoor_walking': '户外步行',
-    'other': '其他'
+    walking: 'walking', running: 'running', cycling: 'cycling', outdoor_riding: 'outdoorRiding', swimming: 'swimming',
+    hiking: 'hiking', outdoor_hiking: 'outdoorHiking', climbing: 'climbing', fitness: 'fitness', free_training: 'freeTraining',
+    yoga: 'yoga', elliptical: 'elliptical', elliptical_trainer: 'elliptical', rowing: 'rowing', rowing_machine: 'rowing',
+    jump_rope: 'jumpRope', basketball: 'basketball', football: 'football', badminton: 'badminton', table_tennis: 'tableTennis',
+    tennis: 'tennis', volleyball: 'volleyball', golf: 'golf', skiing: 'skiing', skating: 'skating', rock_climbing: 'climbing',
+    outdoor_walking: 'outdoorWalking', other: 'other'
   };
   
-  return categoryMap[category] || category;
+  return categoryMap[category] ? t(`sport.typeName.${categoryMap[category]}`) : category;
+}
+
+function isWalkingRecord(record) {
+  return [2, 22].includes(record?.sport_type) || ['walking', 'outdoor_walking'].includes(record?.category);
+}
+
+function isEllipticalRecord(record) {
+  return record?.sport_type === 11 || ['elliptical', 'elliptical_trainer'].includes(record?.category);
+}
+
+function isRowingRecord(record) {
+  return record?.sport_type === 13 || ['rowing', 'rowing_machine'].includes(record?.category);
+}
+
+function isTrainingSegment(type) {
+  return ['训练', 'training', 'work'].includes(String(type || '').toLowerCase());
+}
+
+function getSegmentTypeLabel(type) {
+  return isTrainingSegment(type) ? t('sport.training') : t('sport.rest');
 }
 
 // Get tag type for category (based on sport_type or category)
@@ -614,7 +586,7 @@ function initHeartRateChart() {
       formatter: function(params) {
         const time = formatDuration(params[0].value[0]);
         const hr = params[0].value[1];
-        return `${time}<br/>心率: ${hr} BPM`;
+        return `${time}<br/>${t('sport.heartRate')}: ${hr} BPM`;
       }
     },
     grid: {
@@ -625,7 +597,7 @@ function initHeartRateChart() {
     },
     xAxis: {
       type: 'value',
-      name: '时间',
+      name: t('sport.time'),
       nameLocation: 'end',
       nameTextStyle: {
         fontSize: 12
@@ -664,7 +636,7 @@ function initHeartRateChart() {
     },
     series: [
       {
-        name: '心率',
+        name: t('sport.heartRate'),
         type: 'line',
         smooth: true,
         showSymbol: false,
@@ -693,12 +665,16 @@ function updateHeartRateZones(record) {
   // Parse heart rate zones from record if available
   const zones = record.hrZones || {};
   
-  heartRateZones.value = [
-    { name: '热身', duration: zones.warmup || 0, color: '#5470c6' },
-    { name: '燃脂', duration: zones.fatBurn || 0, color: '#91cc75' },
-    { name: '有氧', duration: zones.aerobic || 0, color: '#fac858' },
-    { name: '无氧', duration: zones.anaerobic || 0, color: '#ee6666' },
-    { name: '极限', duration: zones.extreme || 0, color: '#73c0de' }
+  heartRateZones.value = createHeartRateZones(zones);
+}
+
+function createHeartRateZones(zones = {}) {
+  return [
+    { name: t('sport.zone.warmup'), duration: zones.warmup || 0, color: '#5470c6' },
+    { name: t('sport.zone.fatBurn'), duration: zones.fatBurn || 0, color: '#91cc75' },
+    { name: t('sport.zone.aerobic'), duration: zones.aerobic || 0, color: '#fac858' },
+    { name: t('sport.zone.anaerobic'), duration: zones.anaerobic || 0, color: '#ee6666' },
+    { name: t('sport.zone.extreme'), duration: zones.extreme || 0, color: '#73c0de' }
   ];
 }
 
@@ -825,7 +801,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
     console.log('[DailySportChart] Filtered records:', sportRecords.value.length);
     
     // Debug: Log rowing machine data
-    const rowingRecord = sportRecords.value.find(r => r.sport_type === 13 || r.categoryName === '划船机');
+    const rowingRecord = sportRecords.value.find(isRowingRecord);
     if (rowingRecord) {
       console.log('[DailySportChart] Parsed rowing record:', rowingRecord);
       console.log('[DailySportChart] Segment count:', rowingRecord.segmentCount);
@@ -858,6 +834,12 @@ watch(() => dateStore.selectedDate, async (newDate) => {
     }
   }
 }, { immediate: true });
+
+watch(() => localeStore.currentLocale, () => {
+  if (!selectedRecord.value) return;
+  updateHeartRateZones(selectedRecord.value);
+  nextTick(initHeartRateChart);
+});
 </script>
 
 <style scoped>

@@ -123,6 +123,8 @@ watch(() => props.data, () => {
   updateChart();
 }, { deep: true });
 
+watch(() => localeStore.currentLocale, updateChart);
+
 onMounted(() => {
   initChart();
   window.addEventListener('resize', handleResize);

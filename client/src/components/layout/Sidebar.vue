@@ -2,9 +2,9 @@
   <div class="sidebar">
     <!-- Selection controls for compare mode -->
     <div v-if="viewMode === 'compare'" class="selection-controls">
-      <button @click="handleSelectAll" class="control-btn">全选</button>
-      <button @click="handleClearAll" class="control-btn">全不选</button>
-      <span class="selected-count">已选 {{ store.selectedDates.length }} 天</span>
+      <button @click="handleSelectAll" class="control-btn">{{ t('common.selectAll') }}</button>
+      <button @click="handleClearAll" class="control-btn">{{ t('common.clearAll') }}</button>
+      <span class="selected-count">{{ t('common.selectedDays', { count: store.selectedDates.length }) }}</span>
     </div>
 
     <div class="date-list" v-if="!store.loading">
@@ -33,7 +33,7 @@
     </div>
 
     <div v-else class="loading">
-      <p>加载中...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
 
     <div v-if="store.error" class="error">
@@ -45,6 +45,7 @@
 <script setup>
 import { onMounted, computed } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
 const props = defineProps({
   viewMode: {
@@ -55,6 +56,8 @@ const props = defineProps({
 });
 
 const store = useDateStore();
+const localeStore = useLocaleStore();
+const { t } = localeStore;
 
 // Display dates based on view mode
 const displayDates = computed(() => {
@@ -73,9 +76,7 @@ function formatDate(dateStr) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
 
-  // Get weekday
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  const weekday = weekdays[date.getDay()];
+  const weekday = new Intl.DateTimeFormat(localeStore.currentLocale, { weekday: 'short' }).format(date);
 
   return `${year}-${month}-${day} (${weekday})`;
 }

@@ -463,6 +463,10 @@ watch(() => props.weightData, (newData) => {
   }
 }, { deep: true });
 
+watch(() => localeStore.currentLocale, () => {
+  if (chartInstance) updateChart();
+});
+
 watch(() => props.loading, async (newLoading) => {
   if (!newLoading && props.weightData && dailyData.value.length > 0) {
     await nextTick();

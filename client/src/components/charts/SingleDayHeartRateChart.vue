@@ -166,7 +166,7 @@ const updateChart = () => {
       formatter: (params) => {
         const param = params[0];
         if (param.value === null || param.value === undefined) {
-          return `${param.name}<br/>${param.marker}无数据`;
+          return `${param.name}<br/>${param.marker}${t('common.empty')}`;
         }
         return `${param.name}<br/>${param.marker}${t('data.heartRate')}: ${param.value} bpm`;
       }
@@ -273,6 +273,10 @@ watch(() => dateStore.selectedDate, async (newDate) => {
     }, 100);
   }
 }, { immediate: true });
+
+watch(() => localeStore.currentLocale, () => {
+  if (chartInstance) updateChart();
+});
 
 onMounted(() => {
   setTimeout(() => {

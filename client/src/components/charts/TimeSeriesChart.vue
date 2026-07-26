@@ -231,6 +231,10 @@ watch(() => [props.stepsData, props.heartRateData], () => {
   }
 }, { deep: true });
 
+watch(() => localeStore.currentLocale, () => {
+  if (chartInstance) updateChart();
+});
+
 onMounted(() => {
   setTimeout(() => {
     initChart();

@@ -1,8 +1,6 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue'
 import { ElConfigProvider } from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import en from 'element-plus/es/locale/lang/en'
 import { useLocaleStore } from './stores/localeStore'
 import { useThemeStore } from './stores/themeStore'
 import AppLayout from './components/layout/AppLayout.vue'
@@ -10,9 +8,7 @@ import AppLayout from './components/layout/AppLayout.vue'
 const localeStore = useLocaleStore()
 const themeStore = useThemeStore()
 
-const currentLocale = computed(() => {
-  return localeStore.currentLocale === 'zh-CN' ? zhCn : en
-})
+const currentLocale = computed(() => localeStore.elementPlusLocale)
 
 // Watch for theme changes and update document class for Element Plus dark mode
 watch(() => themeStore.isDarkMode, (isDark) => {

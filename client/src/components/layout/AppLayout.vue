@@ -19,8 +19,12 @@
           <span class="icon-emoji">🌐</span>
           <span class="setting-label">{{ t('settings.language') }}</span>
           <el-select v-model="currentLanguage" size="default" style="width: 140px; margin-left: auto;">
-            <el-option label="中文" value="zh-CN" />
-            <el-option label="English" value="en" />
+            <el-option
+              v-for="locale in localeStore.availableLocales"
+              :key="locale.code"
+              :label="locale.label"
+              :value="locale.code"
+            />
           </el-select>
         </div>
 
@@ -31,8 +35,8 @@
           <el-switch
             v-model="isDarkMode"
             inline-prompt
-            active-text="暗"
-            inactive-text="亮"
+            :active-text="t('settings.dark')"
+            :inactive-text="t('settings.light')"
             size="default"
             style="margin-left: auto;"
           />
@@ -93,7 +97,7 @@ const settingsDrawerVisible = ref(false);
 
 // Language - use store value
 const currentLanguage = computed({
-  get: () => localeStore.currentLocale === 'zh-CN' ? 'zh-CN' : 'en',
+  get: () => localeStore.currentLocale,
   set: (val) => localeStore.setLocale(val)
 });
 

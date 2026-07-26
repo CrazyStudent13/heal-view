@@ -17,7 +17,7 @@
         v-if="viewMode === 'single'"
         v-model="selectedSingleDate"
         type="date"
-        placeholder="选择日期"
+        :placeholder="t('nav.selectDate')"
         format="YYYY-MM-DD (dddd)"
         value-format="YYYY-MM-DD"
         :disabled-date="disabledDate"
@@ -90,9 +90,9 @@ function t(key) {
 const emit = defineEmits(['update:viewMode', 'open-settings']);
 
 // Date picker shortcuts
-const dateShortcuts = [
+const dateShortcuts = computed(() => [
   {
-    text: '最近一周',
+    text: t('nav.lastWeek'),
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -101,7 +101,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: '最近一月',
+    text: t('nav.lastMonth'),
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -110,7 +110,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: '最近三月',
+    text: t('nav.lastThreeMonths'),
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -118,7 +118,7 @@ const dateShortcuts = [
       return [start, end];
     }
   }
-];
+]);
 
 const props = defineProps({
   viewMode: {

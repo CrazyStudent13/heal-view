@@ -1,7 +1,7 @@
 <template>
   <div class="data-filter" v-if="filterStore.sportTypes.length > 0">
     <div class="filter-group">
-      <label class="filter-label">运动类型</label>
+      <label class="filter-label">{{ t('nav.sportType') }}</label>
       <div class="sport-type-checkboxes">
         <label
           v-for="type in filterStore.sportTypes"
@@ -19,7 +19,7 @@
     </div>
 
     <div class="filter-actions">
-      <button @click="handleReset" class="reset-btn">重置筛选</button>
+      <button @click="handleReset" class="reset-btn">{{ t('common.reset') }}</button>
     </div>
   </div>
 </template>
@@ -27,21 +27,23 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useFilterStore } from '../../stores/filterStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
 const filterStore = useFilterStore();
+const { t } = useLocaleStore();
 
 // Format sport type for display
 function formatSportType(type) {
   const typeMap = {
-    'walking': '步行',
-    'outdoor_riding': '户外骑行',
-    'outdoor_hiking': '户外徒步',
-    'elliptical_trainer': '椭圆机',
-    'rowing_machine': '划船机',
-    'free_training': '自由训练',
-    'outdoor_running': '户外跑步'
+    walking: 'walking',
+    outdoor_riding: 'outdoorRiding',
+    outdoor_hiking: 'outdoorHiking',
+    elliptical_trainer: 'elliptical',
+    rowing_machine: 'rowing',
+    free_training: 'freeTraining',
+    outdoor_running: 'outdoorRunning'
   };
-  return typeMap[type] || type;
+  return typeMap[type] ? t(`sport.typeName.${typeMap[type]}`) : type;
 }
 
 // Handle reset

@@ -4,11 +4,10 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import en from 'element-plus/es/locale/lang/en'
 import './style.css'
 import App from './App.vue'
 import SectionTitle from './components/common/SectionTitle.vue'
+import { getElementPlusLocale, i18n, normalizeLocale } from './i18n'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -21,16 +20,13 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.component('SectionTitle', SectionTitle)
 
 app.use(pinia)
+app.use(i18n)
 
 // Configure Element Plus with locale
-const defaultLocale = localStorage.getItem('locale') || 'zh-CN'
-const localeMap = {
-  'zh-CN': zhCn,
-  'en': en
-}
+const defaultLocale = normalizeLocale(localStorage.getItem('locale') || navigator.language)
 
 app.use(ElementPlus, {
-  locale: localeMap[defaultLocale] || zhCn
+  locale: getElementPlusLocale(defaultLocale)
 })
 
 app.mount('#app')

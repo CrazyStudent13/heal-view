@@ -1,4 +1,5 @@
 import * as echarts from 'echarts';
+import { translate as t } from '../i18n';
 
 /**
  * Get chart theme colors based on current theme
@@ -25,7 +26,7 @@ export function useStepsChartConfig() {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>步数: ${data.value.toLocaleString()} 步`;
+        return `${data.name}<br/>${t('chart.steps')}: ${data.value.toLocaleString()} ${t('chart.unitSteps')}`;
       }
     },
     grid: {
@@ -52,7 +53,7 @@ export function useStepsChartConfig() {
     },
     yAxis: {
       type: 'value',
-      name: '步数',
+      name: t('chart.steps'),
       nameTextStyle: {
         color: colors.textColor
       },
@@ -72,7 +73,7 @@ export function useStepsChartConfig() {
       }
     },
     series: [{
-      name: '步数',
+      name: t('chart.steps'),
       type: 'line',
       smooth: true,
       symbol: 'circle',
@@ -106,7 +107,7 @@ export function useCaloriesChartConfig() {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>卡路里: ${data.value.toLocaleString()} kcal`;
+        return `${data.name}<br/>${t('data.calories')}: ${data.value.toLocaleString()} kcal`;
       }
     },
     grid: {
@@ -132,7 +133,7 @@ export function useCaloriesChartConfig() {
     },
     yAxis: {
       type: 'value',
-      name: '卡路里 (kcal)',
+      name: `${t('data.calories')} (kcal)`,
       nameTextStyle: {
         color: colors.textColor
       },
@@ -152,7 +153,7 @@ export function useCaloriesChartConfig() {
       }
     },
     series: [{
-      name: '卡路里',
+      name: t('data.calories'),
       type: 'bar',
       itemStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -189,7 +190,7 @@ export function useHeartRateChartConfig() {
       }
     },
     legend: {
-      data: ['平均心率', '最高心率'],
+      data: [t('chart.avgHeartRate'), t('chart.maxHeartRate')],
       right: 0,
       top: 0,
       textStyle: {
@@ -219,7 +220,7 @@ export function useHeartRateChartConfig() {
     },
     yAxis: {
       type: 'value',
-      name: '心率 (bpm)',
+      name: `${t('data.heartRate')} (bpm)`,
       min: 50,
       max: 180,
       nameTextStyle: {
@@ -241,14 +242,14 @@ export function useHeartRateChartConfig() {
     },
     series: [
       {
-        name: '平均心率',
+        name: t('chart.avgHeartRate'),
         type: 'line',
         smooth: true,
         lineStyle: { color: '#ee6666' },
         data: []
       },
       {
-        name: '最高心率',
+        name: t('chart.maxHeartRate'),
         type: 'line',
         smooth: true,
         lineStyle: { color: '#fac858', type: 'dashed' },

@@ -5,7 +5,7 @@
         <div class="overview-card-content">
           <div class="card-icon sleep-icon"><span class="icon-text">🌙</span></div>
           <div class="card-info">
-            <div class="card-label">总睡眠（{{ timelineData.bedtime }} → {{ timelineData.wakeUpTime }}）</div>
+            <div class="card-label">{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</div>
             <div class="card-value">{{ totalSleepDuration }}</div>
           </div>
         </div>
@@ -14,7 +14,7 @@
         <div class="overview-card-content">
           <div class="card-icon heart-icon"><span class="icon-text">❤️</span></div>
           <div class="card-info">
-            <div class="card-label">睡眠平均心率</div>
+            <div class="card-label">{{ t('sleep.avgHeartRate') }}</div>
             <div class="card-value">{{ avgHeartRateDisplay }}</div>
           </div>
         </div>
@@ -23,9 +23,9 @@
         <div class="overview-card-content">
           <div class="card-icon interrupt-icon"><span class="icon-text">⏰</span></div>
           <div class="card-info">
-            <div class="card-label">中断次数</div>
+            <div class="card-label">{{ t('sleep.interruptions') }}</div>
             <div class="card-value-row">
-              <span class="card-value">{{ awakeEpisodes }} 次</span>
+              <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
               <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
             </div>
           </div>
@@ -78,18 +78,20 @@ const avgHeartRateDisplay = computed(() =>
 
 // ---- 阶段配置：4 层堆叠，各占 0.25 高度 ----
 const stageConfig = {
-  deep:  { color: '#2A35C0', label: '深睡',     yIdx: 0 },
-  light: { color: '#29B6F6', label: '浅睡',     yIdx: 1 },
-  rem:   { color: '#1DE9B6', label: '快速眼动', yIdx: 2 },
-  awake: { color: '#FFAB00', label: '清醒',     yIdx: 3 }
+  deep:  { color: '#2A35C0', get label() { return t('chart.deep'); }, yIdx: 0 },
+  light: { color: '#29B6F6', get label() { return t('chart.light'); }, yIdx: 1 },
+  rem:   { color: '#1DE9B6', get label() { return t('chart.rem'); }, yIdx: 2 },
+  awake: { color: '#FFAB00', get label() { return t('chart.awake'); }, yIdx: 3 }
 };
 
 function sNorm(st) { return typeof st === 'string' ? st.toLowerCase() : String(st).toLowerCase(); }
 function t2m(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function fmtDur(min) {
-  if (!min) return '0分钟';
+  if (!min) return t('sport.zeroMinutes');
   const h = Math.floor(min / 60), m = min % 60;
-  return h > 0 ? `${h}小时${m > 0 ? m + '分钟' : ''}` : `${m}分钟`;
+  return h > 0
+    ? t('sport.durationHoursMinutes', { hours: h, minutes: m })
+    : t('sport.durationMinutes', { minutes: m });
 }
 
 const stageDurations = computed(() => {
@@ -109,8 +111,10 @@ const awakeEpisodes = computed(() =>
 );
 const interruptDesc = computed(() => {
   const c = awakeEpisodes.value;
-  if (c === 0) return '整夜安睡'; if (c === 1) return '轻微中断';
-  if (c <= 3) return '正常范围'; return '中断偏多';
+  if (c === 0) return t('sleep.uninterrupted');
+  if (c === 1) return t('sleep.slightlyInterrupted');
+  if (c <= 3) return t('sleep.normalInterruptions');
+  return t('sleep.frequentInterruptions');
 });
 const interruptTagType = computed(() => {
   const c = awakeEpisodes.value;
@@ -237,7 +241,7 @@ function buildChart() {
         { name: stageConfig.light.label, itemStyle: { color: stageConfig.light.color } },
         { name: stageConfig.rem.label, itemStyle: { color: stageConfig.rem.color } },
         { name: stageConfig.awake.label, itemStyle: { color: stageConfig.awake.color } },
-        ...(hrLineData.length > 0 ? [{ name: '心率', itemStyle: { color: '#ff6b35' } }] : [])
+        ...(hrLineData.length > 0 ? [{ name: t('sport.heartRate'), itemStyle: { color: '#ff6b35' } }] : [])
       ],
       orient: 'vertical', // 垂直排列
       right: 10,
@@ -269,7 +273,7 @@ function buildChart() {
       formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return '';
         const xMin = Math.round(params[0].axisValue);
-        const t = `${String(Math.floor((xMin % 1440) / 60)).padStart(2, '0')}:${String((xMin % 1440) % 60).padStart(2, '0')}`;
+        const timeLabel = `${String(Math.floor((xMin % 1440) / 60)).padStart(2, '0')}:${String((xMin % 1440) % 60).padStart(2, '0')}`;
         // 查睡眠阶段
         let foundSeg = null;
         for (const seg of segs) {
@@ -293,7 +297,7 @@ function buildChart() {
           html += html ? '&nbsp;|&nbsp;' : '';
           html += `<span style="color:${int2};font-weight:700;">♥ ${foundHR} bpm</span>`;
         }
-        return `<strong>${t}</strong><br/>${html || '无数据'}`;
+        return `<strong>${timeLabel}</strong><br/>${html || t('common.empty')}`;
       }
     },
     grid: { left: 48, right: 80, bottom: 30, top: 22, containLabel: false },
@@ -315,10 +319,10 @@ function buildChart() {
         color: '#999',
         fontSize: 10,
         formatter: (v) => {
-          if (v >= 0.05 && v <= 0.2) return '深睡';
-          if (v >= 0.3 && v <= 0.45) return '浅睡';
-          if (v >= 0.55 && v <= 0.7) return '快速眼动';
-          if (v >= 0.8 && v <= 0.95) return '清醒';
+          if (v >= 0.05 && v <= 0.2) return t('chart.deep');
+          if (v >= 0.3 && v <= 0.45) return t('chart.light');
+          if (v >= 0.55 && v <= 0.7) return t('chart.rem');
+          if (v >= 0.8 && v <= 0.95) return t('chart.awake');
           return '';
         },
         interval: 0.125,
@@ -395,7 +399,7 @@ function buildChart() {
     },
     // 心率平滑折线
     ...(hrLineData.length > 0 ? [{
-      name: '心率',
+      name: t('sport.heartRate'),
       type: 'line',
       yAxisIndex: 1,
       smooth: 0.4,
@@ -450,6 +454,10 @@ watch(hasData, async (newVal) => {
     await new Promise(resolve => setTimeout(resolve, 100));
     initChart();
   }
+});
+
+watch(() => localeStore.currentLocale, () => {
+  if (chartInstance && hasData.value) buildChart();
 });
 
 const handleResize = () => chartInstance?.resize();

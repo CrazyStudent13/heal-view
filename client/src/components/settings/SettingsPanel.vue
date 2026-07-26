@@ -16,8 +16,12 @@
             <span>{{ t('settings.language') }}</span>
           </div>
           <el-select v-model="currentLanguage" size="small" style="width: 120px">
-            <el-option label="中文" value="zh-CN" />
-            <el-option label="English" value="en" />
+            <el-option
+              v-for="locale in localeStore.availableLocales"
+              :key="locale.code"
+              :label="locale.label"
+              :value="locale.code"
+            />
           </el-select>
         </div>
 
@@ -30,8 +34,8 @@
           <el-switch
             v-model="isDarkMode"
             inline-prompt
-            active-text="暗"
-            inactive-text="亮"
+            :active-text="t('settings.dark')"
+            :inactive-text="t('settings.light')"
             size="default"
           />
         </div>
@@ -51,7 +55,7 @@ const themeStore = useThemeStore();
 
 // Language - use store value
 const currentLanguage = computed({
-  get: () => localeStore.currentLocale === 'zh-CN' ? 'zh-CN' : 'en',
+  get: () => localeStore.currentLocale,
   set: (val) => localeStore.setLocale(val)
 });
 

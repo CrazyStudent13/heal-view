@@ -5,19 +5,23 @@
       @click="$emit('update:modelValue', 'single')"
     >
       <span class="tab-icon">📅</span>
-      <span class="tab-label">单日视图</span>
+      <span class="tab-label">{{ t('nav.singleDay') }}</span>
     </button>
     <button
       :class="['tab-btn', { active: modelValue === 'compare' }]"
       @click="$emit('update:modelValue', 'compare')"
     >
       <span class="tab-icon">📊</span>
-      <span class="tab-label">多日对比</span>
+      <span class="tab-label">{{ t('nav.multiDay') }}</span>
     </button>
   </div>
 </template>
 
 <script setup>
+import { useLocaleStore } from '../../stores/localeStore';
+
+const { t } = useLocaleStore();
+
 defineProps({
   modelValue: {
     type: String,
