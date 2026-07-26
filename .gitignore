@@ -7,12 +7,20 @@ dist/
 # Database files
 *.db
 
-# Data files (too large for git)
+# Data files (large or sensitive user exports)
 data/*.csv
 server/data/
+data/**/*.csv
+data/*.zip
+data/**/*.zip
+uploads/
+server-nest/uploads/
 
 # Environment variables
 .env
+.env.*
+!.env.example
+!**/.env.example
 .env.local
 .env.*.local
 

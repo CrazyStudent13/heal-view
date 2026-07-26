@@ -1,7 +1,9 @@
 # Nest + MySQL + Redis 后端重构计划
 
-> 状态：讨论稿 v0.1  
-> 更新日期：2026-07-16  
+> 状态：讨论稿 v0.2
+>
+> 更新日期：2026-07-20
+>
 > 目标分支：`codex/refactor-nest-backend`
 
 ## 1. 项目目标
@@ -83,7 +85,7 @@ Controller只负责协议转换和参数校验；业务逻辑进入 Service；�
 - Redis保存 `auth:user:{userId}:session -> sessionId`，TTL与Refresh Session一致。
 - 新登录成功校验密码后，如果发现其他有效会话：
   1. 返回 `409 ACTIVE_SESSION_EXISTS`，拒绝创建新会话。
-  2. 记录一条 `security_events` 登录尝试事件。
+  2. 写入结构化安全日志。
   3. 通过Redis Pub/Sub和WebSocket向旧会话发送 `security.login_attempt`。
   4. 前端展示“检测到其他设备尝试登录，账号可能存在安全风险，建议修改密码”。
 - 用户主动退出或修改密码后，撤销MySQL会话并删除Redis会话键。
@@ -101,17 +103,13 @@ Controller只负责协议转换和参数校验；业务逻辑进入 Service；�
 
 ### 6.1 核心表
 
-- `users`：账号、密码哈希、状态、邮箱验证状态、时间戳。
+- `user_accounts`：账号、密码哈希、状态、邮箱验证状态、时间戳。
 - `user_profiles`：性别、出生日期、身高、目标信息。
 - `user_sessions`：单设备会话、刷新令牌哈希、设备/IP信息、过期与撤销状态。
-- `security_events`：登录尝试、密码修改、会话撤销等安全审计。
-- `import_jobs`：上传、排队、解析、成功、失败、取消和删除状态。
-- `import_files`：原始ZIP路径、SHA-256、文件大小、计划删除时间。
-- `health_metric_series`：按用户、日期、指标保存压缩后的分钟级数据。
-- `daily_health_summaries`：日汇总，服务首页和多日统计。
-- `sleep_sessions`、`sleep_segments`：结构化睡眠记录。
+- `import_jobs`：ZIP路径、哈希、上传、排队、解析、成功、失败和计划删除状态。
+- `health_metric_series`：按用户、日期、指标保存统计字段和压缩后的分钟级数据。
+- `sleep_sessions`：结构化睡眠记录及压缩后的阶段数据。
 - `sport_records`：结构化运动记录。
-- `weight_records`：体重数据。
 
 ### 6.2 时序数据存储
 
@@ -131,7 +129,7 @@ INDEX  (user_id, local_date)
 INDEX  (user_id, metric_type, local_date)
 ```
 
-跨日期统计读取 `daily_health_summaries`，单日图表才解压 `health_metric_series`，避免在MySQL中扫描和解析分钟级明细。
+日汇总和跨日期统计直接读取 `health_metric_series` 的 `min_value`、`max_value`、`avg_value` 和 `sum_value`，并缓存最终响应；单日图表才解压 `payload`，避免在MySQL中扫描和解析分钟级明细。
 
 ## 7. ZIP 上传与导入
 
@@ -155,7 +153,7 @@ INDEX  (user_id, metric_type, local_date)
 3. 计算SHA-256并创建 `import_jobs`；相同用户和相同哈希禁止重复导入。
 4. 将任务写入BullMQ，API立即返回任务ID。
 5. Worker流式解压和解析CSV，以每批1000条左右写入或合并MySQL。
-6. 生成日汇总，清除当前用户相关Redis缓存。
+6. 写入每个指标的统计字段，清除当前用户相关Redis缓存。
 7. 删除解压后的临时CSV，保留原始ZIP到计划清理日期。
 8. 前端轮询或通过WebSocket显示导入进度和失败原因。
 
@@ -172,7 +170,7 @@ INDEX  (user_id, metric_type, local_date)
 ### 7.4 原始ZIP保留与清理
 
 - 上传界面明确提示原始ZIP会被定期删除，导入后的健康数据不受影响。
-- 使用定时任务执行文件删除，并同步更新 `import_files.deleted_at`。
+- 使用定时任务执行文件删除，并同步更新 `import_jobs.zip_deleted_at`。
 - 删除用户全部数据时立即删除其所有原始ZIP，不等待月度任务。
 - 本地上传目录设置容量告警；磁盘使用超过80%时暂停新上传并通知管理员。
 
