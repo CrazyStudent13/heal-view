@@ -9,6 +9,7 @@ dist/
 
 # Data files (too large for git)
 data/*.csv
+server/data/
 
 # Environment variables
 .env
@@ -29,6 +30,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+.codex-run/
 
 # Temporary files
 server/check*.js
