@@ -1,7 +1,13 @@
 {
-  "dependencies": {
-    "axios": "^1.18.1",
-    "echarts": "^6.1.0",
-    "pinia": "^3.0.4"
+  "name": "heal-view",
+  "private": true,
+  "version": "1.0.0",
+  "description": "小米运动健康数据可视化仪表板（pnpm workspace）",
+  "scripts": {
+    "dev:client": "pnpm --filter heal-view-client dev",
+    "dev:server": "pnpm --filter heal-view-server dev",
+    "build:client": "pnpm --filter heal-view-client build",
+    "start:server": "pnpm --filter heal-view-server start",
+    "import": "pnpm --filter heal-view-server import"
   }
 }
