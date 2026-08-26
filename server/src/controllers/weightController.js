@@ -19,6 +19,10 @@ let userProfile = null;
 async function loadUserProfile() {
   if (userProfile) return userProfile;
 
+  // Default profile: used when no profile CSV is present (e.g. data/ cleaned),
+  // so the profile/weight endpoints degrade gracefully instead of erroring.
+  userProfile = { height: 0, sex: 'male', birth: '' };
+
   try {
     // Read user_member_profile.csv for height, sex, birth
     const memberFile = fs.readdirSync(dataDir).find(f => f.includes('user_member_profile'));
