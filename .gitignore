@@ -14,7 +14,6 @@ data/**/*.csv
 data/*.zip
 data/**/*.zip
 uploads/
-server-nest/uploads/
 
 # Environment variables
 .env
