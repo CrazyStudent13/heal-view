@@ -224,18 +224,25 @@ async function main() {
     // Initialize database
     await databaseService.initialize();
 
-    // Import all data types
-    await importFitnessData();
-    await importSportRecords();
-    await importAggregatedData();
-
-    // Save database
-    databaseService.save();
+    // Wrap the whole import in a single transaction: one commit instead of
+    // per-batch autocommits (faster and gentler on NAS flash storage).
+    // With node:sqlite, save() is a no-op — data is persisted on commit.
+    const db = databaseService.getDb();
+    db.run('BEGIN');
+    try {
+      // Import all data types
+      await importFitnessData();
+      await importSportRecords();
+      await importAggregatedData();
+      db.run('COMMIT');
+    } catch (importError) {
+      db.run('ROLLBACK');
+      throw importError;
+    }
 
     console.log('\nData import completed successfully!');
 
     // Print statistics
-    const db = databaseService.getDb();
     const fitnessCount = db.exec('SELECT COUNT(*) as count FROM fitness_data')[0];
     const sportCount = db.exec('SELECT COUNT(*) as count FROM sport_records')[0];
     const aggregatedCount = db.exec('SELECT COUNT(*) as count FROM aggregated_data')[0];
