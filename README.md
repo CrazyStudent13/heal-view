@@ -122,7 +122,7 @@ heal-view/
 │   ├── dist/                  # 构建产物（vite build 生成）
 │   └── vite.config.js         # Vite配置
 │
-├── data/                      # CSV源文件目录（仓库根目录）
+├── data/                      # 数据目录（用户上传的压缩包/CSV，用于导入，内容已 git 忽略）
 ├── pnpm-workspace.yaml        # pnpm workspace 配置（client + server）
 ├── pnpm-lock.yaml             # 单一依赖锁文件
 └── README.md
