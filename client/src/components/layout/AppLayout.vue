@@ -401,8 +401,7 @@ async function initDefaultData() {
 
 async function handleImportCompleted() {
   dataStore.clearCache();
-  dateStore.selectedDate = null;
-  dateStore.selectedDates = [];
+  dateStore.clearCache();
   await initDefaultData();
 }
 

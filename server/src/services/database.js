@@ -114,18 +114,17 @@ class DatabaseService {
    */
   query(sql, params = []) {
     const stmt = this.db.prepare(sql);
-    const cols = stmt.columns();
-
-    // Non-SELECT statements (no result columns) — execute and return [].
-    if (cols.length === 0) {
+    let rows;
+    try {
+      rows = stmt.all(...params);
+    } catch {
       stmt.run(...params);
       return [];
     }
 
-    const rows = stmt.all(...params);
     if (rows.length === 0) return [];
 
-    const columns = cols.map((c) => c.name);
+    const columns = Object.keys(rows[0]);
     const values = rows.map((row) => columns.map((name) => row[name]));
     return [{ columns, values }];
   }
@@ -160,18 +159,15 @@ class DatabaseService {
         }
 
         try {
-          const cols = stmt.columns();
-          if (cols.length === 0) {
-            stmt.run();
-            return [];
-          }
-          const columns = cols.map((c) => c.name);
           const rows = stmt.all();
+          if (rows.length === 0) return [];
+
+          const columns = Object.keys(rows[0]);
           const values = rows.map((row) => columns.map((name) => row[name]));
           return [{ columns, values }];
         } catch {
-          // Fallback: statements that cannot expose columns run natively.
-          db.exec(sql);
+          // Fallback: statements that cannot return rows run natively.
+          stmt.run();
           return [];
         }
       },
