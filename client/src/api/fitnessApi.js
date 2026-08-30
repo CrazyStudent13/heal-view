@@ -55,3 +55,41 @@ export function getWeightData(params = {}) {
 export function getUserProfile() {
   return apiClient.get('/user/profile');
 }
+
+/**
+ * Parse a health archive ZIP before importing it into the database
+ */
+export function parseImportArchive(file, platform) {
+  const formData = new FormData();
+  formData.append('platform', platform);
+  formData.append('archive', file);
+  return apiClient.post('/imports/parse', formData, { timeout: 120000 });
+}
+
+/**
+ * Commit a previously parsed archive into the database
+ */
+export function commitImportArchive(importId) {
+  return apiClient.post(`/imports/${importId}/import`, undefined, { timeout: 120000 });
+}
+
+/**
+ * Get in-memory import history for the current server session
+ */
+export function getImportHistory() {
+  return apiClient.get('/imports/history');
+}
+
+/**
+ * Remove one import history item
+ */
+export function deleteImportHistory(importId) {
+  return apiClient.delete(`/imports/${importId}`);
+}
+
+/**
+ * Clear imported dashboard data
+ */
+export function clearImportedData() {
+  return apiClient.delete('/imports/data', { timeout: 120000 });
+}

@@ -13,6 +13,10 @@ const dataDir = path.join(__dirname, '../../../data');
 // Cached user profile data (loaded once at startup)
 let userProfile = null;
 
+export function resetUserProfileCache() {
+  userProfile = null;
+}
+
 /**
  * Load user profile from CSV files
  */
@@ -22,6 +26,32 @@ async function loadUserProfile() {
   // Default profile: used when no profile CSV is present (e.g. data/ cleaned),
   // so the profile/weight endpoints degrade gracefully instead of erroring.
   userProfile = { height: 0, sex: 'male', birth: '' };
+
+  try {
+    const importedProfile = databaseService.query(`
+      SELECT value FROM fitness_data
+      WHERE key = 'user_profile'
+      ORDER BY update_time DESC, id DESC
+      LIMIT 1
+    `);
+
+    if (importedProfile.length > 0) {
+      const profile = JSON.parse(importedProfile[0].values[0][0]);
+      userProfile = {
+        height: parseFloat(profile.heightCm) || 0,
+        sex: profile.sex || 'male',
+        birth: profile.birthDate || '',
+        currentWeight: parseFloat(profile.initialWeightKg) || 0,
+        initialWeight: parseFloat(profile.initialWeightKg) || null,
+        targetWeight: parseFloat(profile.targetWeightKg) || null,
+        dailyCalGoal: parseInt(profile.dailyCalorieGoal) || 700,
+        vo2Max: parseInt(profile.vo2Max) || 0
+      };
+      return userProfile;
+    }
+  } catch (error) {
+    console.warn('Imported user profile unavailable:', error.message);
+  }
 
   try {
     // Read user_member_profile.csv for height, sex, birth

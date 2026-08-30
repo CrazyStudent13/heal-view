@@ -3,6 +3,9 @@
     <!-- Top navigation bar -->
     <TopNavbar 
       v-model:viewMode="viewMode" 
+      :current-page="currentPage"
+      :show-date-controls="currentPage === 'dashboard'"
+      @page-change="currentPage = $event"
       @open-settings="settingsDrawerVisible = true"
     />
     
@@ -45,7 +48,13 @@
     </el-drawer>
     
     <!-- Main content area -->
-    <div class="content-area">
+    <DataImportPage
+      v-if="currentPage === 'import'"
+      @imported="handleImportCompleted"
+      @view-dashboard="currentPage = 'dashboard'"
+    />
+
+    <div v-else class="content-area">
       <!-- Left sidebar: Data cards -->
       <div class="sidebar-wrapper">
         <DataCardsSidebar 
@@ -83,6 +92,7 @@ import { useThemeStore } from '../../stores/themeStore';
 import TopNavbar from '../navigation/TopNavbar.vue';
 import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
 import ChartDisplay from '../charts/ChartDisplay.vue';
+import DataImportPage from '../import/DataImportPage.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
@@ -94,6 +104,7 @@ function t(key) {
 
 // Settings drawer visibility
 const settingsDrawerVisible = ref(false);
+const currentPage = ref('dashboard');
 
 // Language - use store value
 const currentLanguage = computed({
@@ -386,6 +397,13 @@ async function initDefaultData() {
     loading.value = false;
     initializing.value = false;
   }
+}
+
+async function handleImportCompleted() {
+  dataStore.clearCache();
+  dateStore.selectedDate = null;
+  dateStore.selectedDates = [];
+  await initDefaultData();
 }
 
 // Watch for changes in single mode

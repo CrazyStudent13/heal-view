@@ -1,15 +1,36 @@
 <template>
   <div class="top-navbar">
+    <nav class="primary-nav">
+      <button
+        :class="['nav-button', { active: currentPage === 'dashboard' }]"
+        type="button"
+        @click="$emit('page-change', 'dashboard')"
+      >
+        <el-icon><DataLine /></el-icon>
+        <span>健康看板</span>
+      </button>
+      <button
+        :class="['nav-button', { active: currentPage === 'import' }]"
+        type="button"
+        @click="$emit('page-change', 'import')"
+      >
+        <el-icon><UploadFilled /></el-icon>
+        <span>数据导入</span>
+      </button>
+    </nav>
+
+    <el-divider v-if="showDateControls" direction="vertical" />
+
     <!-- View mode tabs -->
-    <el-radio-group v-model="viewModeLocal" size="default">
+    <el-radio-group v-if="showDateControls" v-model="viewModeLocal" size="default">
       <el-radio-button value="single">{{ t('nav.singleDay') }}</el-radio-button>
       <el-radio-button value="compare">{{ t('nav.multiDay') }}</el-radio-button>
     </el-radio-group>
 
-    <el-divider direction="vertical" />
+    <el-divider v-if="showDateControls" direction="vertical" />
 
     <!-- Date selection -->
-    <div class="date-section">
+    <div v-if="showDateControls" class="date-section">
       <span class="section-label">{{ t('nav.selectDate') }}：</span>
       
       <!-- Single mode: date picker -->
@@ -69,6 +90,7 @@
       :icon="Setting" 
       circle 
       size="large"
+      class="nav-circle-button"
       @click="$emit('open-settings')"
     />
   </div>
@@ -76,7 +98,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { Calendar, Setting, Search } from '@element-plus/icons-vue';
+import { DataLine, Setting, Search, UploadFilled } from '@element-plus/icons-vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 
@@ -87,7 +109,7 @@ function t(key) {
   return localeStore.t(key);
 }
 
-const emit = defineEmits(['update:viewMode', 'open-settings']);
+const emit = defineEmits(['update:viewMode', 'open-settings', 'page-change']);
 
 // Date picker shortcuts
 const dateShortcuts = computed(() => [
@@ -124,6 +146,14 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'single'
+  },
+  currentPage: {
+    type: String,
+    default: 'dashboard'
+  },
+  showDateControls: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -298,12 +328,54 @@ watch(() => store.dateList, () => {
 .top-navbar {
   background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
-  padding: 12px 20px;
+  min-height: 78px;
+  padding: 16px 42px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
+}
+
+.primary-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #909399;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover,
+.nav-button.active {
+  border-color: #d9ecff;
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.nav-button :deep(.el-icon) {
+  font-size: 17px;
+}
+
+.nav-circle-button {
+  width: 48px;
+  height: 48px;
+  border-color: #ebeef5;
+  color: #909399;
 }
 
 .date-section {
@@ -321,11 +393,16 @@ watch(() => store.dateList, () => {
 @media (max-width: 600px) {
   .top-navbar {
     gap: 10px;
-    padding: 10px 12px;
+    min-height: auto;
+    padding: 12px;
   }
 
   .top-navbar > :deep(.el-divider--vertical) {
     display: none;
+  }
+
+  .primary-nav {
+    width: 100%;
   }
 
   .date-section {
