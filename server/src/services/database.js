@@ -86,12 +86,26 @@ class DatabaseService {
         update_time INTEGER
       );
 
+      CREATE TABLE IF NOT EXISTS blood_pressure_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uid TEXT,
+        sid TEXT,
+        external_id TEXT,
+        time INTEGER,
+        date TEXT,
+        value TEXT,
+        parsed_value TEXT,
+        update_time INTEGER
+      );
+
       CREATE INDEX IF NOT EXISTS idx_fitness_date ON fitness_data(date);
       CREATE INDEX IF NOT EXISTS idx_fitness_key ON fitness_data(key);
       CREATE INDEX IF NOT EXISTS idx_sport_date ON sport_records(date);
       CREATE INDEX IF NOT EXISTS idx_sport_category ON sport_records(category);
       CREATE INDEX IF NOT EXISTS idx_aggregated_date ON aggregated_data(date);
       CREATE INDEX IF NOT EXISTS idx_aggregated_key ON aggregated_data(key);
+      CREATE INDEX IF NOT EXISTS idx_blood_pressure_date ON blood_pressure_records(date);
+      CREATE INDEX IF NOT EXISTS idx_blood_pressure_time ON blood_pressure_records(time);
     `);
     console.log('Database tables created');
   }

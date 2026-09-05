@@ -81,8 +81,19 @@ function metricLabel(metricType) {
     stress: '压力',
     weight: '体重',
     spo2: '血氧',
-    intensity: '活动强度'
+    intensity: '活动强度',
+    blood_pressure: '血压'
   }[metricType] || metricType;
+}
+
+function formatBloodPressureValue(record) {
+  const systolic = Number(record?.systolic);
+  const diastolic = Number(record?.diastolic);
+  if (!Number.isFinite(systolic) || !Number.isFinite(diastolic)) return '--';
+  const heartRate = Number(record?.heartRate);
+  return Number.isFinite(heartRate) && heartRate > 0
+    ? `${systolic}/${diastolic} mmHg，心率 ${heartRate} bpm`
+    : `${systolic}/${diastolic} mmHg`;
 }
 
 function selectedSource(...candidates) {
@@ -169,13 +180,26 @@ function buildPreviewRows(normalized) {
     });
   }
 
-  if (!(normalized.metricSeries || []).some((item) => item.metricType === 'blood_pressure')) {
+  if (!(normalized.bloodPressureRecords || []).length) {
     rows.push({
       date: '--',
       category: '血压',
       value: '当前未发现可映射血压数据',
       target: 'blood_pressure_records',
       source: '--'
+    });
+  } else {
+    const records = normalized.bloodPressureRecords || [];
+    const sorted = [...records].sort((a, b) => (b.measuredAt || 0) - (a.measuredAt || 0));
+    const latest = sorted[0];
+    const avgSystolic = Math.round(records.reduce((sum, record) => sum + Number(record.systolic || 0), 0) / records.length);
+    const avgDiastolic = Math.round(records.reduce((sum, record) => sum + Number(record.diastolic || 0), 0) / records.length);
+    rows.push({
+      date: rangeFromDates(records.map((record) => record.date)),
+      category: '血压',
+      value: `${records.length} 条记录，最新 ${formatBloodPressureValue(latest)}，均值 ${avgSystolic}/${avgDiastolic} mmHg`,
+      target: 'blood_pressure_records',
+      source: selectedSource(selectedFiles.health, selectedFiles.fitness)
     });
   }
 
@@ -195,6 +219,7 @@ function buildPreviewRows(normalized) {
 function collectImportDates(normalized) {
   const dates = new Set();
   for (const series of normalized.metricSeries || []) dates.add(series.date);
+  for (const record of normalized.bloodPressureRecords || []) dates.add(record.date);
   for (const session of normalized.sleepSessions || []) dates.add(session.date);
   for (const record of normalized.sportRecords || []) dates.add(record.date);
   return [...dates].filter(Boolean);
@@ -203,6 +228,7 @@ function collectImportDates(normalized) {
 function rowCount(normalized) {
   const counts = normalized.summary?.counts || {};
   return Number(counts.metricSamples || 0)
+    + Number(counts.bloodPressureRecords || 0)
     + Number(counts.sleepSessions || 0)
     + Number(counts.sportRecords || 0);
 }
@@ -220,6 +246,18 @@ function metricSampleValue(metricType, sample) {
   const valueKey = metricValueKeyMap[metricType] || 'value';
   return {
     [valueKey]: normalizeNumber(sample.value),
+    source: 'health_archive_parser'
+  };
+}
+
+function bloodPressureValue(record) {
+  return {
+    systolic: normalizeNumber(record.systolic),
+    diastolic: normalizeNumber(record.diastolic),
+    heartRate: record.heartRate == null ? null : normalizeNumber(record.heartRate),
+    measuredAt: normalizeNumber(record.measuredAt),
+    sourceProvider: record.sourceProvider || null,
+    details: record.details || null,
     source: 'health_archive_parser'
   };
 }
@@ -281,6 +319,7 @@ function deleteDates(db, dates) {
   db.prepare(`DELETE FROM fitness_data WHERE date IN (${placeholders})`).run(...dates);
   db.prepare(`DELETE FROM sport_records WHERE date IN (${placeholders})`).run(...dates);
   db.prepare(`DELETE FROM aggregated_data WHERE date IN (${placeholders})`).run(...dates);
+  db.prepare(`DELETE FROM blood_pressure_records WHERE date IN (${placeholders})`).run(...dates);
 }
 
 export async function parseArchiveFile(file, platform) {
@@ -362,10 +401,15 @@ export function importParsedArchive(importId) {
       INSERT INTO aggregated_data (uid, sid, tag, key, time, date, value, update_time)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const bloodPressureStmt = rawDb.prepare(`
+      INSERT INTO blood_pressure_records (uid, sid, external_id, time, date, value, parsed_value, update_time)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
     let fitnessRows = 0;
     let sportRows = 0;
     let aggregateRows = 0;
+    let bloodPressureRows = 0;
 
     for (const series of normalized.metricSeries || []) {
       for (const sample of series.samples || []) {
@@ -424,6 +468,21 @@ export function importParsedArchive(importId) {
       sportRows += 1;
     }
 
+    for (const record of normalized.bloodPressureRecords || []) {
+      const value = bloodPressureValue(record);
+      bloodPressureStmt.run(
+        uid,
+        sid,
+        record.externalId || 'blood_pressure',
+        record.measuredAt,
+        record.date,
+        json(value),
+        json(value),
+        now
+      );
+      bloodPressureRows += 1;
+    }
+
     for (const [date, aggregate] of buildDailyAggregates(normalized)) {
       aggregateStmt.run(
         uid,
@@ -450,13 +509,13 @@ export function importParsedArchive(importId) {
     if (historyItem) {
       historyItem.status = 'completed';
       historyItem.completedAt = new Date().toISOString();
-      historyItem.importedRows = { fitnessRows, sportRows, aggregateRows };
+      historyItem.importedRows = { fitnessRows, sportRows, aggregateRows, bloodPressureRows };
     }
 
     return {
       importId,
       importStatus: 'completed',
-      importedRows: { fitnessRows, sportRows, aggregateRows },
+      importedRows: { fitnessRows, sportRows, aggregateRows, bloodPressureRows },
       dateRange: normalized.summary?.dateRange || null
     };
   } catch (error) {
@@ -484,7 +543,7 @@ export function clearImportedData() {
   const db = databaseService.db;
   db.exec('BEGIN');
   try {
-    db.exec('DELETE FROM fitness_data; DELETE FROM sport_records; DELETE FROM aggregated_data;');
+    db.exec('DELETE FROM fitness_data; DELETE FROM sport_records; DELETE FROM aggregated_data; DELETE FROM blood_pressure_records;');
     db.exec('COMMIT');
     pendingImports.clear();
     importHistory.length = 0;
