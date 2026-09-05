@@ -1,5 +1,5 @@
 <template>
-  <div class="sleep-timeline-view" v-if="hasData">
+  <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="sleep-overview-cards">
       <el-card class="overview-card" shadow="hover">
         <div class="overview-card-content">
@@ -68,6 +68,10 @@ let chartInstance = null;
 const timelineData = ref(props.data);
 const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
+const hasTimelineSummary = computed(() => {
+  const totalDuration = Number(timelineData.value?.totalDuration) || 0;
+  return hasData.value || totalDuration > 0 || Boolean(timelineData.value?.bedtime) || Boolean(timelineData.value?.wakeUpTime);
+});
 function isValidHeartRate(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0;
@@ -104,7 +108,15 @@ const stageDurations = computed(() => {
   });
   return d;
 });
-const totalSleepMinutes = computed(() => Object.values(stageDurations.value).reduce((a, b) => a + b, 0));
+const totalSleepMinutes = computed(() => {
+  const segmentedMinutes = Object.entries(stageDurations.value)
+    .filter(([stage]) => stage !== 'awake')
+    .reduce((a, [, b]) => a + b, 0);
+  if (segmentedMinutes > 0) return segmentedMinutes;
+
+  const fallbackSeconds = Number(timelineData.value?.totalDuration) || 0;
+  return fallbackSeconds > 0 ? Math.round(fallbackSeconds / 60) : 0;
+});
 const totalSleepDuration = computed(() => fmtDur(totalSleepMinutes.value));
 const awakeEpisodes = computed(() =>
   timelineData.value?.segments?.filter(s => sNorm(s.state) === 'awake').length || 0
