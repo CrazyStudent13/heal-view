@@ -230,16 +230,23 @@ onBeforeUnmount(() => {
   border: 1px solid var(--card-border);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
 }
 
 .analysis-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
+  flex: 1;
+  align-items: stretch;
 }
 
 .analysis-panel {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .analysis-caption {
@@ -248,15 +255,17 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 20px;
   text-align: left;
+  margin-bottom: 6px;
 }
 
 .analysis-chart {
   width: 100%;
-  height: clamp(200px, 23vh, 250px);
+  flex: 1;
+  min-height: clamp(220px, 24vh, 260px);
   min-width: 0;
 }
 .analysis-card :deep(.app-section-title--level-2) {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 @media (max-width: 760px) {
