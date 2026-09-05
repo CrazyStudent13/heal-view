@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, watch, ref } from 'vue';
+import { computed, nextTick, onMounted, onBeforeUnmount, watch, ref } from 'vue';
 import * as echarts from 'echarts';
 import { ElEmpty } from 'element-plus';
 import { QuestionFilled } from '@element-plus/icons-vue';
@@ -261,8 +261,8 @@ const updateChart = () => {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
-      top: '15%',
+      bottom: '1%',
+      top: '10%',
       containLabel: true
     },
     xAxis: {
@@ -381,15 +381,22 @@ const updateChart = () => {
   chartInstance.setOption(option, true);
 };
 
+const resizeAndUpdateChart = () => {
+  nextTick(() => {
+    chartInstance?.resize();
+    updateChart();
+  });
+};
+
 watch(() => props.data, () => {
-  updateChart();
+  resizeAndUpdateChart();
 }, { deep: true });
 
 watch(() => props.timelineList, () => {
-  updateChart();
+  resizeAndUpdateChart();
 }, { deep: true });
 
-watch(() => localeStore.currentLocale, updateChart);
+watch(() => localeStore.currentLocale, resizeAndUpdateChart);
 
 onMounted(() => {
   initChart();
@@ -416,6 +423,8 @@ const handleResize = () => {
   margin-bottom: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
+  box-sizing: border-box;
+  overflow: hidden;
   height: 100%;
   min-height: 0;
   display: flex;
@@ -425,14 +434,14 @@ const handleResize = () => {
 .regularity-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 12px 0 16px;
+  gap: 8px;
+  margin: 8px 0 10px;
 }
 
 .regularity-card {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 14px 16px;
+  padding: 6px 10px;
 }
 
 .regularity-card.regular {
@@ -454,25 +463,25 @@ const handleResize = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .regularity-card-title {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
 .help-icon {
-  font-size: 14px;
+  font-size: 12px;
   cursor: help;
 }
 
 .regularity-score {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
@@ -491,16 +500,16 @@ const handleResize = () => {
 }
 
 .regularity-meta {
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 3px;
+  font-size: 10px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.25;
 }
 
 .chart {
   width: 100%;
   flex: 1;
-  min-height: clamp(220px, 28vh, 300px);
+  min-height: 0;
 }
 
 .empty-state {
