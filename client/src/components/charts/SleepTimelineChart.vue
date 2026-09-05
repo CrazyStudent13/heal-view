@@ -499,7 +499,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 }
 .sleep-overview-cards {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-  margin-bottom: 12px; flex-shrink: 0;
+  margin-bottom: 0; flex-shrink: 0;
 }
 .overview-card {
   border: 2px solid var(--card-border); border-radius: 8px;
