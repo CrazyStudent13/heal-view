@@ -55,7 +55,7 @@ import { useDataStore } from '../../stores/dataStore';
 import SleepStageAnalysis from './SleepStageAnalysis.vue';
 
 const localeStore = useLocaleStore();
-function t(key) { return localeStore.t(key); }
+function t(key, params) { return localeStore.t(key, params); }
 const dataStore = useDataStore();
 
 const props = defineProps({
