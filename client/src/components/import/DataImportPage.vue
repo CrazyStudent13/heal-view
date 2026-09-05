@@ -327,7 +327,10 @@ function normalizeResult(response, file) {
   const status = issues.length > 0 ? 'partial' : 'success';
   const counts = response.summary?.counts || {};
   const dateRange = response.summary?.dateRange;
-  const recordCount = Number(counts.metricSamples || 0) + Number(counts.sleepSessions || 0) + Number(counts.sportRecords || 0);
+  const recordCount = Number(counts.metricSamples || 0)
+    + Number(counts.bloodPressureRecords || 0)
+    + Number(counts.sleepSessions || 0)
+    + Number(counts.sportRecords || 0);
 
   return {
     importId: response.importId,
@@ -478,7 +481,10 @@ async function commitHistoryImport(importId) {
     const previousResult = currentResult.value;
     const response = await commitImportArchive(importId);
     const importedRows = response.importedRows || {};
-    const totalRows = Number(importedRows.fitnessRows || 0) + Number(importedRows.sportRows || 0) + Number(importedRows.aggregateRows || 0);
+    const totalRows = Number(importedRows.fitnessRows || 0)
+      + Number(importedRows.sportRows || 0)
+      + Number(importedRows.aggregateRows || 0)
+      + Number(importedRows.bloodPressureRows || 0);
     const dateRangeText = response.dateRange
       ? `健康指标：${response.dateRange.start} ~ ${response.dateRange.end}`
       : '';

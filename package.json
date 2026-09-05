@@ -3,6 +3,15 @@
   "private": true,
   "version": "1.0.0",
   "description": "小米运动健康数据可视化仪表板（pnpm workspace）",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": "22.13.0",
+    "pnpm": "9.15.0"
+  },
+  "volta": {
+    "node": "22.13.0",
+    "pnpm": "9.15.0"
+  },
   "scripts": {
     "dev:client": "pnpm --filter heal-view-client dev",
     "dev:server": "pnpm --filter heal-view-server dev",
