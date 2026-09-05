@@ -538,6 +538,10 @@ onMounted(() => {
   width: 100%;
 }
 
+.chart-area :deep(.chart-container) {
+  margin-bottom: 0;
+}
+
 .chart-area :deep(.sleep-timeline-view) {
   min-height: 0;
 }
