@@ -12,8 +12,8 @@
       <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <SleepTimelineChart v-if="chartType === 'sleep' && hasValidSleepData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
-      <SleepChart v-if="chartType === 'sleep' && !hasValidSleepData && hasData" :data="chartData" />
+      <SleepTimelineChart v-if="chartType === 'sleep' && hasDetailedSleepData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
+      <SleepChart v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData" :data="chartData" />
     </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
@@ -81,12 +81,16 @@ const props = defineProps({
 
 const hasData = computed(() => props.chartData.length > 0);
 
-// Check if sleep timeline data is valid (has segments or total duration > 0)
-const hasValidSleepData = computed(() => {
-  if (!props.sleepTimelineData) return false;
-  // Check if there are segments or total duration > 0
-  return (props.sleepTimelineData.segments && props.sleepTimelineData.segments.length > 0) || 
-         (props.sleepTimelineData.totalDuration && props.sleepTimelineData.totalDuration > 0);
+const hasDetailedSleepData = computed(() => {
+  return Boolean(props.sleepTimelineData?.segments?.length);
+});
+
+const hasSleepSummaryData = computed(() => {
+  if (!hasData.value) return false;
+  return props.chartData.some((item) => {
+    return ['sleepHours', 'deepSleepHours', 'lightSleepHours', 'remSleepHours', 'awakeSleepHours']
+      .some((key) => Number(item?.[key]) > 0);
+  });
 });
 
 // 单日模式下的平均心率（用于睡眠卡片）

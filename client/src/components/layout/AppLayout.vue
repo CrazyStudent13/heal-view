@@ -3,6 +3,9 @@
     <!-- Top navigation bar -->
     <TopNavbar 
       v-model:viewMode="viewMode" 
+      :current-page="currentPage"
+      :show-date-controls="currentPage === 'dashboard'"
+      @page-change="currentPage = $event"
       @open-settings="settingsDrawerVisible = true"
     />
     
@@ -45,7 +48,13 @@
     </el-drawer>
     
     <!-- Main content area -->
-    <div class="content-area">
+    <DataImportPage
+      v-if="currentPage === 'import'"
+      @imported="handleImportCompleted"
+      @view-dashboard="currentPage = 'dashboard'"
+    />
+
+    <div v-else class="content-area">
       <!-- Left sidebar: Data cards -->
       <div class="sidebar-wrapper">
         <DataCardsSidebar 
@@ -55,6 +64,7 @@
           :loading="loading"
           :user-profile="dataStore.userProfile"
           @chart-change="handleChartChange"
+          @update:view-mode="viewMode = $event"
         />
       </div>
       
@@ -83,6 +93,7 @@ import { useThemeStore } from '../../stores/themeStore';
 import TopNavbar from '../navigation/TopNavbar.vue';
 import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
 import ChartDisplay from '../charts/ChartDisplay.vue';
+import DataImportPage from '../import/DataImportPage.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
@@ -94,6 +105,7 @@ function t(key) {
 
 // Settings drawer visibility
 const settingsDrawerVisible = ref(false);
+const currentPage = ref('dashboard');
 
 // Language - use store value
 const currentLanguage = computed({
@@ -212,10 +224,16 @@ async function fetchSingleDayData(date) {
       minHeartRate: summary.minHeartRate,
       maxHeartRate: summary.maxHeartRate,
       avgStress: summary.avgStress,
+      bloodPressureCount: summary.bloodPressureCount || 0,
+      avgSystolic: summary.avgSystolic || 0,
+      avgDiastolic: summary.avgDiastolic || 0,
+      latestBloodPressure: summary.latestBloodPressure || null,
+      bloodPressureRecords: summary.bloodPressureRecords || [],
       sleepHours: summary.sleepHours || 0,
       deepSleepHours: summary.deepSleepHours || 0,
       lightSleepHours: summary.lightSleepHours || 0,
       remSleepHours: summary.remSleepHours || 0,
+      awakeSleepHours: summary.awakeSleepHours || 0,
       totalDurationMinutes: summary.totalDurationMinutes || 0,
       sportCalories: summary.sportCalories || 0
     }];
@@ -388,6 +406,12 @@ async function initDefaultData() {
   }
 }
 
+async function handleImportCompleted() {
+  dataStore.clearCache();
+  dateStore.clearCache();
+  await initDefaultData();
+}
+
 // Watch for changes in single mode
 watch(() => dateStore.selectedDate, async (newDate) => {
   if (initializing.value) return;
@@ -463,7 +487,7 @@ onMounted(() => {
 .app-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -472,6 +496,8 @@ onMounted(() => {
   display: flex;
   gap: 20px;
   padding: 20px;
+  min-height: 0;
+  align-items: stretch;
   overflow: hidden;
   background: var(--app-bg);
 }
@@ -485,6 +511,7 @@ onMounted(() => {
   overflow-y: auto;
   border: 1px solid var(--card-border);
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -495,6 +522,24 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.chart-area :deep(.chart-display) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-area :deep(.sleep-timeline-view),
+.chart-area :deep(.chart-container),
+.chart-area :deep(.analysis-card) {
+  width: 100%;
+}
+
+.chart-area :deep(.sleep-timeline-view) {
+  min-height: 0;
 }
 
 /* Drawer content styles */

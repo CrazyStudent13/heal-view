@@ -28,6 +28,8 @@ export function getDates(req, res) {
         SELECT date FROM sport_records
         UNION
         SELECT date FROM aggregated_data
+        UNION
+        SELECT date FROM blood_pressure_records
       )
       ORDER BY date DESC
     `);
@@ -104,6 +106,43 @@ export function getDailySummary(req, res) {
     `, [date]);
     const avgStress = stressResult.length > 0 ? Math.round(stressResult[0].values[0][0] || 0) : 0;
 
+    const bloodPressureResult = databaseService.query(`
+      SELECT
+        COUNT(*) as blood_pressure_count,
+        AVG(CAST(json_extract(value, '$.systolic') AS REAL)) as avg_systolic,
+        AVG(CAST(json_extract(value, '$.diastolic') AS REAL)) as avg_diastolic
+      FROM blood_pressure_records
+      WHERE date = ?
+    `, [date]);
+    const bloodPressureCount = bloodPressureResult.length > 0 ? bloodPressureResult[0].values[0][0] || 0 : 0;
+    const avgSystolic = bloodPressureResult.length > 0 ? Math.round(bloodPressureResult[0].values[0][1] || 0) : 0;
+    const avgDiastolic = bloodPressureResult.length > 0 ? Math.round(bloodPressureResult[0].values[0][2] || 0) : 0;
+
+    const bloodPressureDetailResult = databaseService.query(`
+      SELECT time, value
+      FROM blood_pressure_records
+      WHERE date = ?
+      ORDER BY time ASC
+    `, [date]);
+    const bloodPressureRecords = bloodPressureDetailResult.length > 0
+      ? bloodPressureDetailResult[0].values.map((row) => {
+          let jsonValue = {};
+          try {
+            jsonValue = typeof row[1] === 'string' ? JSON.parse(row[1]) : row[1] || {};
+          } catch {
+            jsonValue = {};
+          }
+
+          return {
+            time: row[0],
+            systolic: Number(jsonValue.systolic) || 0,
+            diastolic: Number(jsonValue.diastolic) || 0,
+            heartRate: jsonValue.heartRate ?? jsonValue.heart_rate ?? null
+          };
+        })
+      : [];
+    const latestBloodPressure = bloodPressureRecords.length > 0 ? bloodPressureRecords[bloodPressureRecords.length - 1] : null;
+
     // Get sleep duration - use MAX to pick the longest sleep record (avoid averaging naps with night sleep)
     const sleepResult = databaseService.query(`
       SELECT 
@@ -151,6 +190,11 @@ export function getDailySummary(req, res) {
       minHeartRate,
       maxHeartRate,
       avgStress,
+      bloodPressureCount,
+      avgSystolic,
+      avgDiastolic,
+      latestBloodPressure,
+      bloodPressureRecords,
       sleepHours: parseFloat(sleepHours),
       deepSleepHours: parseFloat(deepSleepHours),
       lightSleepHours: parseFloat(lightSleepHours),
@@ -191,9 +235,14 @@ export function getTimeSeries(req, res) {
     let keyFilter = metric;
 
     // Map metric to table and key (whitelist validation prevents injection)
-    if (['steps', 'calories', 'heart_rate', 'stress'].includes(metric)) {
+    if (['steps', 'calories', 'heart_rate', 'stress', 'blood_pressure'].includes(metric)) {
       tableName = 'fitness_data';
       keyFilter = metric;
+    }
+
+    if (metric === 'blood_pressure') {
+      tableName = 'blood_pressure_records';
+      keyFilter = null;
     }
 
     const heartRateFilter = metric === 'heart_rate'
@@ -203,10 +252,10 @@ export function getTimeSeries(req, res) {
     const result = databaseService.query(`
       SELECT time, value
       FROM ${tableName}
-      WHERE date = ? AND key = ?
+      WHERE date = ?${keyFilter ? ' AND key = ?' : ''}
       ${heartRateFilter}
       ORDER BY time ASC
-    `, [date, keyFilter]);
+    `, keyFilter ? [date, keyFilter] : [date]);
 
     const data = result.length > 0
       ? result[0].values.map(row => {
@@ -220,6 +269,12 @@ export function getTimeSeries(req, res) {
               value = isPositiveNumber(jsonValue.bpm) ? Number(jsonValue.bpm) : null;
             } else if (metric === 'stress') {
               value = jsonValue.stress || 0;
+            } else if (metric === 'blood_pressure') {
+              value = {
+                systolic: Number(jsonValue.systolic) || 0,
+                diastolic: Number(jsonValue.diastolic) || 0,
+                heartRate: jsonValue.heartRate ?? jsonValue.heart_rate ?? null
+              };
             } else if (metric === 'steps') {
               value = jsonValue.steps || 0;
             } else if (metric === 'calories') {

@@ -100,6 +100,14 @@ export const useDateStore = defineStore('date', () => {
     selectedDates.value = [];
   }
 
+  function clearCache() {
+    dateList.value = [];
+    datesWithTraining.value = new Set();
+    selectedDate.value = null;
+    selectedDates.value = [];
+    error.value = null;
+  }
+
   /**
    * Load more dates (for pagination if needed)
    */
@@ -122,6 +130,7 @@ export const useDateStore = defineStore('date', () => {
     toggleDateSelection,
     selectAllTrainingDates,
     clearSelectedDates,
+    clearCache,
     loadMoreDates
   };
 });

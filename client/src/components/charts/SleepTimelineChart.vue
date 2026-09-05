@@ -1,5 +1,5 @@
 <template>
-  <div class="sleep-timeline-view" v-if="hasData">
+  <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="sleep-overview-cards">
       <el-card class="overview-card" shadow="hover">
         <div class="overview-card-content">
@@ -20,9 +20,9 @@
         </div>
       </el-card>
       <el-card class="overview-card" shadow="hover">
-        <div class="overview-card-content">
+        <div class="overview-card-content interrupt-card-content">
           <div class="card-icon interrupt-icon"><span class="icon-text">⏰</span></div>
-          <div class="card-info">
+          <div class="card-info interrupt-card-info">
             <div class="card-label">{{ t('sleep.interruptions') }}</div>
             <div class="card-value-row">
               <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
@@ -55,7 +55,7 @@ import { useDataStore } from '../../stores/dataStore';
 import SleepStageAnalysis from './SleepStageAnalysis.vue';
 
 const localeStore = useLocaleStore();
-function t(key) { return localeStore.t(key); }
+function t(key, params) { return localeStore.t(key, params); }
 const dataStore = useDataStore();
 
 const props = defineProps({
@@ -68,6 +68,10 @@ let chartInstance = null;
 const timelineData = ref(props.data);
 const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
+const hasTimelineSummary = computed(() => {
+  const totalDuration = Number(timelineData.value?.totalDuration) || 0;
+  return hasData.value || totalDuration > 0 || Boolean(timelineData.value?.bedtime) || Boolean(timelineData.value?.wakeUpTime);
+});
 function isValidHeartRate(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0;
@@ -104,7 +108,15 @@ const stageDurations = computed(() => {
   });
   return d;
 });
-const totalSleepMinutes = computed(() => Object.values(stageDurations.value).reduce((a, b) => a + b, 0));
+const totalSleepMinutes = computed(() => {
+  const segmentedMinutes = Object.entries(stageDurations.value)
+    .filter(([stage]) => stage !== 'awake')
+    .reduce((a, [, b]) => a + b, 0);
+  if (segmentedMinutes > 0) return segmentedMinutes;
+
+  const fallbackSeconds = Number(timelineData.value?.totalDuration) || 0;
+  return fallbackSeconds > 0 ? Math.round(fallbackSeconds / 60) : 0;
+});
 const totalSleepDuration = computed(() => fmtDur(totalSleepMinutes.value));
 const awakeEpisodes = computed(() =>
   timelineData.value?.segments?.filter(s => sNorm(s.state) === 'awake').length || 0
@@ -470,15 +482,16 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .sleep-timeline-view {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  flex: 1;
   min-height: 100%;
-  padding-bottom: 20px;
+  padding-bottom: 0;
 }
 .timeline-card {
   display: flex;
   flex-direction: column;
-  min-height: 330px;
-  padding: 20px;
+  min-height: clamp(240px, 32vh, 340px);
+  padding: 12px 18px 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -486,7 +499,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 }
 .sleep-overview-cards {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-  margin-bottom: 16px; flex-shrink: 0;
+  margin-bottom: 0; flex-shrink: 0;
 }
 .overview-card {
   border: 2px solid var(--card-border); border-radius: 8px;
@@ -499,11 +512,27 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .icon-text { font-size: 24px; line-height: 1; }
 .sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
 .card-info { flex: 1; min-width: 0; }
+.interrupt-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
 .card-label { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px; overflow-wrap: anywhere; }
 .card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
-.card-value-row { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+.card-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
 .card-value-row .card-value { margin-bottom: 0; }
-.chart { width: 100%; flex: 1; min-height: 260px; }
+.chart { width: 100%; flex: 1; min-height: clamp(220px, 28vh, 300px); }
+.timeline-card :deep(.app-section-title--level-2) {
+  margin-bottom: 12px;
+}
 .empty-state {
   text-align: center;
   height: 100%; /* Fill entire container height to match sidebar */

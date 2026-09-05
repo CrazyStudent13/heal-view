@@ -13,11 +13,13 @@
     "import": "node src/scripts/importData.js"
   },
   "dependencies": {
+    "@crazystudent13/health-archive-parser": "^0.2.3",
     "compression": "^1.8.1",
-    "cors": "^2.8.5",
-    "csv-parser": "^3.0.0",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
+    "cors": "^2.8.6",
+    "csv-parser": "^3.2.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.3.0",
     "node-cache": "^5.1.2"
   }
 }

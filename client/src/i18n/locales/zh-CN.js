@@ -224,7 +224,10 @@ export default {
     dailyCalGoal: '每日运动消耗目标', healthMetrics: '健康指标', bmi: 'BMI', bmr: '基础代谢', vo2Max: '最大摄氧量',
     kcalPerDay: '千卡/天', bmiReference: 'BMI参考范围', bmiUnderweight: '偏瘦', bmiNormal: '正常', bmiOverweight: '偏重',
     bmiObese: '肥胖', notSet: '未设置', noData: '暂无个人数据', todayOverview: '今日健康概览', todaySteps: '今日步数',
-    todayCalories: '今日消耗', todayHeartRate: '今日心率', todaySleep: '今日睡眠', todaySport: '今日运动'
+    todayCalories: '今日消耗', todayHeartRate: '今日心率', todaySleep: '今日睡眠', todaySport: '今日运动',
+    bloodPressureTitle: '当日血压测量', bloodPressureSummary: '{count} 次记录 · 心率：{heartRate} bpm', bloodPressureRecords: '记录数：{count}',
+    bloodPressureHeartRate: '心率：{heartRate} bpm', bpExpandRecords: '展开记录', bpCollapseRecords: '收起记录',
+    bpNormal: '正常', bpElevated: '偏高', bpHigh: '高血压'
   },
   day: {
     monday: '周一', tuesday: '周二', wednesday: '周三', thursday: '周四', friday: '周五', saturday: '周六', sunday: '周日'

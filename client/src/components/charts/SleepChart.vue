@@ -255,7 +255,7 @@ const handleResize = () => {
 <style scoped>
 .chart-container {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 16px 20px 18px;
   border-radius: 8px;
   margin-bottom: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -277,7 +277,7 @@ const handleResize = () => {
 .chart {
   width: 100%;
   flex: 1;
-  min-height: 300px;
+  min-height: clamp(220px, 28vh, 300px);
 }
 
 .empty-state {
