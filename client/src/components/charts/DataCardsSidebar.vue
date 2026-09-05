@@ -1,9 +1,21 @@
 <template>
   <div class="data-cards-sidebar">
-    <SectionTitle :level="1">
-      <template #icon><DataLine /></template>
-      {{ t('data.overview') }}
-    </SectionTitle>
+    <div class="overview-header">
+      <SectionTitle :level="1">
+        <template #icon><DataLine /></template>
+        {{ t('data.overview') }}
+      </SectionTitle>
+
+      <el-radio-group
+        :model-value="viewMode"
+        size="default"
+        class="view-mode-switch"
+        @update:model-value="$emit('update:view-mode', $event)"
+      >
+        <el-radio-button value="single">{{ t('nav.singleDay') }}</el-radio-button>
+        <el-radio-button value="compare">{{ t('nav.multiDay') }}</el-radio-button>
+      </el-radio-group>
+    </div>
     
     <!-- Skeleton loading state -->
     <div v-if="loading" class="cards-list">
@@ -172,7 +184,7 @@ const props = defineProps({
   }
 });
 
-defineEmits(['chart-change']);
+defineEmits(['chart-change', 'update:view-mode']);
 
 const isCompareMode = computed(() => props.viewMode === 'compare');
 
@@ -195,8 +207,15 @@ function isPositiveNumber(value) {
 
 const displayData = computed(() => {
   if (props.chartData.length === 0) {
-    return { avgSteps: 0, avgCalories: 0, avgHeartRate: 0, avgStress: 0, avgSleepHours: 0, avgWeight: '--' };
-  }
+      return {
+        avgSteps: 0,
+        avgCalories: 0,
+        avgHeartRate: 0,
+        avgStress: 0,
+        avgSleepHours: 0,
+        avgWeight: '--'
+      };
+    }
 
   if (isCompareMode.value) {
     const avgSteps = Math.round(props.chartData.reduce((acc, item) => acc + (Number(item.steps) || 0), 0) / props.chartData.length);
@@ -220,7 +239,7 @@ const displayData = computed(() => {
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
       avgSleepHours: item.sleepHours || 0,
-      avgWeight: item.avgWeight || 0
+      avgWeight: item.avgWeight || 0,
     };
   }
 });
@@ -241,6 +260,30 @@ function formatSteps(num) {
   height: 100%;
   padding: 20px;
   overflow-y: auto;
+}
+
+.overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.overview-header :deep(.app-section-title--level-1) {
+  margin-bottom: 0;
+}
+
+.view-mode-switch {
+  flex: 0 0 auto;
+}
+
+.view-mode-switch :deep(.el-radio-button__inner) {
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .cards-list {
@@ -365,6 +408,24 @@ function formatSteps(num) {
 }
 
 @media (max-width: 520px) {
+  .overview-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .view-mode-switch {
+    width: 100%;
+  }
+
+  .view-mode-switch :deep(.el-radio-button) {
+    width: 50%;
+  }
+
+  .view-mode-switch :deep(.el-radio-button__inner) {
+    width: 100%;
+  }
+
   .cards-list {
     grid-template-columns: 1fr;
   }

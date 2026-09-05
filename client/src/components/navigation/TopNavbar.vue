@@ -21,14 +21,6 @@
 
     <el-divider v-if="showDateControls" direction="vertical" />
 
-    <!-- View mode tabs -->
-    <el-radio-group v-if="showDateControls" v-model="viewModeLocal" size="default">
-      <el-radio-button value="single">{{ t('nav.singleDay') }}</el-radio-button>
-      <el-radio-button value="compare">{{ t('nav.multiDay') }}</el-radio-button>
-    </el-radio-group>
-
-    <el-divider v-if="showDateControls" direction="vertical" />
-
     <!-- Date selection -->
     <div v-if="showDateControls" class="date-section">
       <span class="section-label">{{ t('nav.selectDate') }}：</span>
@@ -329,7 +321,7 @@ watch(() => store.dateList, () => {
   background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
   min-height: 78px;
-  padding: 16px 42px;
+  padding: 16px 24px;
   display: flex;
   align-items: center;
   gap: 18px;

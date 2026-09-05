@@ -38,12 +38,12 @@ export const useDateStore = defineStore('date', () => {
       const data = await getDates();
       dateList.value = data.dates || [];
 
-      // Check which dates have training data (steps > 0 or sportCount > 0)
+      // Check which dates have useful comparison data (steps > 0, sportCount > 0, or blood pressure records)
       const trainingSet = new Set();
       for (const date of dateList.value) {
         try {
           const summary = await getDailySummary(date);
-          if (summary && (summary.steps > 0 || summary.sportCount > 0)) {
+          if (summary && (summary.steps > 0 || summary.sportCount > 0 || summary.bloodPressureCount > 0)) {
             trainingSet.add(date);
           }
         } catch (err) {

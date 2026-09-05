@@ -13,12 +13,19 @@ export default {
   settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
   data: {
     overview: 'Data Overview', weight: 'Weight', avgWeight: 'Avg Weight', steps: 'Steps', avgSteps: 'Avg Steps', maxSteps: 'Max Steps',
-    calories: 'Calories', avgCalories: 'Avg Calories', heartRate: 'Avg Heart Rate', stress: 'Stress Level', avgStress: 'Avg Stress',
+    calories: 'Calories', avgCalories: 'Avg Calories', heartRate: 'Avg Heart Rate', avgBloodPressure: 'Avg Blood Pressure', stress: 'Stress Level', avgStress: 'Avg Stress',
     sleep: 'Sleep Duration', avgSleep: 'Avg Sleep', personalInfo: 'Basic Information', viewDetails: 'View Details'
   },
   chart: {
     noData: 'Please select a date above to view data', noSleepData: 'No sleep data for this date', selectDate: 'Please select a date above',
-    trend: 'Trend', heartRateMonitor: 'Heart Rate Monitor', caloriesBurned: 'Calories Burned', totalSleep: 'Total Sleep', sleepAnalysis: 'Analysis',
+    trend: 'Trend', heartRateMonitor: 'Heart Rate Monitor', bloodPressureTrend: 'Blood Pressure Trend', bloodPressurePeak: 'Peak Blood Pressure',
+    bloodPressureRangeTipTitle: 'Blood Pressure Range Tips',
+    bloodPressureHighRange: 'High blood pressure',
+    bloodPressureHighRangeValue: 'Systolic >= 140 mmHg or diastolic >= 90 mmHg',
+    bloodPressureElevatedRange: 'Elevated',
+    bloodPressureElevatedRangeValue: 'Systolic 130-139 mmHg or diastolic 85-89 mmHg',
+    systolic: 'Systolic', diastolic: 'Diastolic', caloriesBurned: 'Calories Burned', totalSleep: 'Total Sleep', sleepAnalysis: 'Analysis',
+    noBloodPressureData: 'No blood pressure data for this date range',
     deepSleep: 'Deep Sleep', lightSleep: 'Light Sleep', awakeSleep: 'Awake', sleepTimeline: 'Sleep Timeline',
     sleepStageAnalysis: 'Sleep Stage Duration Analysis', sleepStageDuration: 'Duration by stage', sleepStageRatio: 'Stage distribution',
     hourShort: 'h', minuteShort: 'min', deep: 'Deep', light: 'Light', rem: 'REM', awake: 'Awake', bedtime: 'Bedtime',
