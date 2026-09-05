@@ -177,8 +177,8 @@ function updateCharts() {
     },
     series: [{
       type: 'pie',
-      radius: ['38%', '66%'],
-      center: ['50%', '44%'],
+      radius: ['40%', '72%'],
+      center: ['50%', '48%'],
       minShowLabelAngle: 4,
       avoidLabelOverlap: true,
       itemStyle: { borderColor: colors.background, borderWidth: 2 },
@@ -232,6 +232,8 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: clamp(280px, 34vh, 400px);
 }
 
 .analysis-grid {
@@ -240,6 +242,7 @@ onBeforeUnmount(() => {
   gap: 14px;
   flex: 1;
   align-items: stretch;
+  min-height: 0;
 }
 
 .analysis-panel {
@@ -247,6 +250,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
 }
 
 .analysis-caption {
@@ -261,7 +265,7 @@ onBeforeUnmount(() => {
 .analysis-chart {
   width: 100%;
   flex: 1;
-  min-height: clamp(220px, 24vh, 260px);
+  min-height: 0;
   min-width: 0;
 }
 .analysis-card :deep(.app-section-title--level-2) {
