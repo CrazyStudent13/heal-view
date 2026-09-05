@@ -48,7 +48,17 @@ export default {
   sleep: {
     totalLabel: 'Total sleep ({bedtime} → {wakeUpTime})', avgHeartRate: 'Average sleep heart rate', interruptions: 'Interruptions',
     interruptionCount: '{count} times', uninterrupted: 'Uninterrupted', slightlyInterrupted: 'Slightly interrupted',
-    normalInterruptions: 'Normal range', frequentInterruptions: 'Frequent interruptions'
+    normalInterruptions: 'Normal range', frequentInterruptions: 'Frequent interruptions',
+    bedtimeRegularity: 'Bedtime regularity',
+    wakeRegularity: 'Wake-up regularity',
+    regularityTipTitle: 'Regularity rule',
+    regularityTip: 'Based on the sleep records in the current comparison range. If 7 out of 10 days fall into a similar bedtime and wake-up window, the routine is considered regular. Around half matching is considered mixed, and mostly mismatched records are considered chaotic.',
+    regularityNoData: 'No valid records',
+    regularityMatched: 'Matched {matched}/{total} days',
+    regularityReference: 'Reference time {time}',
+    regularityRegular: 'Regular',
+    regularityMixed: 'Mixed',
+    regularityChaotic: 'Chaotic'
   },
   sport: {
     totalCalories: 'Total calories', totalDuration: 'Total duration', totalSteps: 'Exercise steps', detailTitle: 'Exercise details - {name}',

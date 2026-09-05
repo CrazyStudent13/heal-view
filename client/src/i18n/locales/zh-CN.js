@@ -141,7 +141,17 @@ export default {
     uninterrupted: '整夜安睡',
     slightlyInterrupted: '轻微中断',
     normalInterruptions: '正常范围',
-    frequentInterruptions: '中断偏多'
+    frequentInterruptions: '中断偏多',
+    bedtimeRegularity: '入睡规律',
+    wakeRegularity: '醒来规律',
+    regularityTipTitle: '作息规律说明',
+    regularityTip: '以当前对比范围内的睡眠记录为准，10天中有7天在相近时间入睡和醒来，可视为作息规律；大约一半记录对得上，属于作息较乱；大部分时间都对不上，则属于作息混乱。',
+    regularityNoData: '暂无有效记录',
+    regularityMatched: '匹配 {matched}/{total} 天',
+    regularityReference: '参考时间 {time}',
+    regularityRegular: '规律',
+    regularityMixed: '较乱',
+    regularityChaotic: '混乱'
   },
   sport: {
     totalCalories: '累计热量',

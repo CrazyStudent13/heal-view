@@ -21,7 +21,7 @@
       <StepsChart v-if="chartType === 'steps'" :data="chartData" :loading="loading" />
       <CaloriesChart v-if="chartType === 'calories' && hasData" :data="chartData" />
       <HeartRateChart v-if="chartType === 'heartrate' && hasData" :data="chartData" />
-      <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" />
+      <SleepChart v-if="chartType === 'sleep' && hasData" :data="chartData" :timeline-list="compareSleepTimelineData" />
       <WeightChart v-if="chartType === 'weight'" :weight-data="weightData" :loading="loading" />
     </template>
 
@@ -68,6 +68,10 @@ const props = defineProps({
   sleepTimelineData: {
     type: Object,
     default: null
+  },
+  compareSleepTimelineData: {
+    type: Array,
+    default: () => []
   },
   weightData: {
     type: Object,

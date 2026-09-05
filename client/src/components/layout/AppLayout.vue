@@ -76,6 +76,7 @@
           :view-mode="viewMode"
           :loading="loading"
           :sleep-timeline-data="sleepTimelineData"
+          :compare-sleep-timeline-data="compareSleepTimelineData"
           :weight-data="weightData"
           :user-profile="dataStore.userProfile"
         />
@@ -123,12 +124,14 @@ const viewMode = ref('single'); // Default to single day mode for debugging
 const currentChartType = ref('personal'); // Default to personal/basic info in single mode
 const chartData = ref([]);
 const sleepTimelineData = ref(null);
+const compareSleepTimelineData = ref([]);
 const weightData = ref(null);
 const loading = ref(false);
 const initializing = ref(false);
 let singleFetchSeq = 0;
 let compareFetchSeq = 0;
 let sleepFetchSeq = 0;
+let compareSleepFetchSeq = 0;
 let weightFetchSeq = 0;
 let weightSidebarFetchSeq = 0;
 
@@ -172,6 +175,33 @@ async function fetchSleepTimelineForDate(date) {
   }
 }
 
+async function fetchCompareSleepTimelines(dates) {
+  const requestId = ++compareSleepFetchSeq;
+
+  if (dates.length === 0) {
+    compareSleepTimelineData.value = [];
+    return;
+  }
+
+  const data = [];
+  for (const date of dates) {
+    const timeline = await dataStore.fetchSleepTimeline(date);
+    if (timeline) {
+      data.push(timeline);
+    }
+  }
+
+  if (
+    requestId !== compareSleepFetchSeq ||
+    viewMode.value !== 'compare' ||
+    currentChartType.value !== 'sleep'
+  ) {
+    return;
+  }
+
+  compareSleepTimelineData.value = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
 // Handle chart type change
 async function handleChartChange(type) {
   // Handle personal data chart type - fetch user profile first
@@ -188,8 +218,11 @@ async function handleChartChange(type) {
   // Fetch sleep timeline when switching to sleep chart in single mode
   if (type === 'sleep' && viewMode.value === 'single' && dateStore.selectedDate) {
     await fetchSleepTimelineForDate(dateStore.selectedDate);
+  } else if (type === 'sleep' && viewMode.value === 'compare') {
+    await fetchCompareSleepTimelines(dateStore.selectedDates);
   } else if (type !== 'sleep') {
     sleepTimelineData.value = null;
+    compareSleepTimelineData.value = [];
   }
   
   // Fetch weight data when switching to weight chart in compare mode
@@ -439,6 +472,10 @@ watch(() => dateStore.selectedDates, async (newDates) => {
     if (currentChartType.value === 'weight') {
       await fetchCompareData(newDates, { includeWeightForSidebar: false });
       await fetchWeightData(newDates);
+      compareSleepTimelineData.value = [];
+    } else if (currentChartType.value === 'sleep') {
+      await fetchCompareData(newDates);
+      await fetchCompareSleepTimelines(newDates);
     } else {
       await fetchCompareData(newDates);
     }
@@ -452,6 +489,7 @@ watch(viewMode, async (newMode) => {
   
   // Clear sleep timeline data when switching modes
   sleepTimelineData.value = null;
+  compareSleepTimelineData.value = [];
   weightData.value = null; // Clear weight data on mode switch
   
   if (newMode === 'single') {
