@@ -20,9 +20,9 @@
         </div>
       </el-card>
       <el-card class="overview-card" shadow="hover">
-        <div class="overview-card-content">
+        <div class="overview-card-content interrupt-card-content">
           <div class="card-icon interrupt-icon"><span class="icon-text">⏰</span></div>
-          <div class="card-info">
+          <div class="card-info interrupt-card-info">
             <div class="card-label">{{ t('sleep.interruptions') }}</div>
             <div class="card-value-row">
               <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
@@ -483,6 +483,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
   min-height: 100%;
   padding-bottom: 0;
 }
@@ -490,7 +491,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   display: flex;
   flex-direction: column;
   min-height: clamp(240px, 32vh, 340px);
-  padding: 16px 20px 18px;
+  padding: 16px 20px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -511,9 +512,22 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .icon-text { font-size: 24px; line-height: 1; }
 .sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
 .card-info { flex: 1; min-width: 0; }
+.interrupt-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
 .card-label { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px; overflow-wrap: anywhere; }
 .card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
-.card-value-row { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+.card-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
 .card-value-row .card-value { margin-bottom: 0; }
 .chart { width: 100%; flex: 1; min-height: clamp(220px, 28vh, 300px); }
 .empty-state {

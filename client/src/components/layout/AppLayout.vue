@@ -526,6 +526,8 @@ onMounted(() => {
 }
 
 .chart-area :deep(.chart-display) {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 }
