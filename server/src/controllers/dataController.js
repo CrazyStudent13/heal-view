@@ -118,6 +118,31 @@ export function getDailySummary(req, res) {
     const avgSystolic = bloodPressureResult.length > 0 ? Math.round(bloodPressureResult[0].values[0][1] || 0) : 0;
     const avgDiastolic = bloodPressureResult.length > 0 ? Math.round(bloodPressureResult[0].values[0][2] || 0) : 0;
 
+    const bloodPressureDetailResult = databaseService.query(`
+      SELECT time, value
+      FROM blood_pressure_records
+      WHERE date = ?
+      ORDER BY time ASC
+    `, [date]);
+    const bloodPressureRecords = bloodPressureDetailResult.length > 0
+      ? bloodPressureDetailResult[0].values.map((row) => {
+          let jsonValue = {};
+          try {
+            jsonValue = typeof row[1] === 'string' ? JSON.parse(row[1]) : row[1] || {};
+          } catch {
+            jsonValue = {};
+          }
+
+          return {
+            time: row[0],
+            systolic: Number(jsonValue.systolic) || 0,
+            diastolic: Number(jsonValue.diastolic) || 0,
+            heartRate: jsonValue.heartRate ?? jsonValue.heart_rate ?? null
+          };
+        })
+      : [];
+    const latestBloodPressure = bloodPressureRecords.length > 0 ? bloodPressureRecords[bloodPressureRecords.length - 1] : null;
+
     // Get sleep duration - use MAX to pick the longest sleep record (avoid averaging naps with night sleep)
     const sleepResult = databaseService.query(`
       SELECT 
@@ -168,6 +193,8 @@ export function getDailySummary(req, res) {
       bloodPressureCount,
       avgSystolic,
       avgDiastolic,
+      latestBloodPressure,
+      bloodPressureRecords,
       sleepHours: parseFloat(sleepHours),
       deepSleepHours: parseFloat(deepSleepHours),
       lightSleepHours: parseFloat(lightSleepHours),

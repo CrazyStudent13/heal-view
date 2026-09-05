@@ -79,7 +79,10 @@ export default {
     dailyCalGoal: 'Daily Exercise Calorie Goal', healthMetrics: 'Health Metrics', bmi: 'BMI', bmr: 'BMR', vo2Max: 'VO2 Max',
     kcalPerDay: 'kcal/day', bmiReference: 'BMI Reference Range', bmiUnderweight: 'Underweight', bmiNormal: 'Normal', bmiOverweight: 'Overweight',
     bmiObese: 'Obese', notSet: 'Not Set', noData: 'No personal data available', todayOverview: "Today's Health Overview", todaySteps: "Today's Steps",
-    todayCalories: "Today's Calories", todayHeartRate: "Today's Heart Rate", todaySleep: "Today's Sleep", todaySport: "Today's Exercise"
+    todayCalories: "Today's Calories", todayHeartRate: "Today's Heart Rate", todaySleep: "Today's Sleep", todaySport: "Today's Exercise",
+    bloodPressureTitle: 'Blood Pressure Today', bloodPressureSummary: '{count} records · heart rate: {heartRate} bpm', bloodPressureRecords: 'Records: {count}',
+    bloodPressureHeartRate: 'Heart rate: {heartRate} bpm', bpExpandRecords: 'Show records', bpCollapseRecords: 'Hide records',
+    bpNormal: 'Normal', bpElevated: 'Elevated', bpHigh: 'High blood pressure'
   },
   day: { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
 };

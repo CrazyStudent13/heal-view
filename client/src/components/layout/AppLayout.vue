@@ -64,6 +64,7 @@
           :loading="loading"
           :user-profile="dataStore.userProfile"
           @chart-change="handleChartChange"
+          @update:view-mode="viewMode = $event"
         />
       </div>
       
@@ -223,6 +224,11 @@ async function fetchSingleDayData(date) {
       minHeartRate: summary.minHeartRate,
       maxHeartRate: summary.maxHeartRate,
       avgStress: summary.avgStress,
+      bloodPressureCount: summary.bloodPressureCount || 0,
+      avgSystolic: summary.avgSystolic || 0,
+      avgDiastolic: summary.avgDiastolic || 0,
+      latestBloodPressure: summary.latestBloodPressure || null,
+      bloodPressureRecords: summary.bloodPressureRecords || [],
       sleepHours: summary.sleepHours || 0,
       deepSleepHours: summary.deepSleepHours || 0,
       lightSleepHours: summary.lightSleepHours || 0,
