@@ -233,6 +233,7 @@ async function fetchSingleDayData(date) {
       deepSleepHours: summary.deepSleepHours || 0,
       lightSleepHours: summary.lightSleepHours || 0,
       remSleepHours: summary.remSleepHours || 0,
+      awakeSleepHours: summary.awakeSleepHours || 0,
       totalDurationMinutes: summary.totalDurationMinutes || 0,
       sportCalories: summary.sportCalories || 0
     }];
@@ -486,7 +487,7 @@ onMounted(() => {
 .app-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -495,6 +496,8 @@ onMounted(() => {
   display: flex;
   gap: 20px;
   padding: 20px;
+  min-height: 0;
+  align-items: stretch;
   overflow: hidden;
   background: var(--app-bg);
 }
@@ -508,6 +511,7 @@ onMounted(() => {
   overflow-y: auto;
   border: 1px solid var(--card-border);
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -518,6 +522,22 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.chart-area :deep(.chart-display) {
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-area :deep(.sleep-timeline-view),
+.chart-area :deep(.chart-container),
+.chart-area :deep(.analysis-card) {
+  width: 100%;
+}
+
+.chart-area :deep(.sleep-timeline-view) {
+  min-height: 0;
 }
 
 /* Drawer content styles */

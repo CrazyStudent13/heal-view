@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .analysis-card {
-  padding: 20px;
+  padding: 16px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
 .analysis-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .analysis-panel {
@@ -252,7 +252,7 @@ onBeforeUnmount(() => {
 
 .analysis-chart {
   width: 100%;
-  height: 280px;
+  height: clamp(200px, 24vh, 260px);
   min-width: 0;
 }
 

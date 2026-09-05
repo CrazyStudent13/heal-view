@@ -470,15 +470,15 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .sleep-timeline-view {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   min-height: 100%;
-  padding-bottom: 20px;
+  padding-bottom: 0;
 }
 .timeline-card {
   display: flex;
   flex-direction: column;
-  min-height: 330px;
-  padding: 20px;
+  min-height: clamp(240px, 32vh, 340px);
+  padding: 16px 20px 18px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -503,7 +503,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
 .card-value-row { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
 .card-value-row .card-value { margin-bottom: 0; }
-.chart { width: 100%; flex: 1; min-height: 260px; }
+.chart { width: 100%; flex: 1; min-height: clamp(220px, 28vh, 300px); }
 .empty-state {
   text-align: center;
   height: 100%; /* Fill entire container height to match sidebar */
