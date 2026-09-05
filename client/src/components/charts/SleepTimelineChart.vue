@@ -482,7 +482,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .sleep-timeline-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
   min-height: 100%;
   padding-bottom: 0;
@@ -491,7 +491,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   display: flex;
   flex-direction: column;
   min-height: clamp(240px, 32vh, 340px);
-  padding: 16px 20px;
+  padding: 12px 18px 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -499,7 +499,7 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 }
 .sleep-overview-cards {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-  margin-bottom: 16px; flex-shrink: 0;
+  margin-bottom: 12px; flex-shrink: 0;
 }
 .overview-card {
   border: 2px solid var(--card-border); border-radius: 8px;
@@ -530,6 +530,9 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 }
 .card-value-row .card-value { margin-bottom: 0; }
 .chart { width: 100%; flex: 1; min-height: clamp(220px, 28vh, 300px); }
+.timeline-card :deep(.app-section-title--level-2) {
+  margin-bottom: 12px;
+}
 .empty-state {
   text-align: center;
   height: 100%; /* Fill entire container height to match sidebar */
