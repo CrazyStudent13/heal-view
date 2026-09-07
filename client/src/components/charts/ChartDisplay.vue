@@ -3,17 +3,33 @@
     <!-- Single day mode: show different content based on chart type -->
     <template v-if="viewMode === 'single'">
       <!-- Default to sport records when no specific chart selected -->
-      <DailySportChart v-if="chartType === 'sport' || chartType === 'steps'" />
+      <DailySportChart
+        v-if="chartType === 'sport' || chartType === 'steps'"
+      />
       
       <!-- Show time series heart rate chart for single day mode -->
-      <SingleDayHeartRateChart v-if="chartType === 'heartrate'" />
+      <SingleDayHeartRateChart
+        v-if="chartType === 'heartrate'"
+      />
       
       <!-- Show personal data view -->
-      <PersonalDataView v-if="chartType === 'personal'" :profile-data="userProfile" :chart-data="chartData" :loading="loading" />
+      <PersonalDataView
+        v-if="chartType === 'personal'"
+        :profile-data="userProfile"
+        :chart-data="chartData"
+        :loading="loading"
+      />
       
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
-      <SleepTimelineChart v-if="chartType === 'sleep' && hasDetailedSleepData" :data="sleepTimelineData" :avg-heart-rate="singleAvgHeartRate" />
-      <SleepChart v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData" :data="chartData" />
+      <SleepTimelineChart
+        v-if="chartType === 'sleep' && hasDetailedSleepData"
+        :data="sleepTimelineData"
+        :avg-heart-rate="singleAvgHeartRate"
+      />
+      <SleepChart
+        v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData"
+        :data="chartData"
+      />
     </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
@@ -33,17 +49,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import StepsChart from './StepsChart.vue';
-import CaloriesChart from './CaloriesChart.vue';
-import HeartRateChart from './HeartRateChart.vue';
-import SleepChart from './SleepChart.vue';
-import SleepTimelineChart from './SleepTimelineChart.vue';
-import DailySportChart from './DailySportChart.vue';
-import SingleDayHeartRateChart from './SingleDayHeartRateChart.vue';
-import WeightChart from './WeightChart.vue';
-import PersonalDataView from './PersonalDataView.vue';
+import { computed, defineAsyncComponent } from 'vue';
 import { useLocaleStore } from '../../stores/localeStore';
+
+function createLazyChart(loader) {
+  return defineAsyncComponent({
+    loader,
+    delay: 0,
+    timeout: 30000,
+    suspensible: false
+  });
+}
+
+const StepsChart = createLazyChart(() => import('./StepsChart.vue'));
+const CaloriesChart = createLazyChart(() => import('./CaloriesChart.vue'));
+const HeartRateChart = createLazyChart(() => import('./HeartRateChart.vue'));
+const SleepChart = createLazyChart(() => import('./SleepChart.vue'));
+const SleepTimelineChart = createLazyChart(() => import('./SleepTimelineChart.vue'));
+const DailySportChart = createLazyChart(() => import('./DailySportChart.vue'));
+const SingleDayHeartRateChart = createLazyChart(() => import('./SingleDayHeartRateChart.vue'));
+const WeightChart = createLazyChart(() => import('./WeightChart.vue'));
+const PersonalDataView = createLazyChart(() => import('./PersonalDataView.vue'));
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

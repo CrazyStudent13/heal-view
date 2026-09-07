@@ -72,7 +72,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';

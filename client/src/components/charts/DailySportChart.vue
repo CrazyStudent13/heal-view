@@ -303,7 +303,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
 import { ElTable, ElTableColumn, ElTag, ElButton } from 'element-plus';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';

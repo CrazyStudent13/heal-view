@@ -44,7 +44,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { ElEmpty } from 'element-plus';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useDataStore } from '../../stores/dataStore';

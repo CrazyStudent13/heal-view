@@ -1,4 +1,4 @@
-import * as echarts from 'echarts';
+import echarts from '../lib/echarts';
 import { translate as t } from '../i18n';
 
 /**

@@ -9,7 +9,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import ChartPanel from '../common/ChartPanel.vue';
 

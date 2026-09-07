@@ -12,7 +12,6 @@ import { getElementPlusLocale, i18n, normalizeLocale } from './i18n'
 const app = createApp(App)
 const pinia = createPinia()
 
-// Register all icons
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
@@ -22,7 +21,6 @@ app.component('SectionTitle', SectionTitle)
 app.use(pinia)
 app.use(i18n)
 
-// Configure Element Plus with locale
 const defaultLocale = normalizeLocale(localStorage.getItem('locale') || navigator.language)
 
 app.use(ElementPlus, {
