@@ -834,7 +834,7 @@ watch(() => localeStore.currentLocale, () => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .daily-sport-chart {
   background: var(--card-bg);
   padding: 20px;
@@ -1200,3 +1200,4 @@ watch(() => localeStore.currentLocale, () => {
   transform: translateY(-10px);
 }
 </style>
+

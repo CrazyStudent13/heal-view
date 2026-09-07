@@ -71,7 +71,7 @@ function t(key) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .settings-panel {
   margin-bottom: 20px;
 }
@@ -117,3 +117,4 @@ function t(key) {
   line-height: 1;
 }
 </style>
+

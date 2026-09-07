@@ -33,7 +33,7 @@ defineProps({
 defineEmits(['update:modelValue']);
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .view-mode-tabs {
   display: flex;
   gap: 8px;
@@ -78,3 +78,4 @@ defineEmits(['update:modelValue']);
   white-space: nowrap;
 }
 </style>
+

@@ -31,7 +31,7 @@ onMounted(() => {
   </el-config-provider>
 </template>
 
-<style>
+<style lang="scss">
 /* Dark theme for Element Plus */
 html.dark {
   color-scheme: dark;
@@ -55,3 +55,4 @@ body {
   height: 100vh;
 }
 </style>
+

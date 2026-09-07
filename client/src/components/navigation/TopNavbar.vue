@@ -316,7 +316,7 @@ watch(() => store.dateList, () => {
 }, { deep: true });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .top-navbar {
   background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
@@ -421,3 +421,4 @@ watch(() => store.dateList, () => {
   }
 }
 </style>
+

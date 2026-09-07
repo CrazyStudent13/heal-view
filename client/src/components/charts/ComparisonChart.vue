@@ -144,10 +144,11 @@ const handleResize = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart {
   width: 100%;
   flex: 1;
   min-height: 300px;
 }
 </style>
+

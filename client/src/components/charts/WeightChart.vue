@@ -461,7 +461,7 @@ const handleResize = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart-wrapper {
   display: flex;
   flex-direction: column;
@@ -901,5 +901,6 @@ const handleResize = () => {
   --skeleton-highlight: #4a4a4a;
 }
 </style>
+
 
 

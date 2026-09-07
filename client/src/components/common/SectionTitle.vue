@@ -23,7 +23,7 @@ const props = defineProps({
 const headingTag = computed(() => props.level === 1 ? 'h1' : 'h2');
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-section-title {
   display: flex;
   align-items: center;
@@ -72,3 +72,4 @@ const headingTag = computed(() => props.level === 1 ? 'h1' : 'h2');
   font-size: 16px;
 }
 </style>
+

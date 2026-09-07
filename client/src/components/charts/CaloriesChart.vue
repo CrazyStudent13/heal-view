@@ -287,7 +287,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart {
   width: 100%;
   flex: 1;
@@ -298,3 +298,4 @@ onBeforeUnmount(() => {
   max-width: 100%;
 }
 </style>
+

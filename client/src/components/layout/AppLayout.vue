@@ -521,7 +521,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-layout {
   display: flex;
   flex-direction: column;
@@ -642,3 +642,4 @@ onMounted(() => {
   }
 }
 </style>
+

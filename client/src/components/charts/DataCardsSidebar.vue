@@ -226,7 +226,7 @@ function formatSteps(num) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .data-cards-sidebar {
   width: 100%;
   height: 100%;
@@ -370,3 +370,4 @@ function formatSteps(num) {
   }
 }
 </style>
+

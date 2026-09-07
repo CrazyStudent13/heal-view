@@ -57,7 +57,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .data-filter {
   background: #fff;
   padding: 16px 20px;
@@ -119,3 +119,4 @@ onMounted(() => {
   border-color: #1890ff;
 }
 </style>
+

@@ -257,9 +257,10 @@ const handleResize = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart {
   width: 100%;
   height: 350px;
 }
 </style>
+

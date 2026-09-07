@@ -72,7 +72,7 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .metric-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -225,3 +225,4 @@ defineProps({
   line-height: 1.25;
 }
 </style>
+

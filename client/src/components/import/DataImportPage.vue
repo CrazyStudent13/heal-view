@@ -562,7 +562,7 @@ async function clearData() {
 onMounted(loadHistory);
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .data-import-page {
   flex: 1;
   padding: 20px;
@@ -963,3 +963,4 @@ onMounted(loadHistory);
   }
 }
 </style>
+

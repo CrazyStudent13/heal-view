@@ -106,7 +106,7 @@ const singleAvgHeartRate = computed(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart-display {
   height: 100%;
 }
@@ -123,3 +123,4 @@ const singleAvgHeartRate = computed(() => {
   justify-content: center;
 }
 </style>
+

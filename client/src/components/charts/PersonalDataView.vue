@@ -264,7 +264,7 @@ const bmiTagType = computed(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .personal-data-view {
   height: 100%;
   overflow-y: auto;
@@ -460,3 +460,4 @@ const bmiTagType = computed(() => {
   gap: 8px;
 }
 </style>
+

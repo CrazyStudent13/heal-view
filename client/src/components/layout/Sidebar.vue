@@ -106,7 +106,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .sidebar {
   flex: 1;
   overflow-y: auto;
@@ -209,3 +209,4 @@ onMounted(() => {
   color: #ff4d4f;
 }
 </style>
+

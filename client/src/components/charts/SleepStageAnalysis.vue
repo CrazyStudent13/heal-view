@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .analysis-card {
   padding: 12px 18px 14px;
   background: var(--card-bg);
@@ -278,3 +278,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

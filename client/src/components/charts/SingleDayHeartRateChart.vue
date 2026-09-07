@@ -306,7 +306,7 @@ const handleResize = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .metric-unit {
   font-size: 14px;
   font-weight: normal;
@@ -405,3 +405,4 @@ const handleResize = () => {
   min-height: 0;
 }
 </style>
+

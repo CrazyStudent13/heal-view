@@ -475,7 +475,7 @@ onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', 
 onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', handleResize); });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .sleep-timeline-view {
   display: flex;
   flex-direction: column;
@@ -566,3 +566,4 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 @media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 500px) { .sleep-overview-cards { grid-template-columns: repeat(1, 1fr); } }
 </style>
+

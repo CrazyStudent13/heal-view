@@ -521,7 +521,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chart-wrapper {
   display: flex;
   flex-direction: column;
@@ -664,3 +664,4 @@ onBeforeUnmount(() => {
   min-height: 420px;
 }
 </style>
+
