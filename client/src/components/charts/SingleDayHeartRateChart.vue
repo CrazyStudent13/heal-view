@@ -316,16 +316,20 @@ const handleResize = () => {
 .chart-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stats-card {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
   flex-shrink: 0;
+}
+
+.stats-card :deep(.chart-metrics-grid) {
+  margin-bottom: 0;
 }
 
 .heart-metric-card {
@@ -385,11 +389,12 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  min-height: 210px;
+  min-height: 160px;
 }
 
 .heart-chart-panel {
-  height: clamp(250px, 30vh, 320px);
+  padding: 16px;
+  height: clamp(220px, 24vh, 250px);
   flex: 0 0 auto;
 }
 
