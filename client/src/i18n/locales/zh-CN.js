@@ -136,6 +136,7 @@ export default {
   },
   sleep: {
     totalLabel: '总睡眠（{bedtime} → {wakeUpTime}）',
+    regularityTitle: '睡眠规律',
     avgHeartRate: '睡眠平均心率',
     interruptions: '中断次数',
     interruptionCount: '{count} 次',

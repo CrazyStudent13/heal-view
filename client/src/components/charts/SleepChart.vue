@@ -1,12 +1,10 @@
 <template>
-  <ChartPanel :empty="!hasValidData" :empty-description="t('chart.noSleepData')">
-    <template #title>
-      <SectionTitle>{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</SectionTitle>
-    </template>
-
-    <template #metrics>
-      <div v-if="sleepRegularityMetrics.length > 0" class="chart-metrics-grid chart-metrics-grid--2 regularity-cards">
-        <MetricCard class="regularity-card" :class="bedtimeRegularity.status" compact>
+  <div class="chart-wrapper">
+    <div v-if="sleepRegularityMetrics.length > 0" class="stats-card">
+      <SectionTitle>{{ t('sleep.regularityTitle') }}</SectionTitle>
+      <div class="chart-metrics-grid chart-metrics-grid--2 regularity-cards">
+        <MetricCard class="regularity-card" :class="bedtimeRegularity.status" compact layout="row">
+          <template #icon><span class="regularity-icon bedtime-icon">🌙</span></template>
           <template #label>
             <span class="regularity-card-title">
               {{ t('sleep.bedtimeRegularity') }}
@@ -28,7 +26,8 @@
           </template>
         </MetricCard>
 
-        <MetricCard class="regularity-card" :class="wakeRegularity.status" compact>
+        <MetricCard class="regularity-card" :class="wakeRegularity.status" compact layout="row">
+          <template #icon><span class="regularity-icon wake-icon">⏰</span></template>
           <template #label>
             <span class="regularity-card-title">
               {{ t('sleep.wakeRegularity') }}
@@ -50,10 +49,15 @@
           </template>
         </MetricCard>
       </div>
-    </template>
+    </div>
 
-    <div ref="chartRef" class="chart"></div>
-  </ChartPanel>
+    <ChartPanel :empty="!hasValidData" :empty-description="t('chart.noSleepData')">
+      <template #title>
+        <SectionTitle>{{ t('chart.sleepStageAnalysis') }}</SectionTitle>
+      </template>
+      <div ref="chartRef" class="chart"></div>
+    </ChartPanel>
+  </div>
 </template>
 
 <script setup>
@@ -429,6 +433,23 @@ const handleResize = () => {
 </script>
 
 <style scoped>
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  position: relative;
+}
+
+.stats-card {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
 .regularity-cards {
   margin-bottom: 0;
 }
@@ -448,6 +469,16 @@ const handleResize = () => {
   border-color: rgba(255, 77, 79, 0.2);
 }
 
+.regularity-card {
+  justify-content: flex-start;
+  box-shadow: 0 1px 4px rgba(84, 112, 198, 0.05);
+}
+
+.regularity-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .regularity-card-title {
   display: inline-flex;
   align-items: center;
@@ -456,12 +487,58 @@ const handleResize = () => {
   color: var(--text-secondary);
 }
 
+.regularity-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.bedtime-icon {
+  background: rgba(250, 173, 20, 0.12);
+  color: #faad14;
+}
+
+.wake-icon {
+  background: rgba(84, 112, 198, 0.12);
+  color: #3569dd;
+}
+
+.regularity-card :deep(.metric-card__header) {
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.regularity-card :deep(.metric-card__label-wrap) {
+  gap: 8px;
+}
+
+.regularity-card :deep(.metric-card__label) {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.regularity-card :deep(.metric-card__value) {
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.regularity-card :deep(.metric-card__footer) {
+  text-align: left;
+}
+
 .regularity-score {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
-  text-align: center;
+  text-align: left;
 }
 
 .regularity-card.regular .regularity-score {
@@ -481,7 +558,7 @@ const handleResize = () => {
   font-size: 10px;
   color: var(--text-secondary);
   line-height: 1.25;
-  text-align: center;
+  text-align: left;
 }
 
 .chart {

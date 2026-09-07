@@ -46,7 +46,7 @@ export default {
     heartRateRange: 'Heart Rate Range', restingHeartRate: 'Resting Heart Rate', unitBpm: 'bpm'
   },
   sleep: {
-    totalLabel: 'Total sleep ({bedtime} → {wakeUpTime})', avgHeartRate: 'Average sleep heart rate', interruptions: 'Interruptions',
+    totalLabel: 'Total sleep ({bedtime} → {wakeUpTime})', regularityTitle: 'Sleep Regularity', avgHeartRate: 'Average sleep heart rate', interruptions: 'Interruptions',
     interruptionCount: '{count} times', uninterrupted: 'Uninterrupted', slightlyInterrupted: 'Slightly interrupted',
     normalInterruptions: 'Normal range', frequentInterruptions: 'Frequent interruptions',
     bedtimeRegularity: 'Bedtime regularity',
