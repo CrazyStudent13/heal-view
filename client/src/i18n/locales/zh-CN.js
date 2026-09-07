@@ -54,6 +54,7 @@ export default {
     selectDate: '请在顶部选择日期',
     trend: '趋势',
     heartRateMonitor: '心率监测',
+    heartRateTrend: '心率趋势',
     bloodPressureTrend: '血压趋势',
     bloodPressurePeak: '血压峰值',
     bloodPressureRangeTipTitle: '血压区间提示',

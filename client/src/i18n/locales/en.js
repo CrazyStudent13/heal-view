@@ -18,7 +18,7 @@ export default {
   },
   chart: {
     noData: 'Please select a date above to view data', noSleepData: 'No sleep data for this date', selectDate: 'Please select a date above',
-    trend: 'Trend', heartRateMonitor: 'Heart Rate Monitor', bloodPressureTrend: 'Blood Pressure Trend', bloodPressurePeak: 'Peak Blood Pressure',
+    trend: 'Trend', heartRateMonitor: 'Heart Rate Monitor', heartRateTrend: 'Heart Rate Trend', bloodPressureTrend: 'Blood Pressure Trend', bloodPressurePeak: 'Peak Blood Pressure',
     bloodPressureRangeTipTitle: 'Blood Pressure Range Tips',
     bloodPressureHighRange: 'High blood pressure',
     bloodPressureHighRangeValue: 'Systolic >= 140 mmHg or diastolic >= 90 mmHg',
