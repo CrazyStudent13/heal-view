@@ -317,6 +317,8 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  height: 100%;
+  min-height: 0;
 }
 
 .stats-card {
@@ -390,12 +392,13 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  min-height: 220px;
+  flex: 1;
+  min-height: 0;
 }
 
 .heart-chart-panel {
-  height: clamp(300px, 34vh, 380px);
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .heart-chart-panel :deep(.chart-panel__body) {
