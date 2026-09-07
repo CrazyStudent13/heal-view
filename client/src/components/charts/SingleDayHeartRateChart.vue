@@ -1,36 +1,42 @@
 <template>
-  <ChartPanel
-    :loading="loading"
-    :empty="!loading && heartRateData.length === 0"
-    :empty-description="t('nav.selectDateToView')"
-    :empty-image-size="100"
-    :loading-text="t('common.loading')"
-  >
-    <template #title>
+  <div class="chart-wrapper">
+    <div v-if="hasData" class="stats-card">
       <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
-    </template>
-
-    <template #metrics>
-      <div v-if="hasData" class="chart-metrics-grid chart-metrics-grid--3">
-        <MetricCard class="heart-metric-card">
+      <div class="chart-metrics-grid chart-metrics-grid--3">
+        <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--range">
+          <template #icon><span class="heart-metric-icon">📊</span></template>
           <template #label>{{ t('chart.heartRateRange') }}</template>
           <template #value>{{ minHR }}-{{ maxHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
         </MetricCard>
 
-        <MetricCard class="heart-metric-card">
+        <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--avg">
+          <template #icon><span class="heart-metric-icon">❤️</span></template>
           <template #label>{{ t('chart.avgHeartRate') }}</template>
           <template #value>{{ avgHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
         </MetricCard>
 
-        <MetricCard class="heart-metric-card">
+        <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--rest">
+          <template #icon><span class="heart-metric-icon">🌙</span></template>
           <template #label>{{ t('chart.restingHeartRate') }}</template>
           <template #value>{{ restingHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
         </MetricCard>
       </div>
-    </template>
+    </div>
 
-    <div ref="chartRef" class="chart"></div>
-  </ChartPanel>
+    <ChartPanel
+      :loading="loading"
+      :empty="!loading && heartRateData.length === 0"
+      :empty-description="t('nav.selectDateToView')"
+      :empty-image-size="100"
+      :loading-text="t('common.loading')"
+    >
+      <template #title>
+        <SectionTitle>{{ t('chart.heartRateTrend') }}</SectionTitle>
+      </template>
+
+      <div ref="chartRef" class="chart"></div>
+    </ChartPanel>
+  </div>
 </template>
 
 <script setup>
@@ -306,31 +312,65 @@ const handleResize = () => {
   color: #999;
 }
 
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .heart-metric-card {
-  background: rgba(255, 77, 79, 0.05);
-  border-color: rgba(255, 77, 79, 0.2);
-  text-align: center;
+  text-align: left;
+  min-height: 112px;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .heart-metric-card:hover {
-  background: rgba(255, 77, 79, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
 }
 
-.heart-metric-card :deep(.metric-card__header) {
-  justify-content: center;
+.heart-metric-card :deep(.metric-card__content--row) {
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.heart-metric-card :deep(.metric-card__header--row) {
+  align-items: center;
+  gap: 6px;
 }
 
 .heart-metric-card :deep(.metric-card__label) {
-  text-align: center;
+  white-space: nowrap;
 }
 
-.heart-metric-card :deep(.metric-card__value) {
-  font-size: 24px;
+.heart-metric-card :deep(.metric-card__value--row) {
+  font-size: 22px;
   font-weight: 600;
-  color: #ff4d4f;
-  text-align: center;
+  color: var(--text-primary);
+}
+
+.heart-metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: rgba(64, 158, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.heart-metric-card--range .heart-metric-icon {
+  background: rgba(64, 158, 255, 0.12);
+}
+
+.heart-metric-card--avg .heart-metric-icon {
+  background: rgba(245, 108, 108, 0.12);
+}
+
+.heart-metric-card--rest .heart-metric-icon {
+  background: rgba(250, 140, 22, 0.12);
 }
 
 .chart {
