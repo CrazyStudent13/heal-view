@@ -321,7 +321,7 @@ const handleResize = () => {
 
 .stats-card {
   background: var(--card-bg);
-  padding: 16px;
+  padding: 12px 14px 14px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--card-border);
@@ -329,6 +329,7 @@ const handleResize = () => {
 }
 
 .stats-card :deep(.chart-metrics-grid) {
+  gap: 10px;
   margin-bottom: 0;
 }
 
@@ -389,12 +390,11 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  min-height: 160px;
+  min-height: 220px;
 }
 
 .heart-chart-panel {
-  padding: 16px;
-  height: clamp(220px, 24vh, 250px);
+  height: clamp(300px, 34vh, 380px);
   flex: 0 0 auto;
 }
 
