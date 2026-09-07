@@ -24,6 +24,7 @@
     </div>
 
     <ChartPanel
+      class="heart-chart-panel"
       :loading="loading"
       :empty="!loading && heartRateData.length === 0"
       :empty-description="t('nav.selectDateToView')"
@@ -318,6 +319,15 @@ const handleResize = () => {
   gap: 12px;
 }
 
+.stats-card {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
 .heart-metric-card {
   text-align: left;
   min-height: 112px;
@@ -375,6 +385,15 @@ const handleResize = () => {
 
 .chart {
   width: 100%;
-  min-height: 300px;
+  min-height: 210px;
+}
+
+.heart-chart-panel {
+  height: clamp(250px, 30vh, 320px);
+  flex: 0 0 auto;
+}
+
+.heart-chart-panel :deep(.chart-panel__body) {
+  min-height: 0;
 }
 </style>
