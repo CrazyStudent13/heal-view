@@ -153,6 +153,7 @@ defineProps({
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
   gap: 4px;
 }
 
@@ -203,6 +204,8 @@ defineProps({
 .metric-card__value--row {
   font-size: 18px;
   line-height: 1.15;
+  width: 100%;
+  text-align: left;
 }
 
 .metric-card--row.metric-card--compact .metric-card__value--row {
