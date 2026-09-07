@@ -5,7 +5,7 @@
     <div v-if="!loading && stats" class="stats-card">
       <SectionTitle>{{ t('chart.exerciseStats') }}</SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--3">
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--blue">
           <template #icon>⏱️</template>
           <template #label>{{ t('chart.avgExerciseDuration') }}</template>
           <template #badge>
@@ -15,7 +15,7 @@
           </template>
           <template #value>{{ stats.avgExerciseDuration }} {{ t('chart.minutes') }}</template>
         </MetricCard>
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--green">
           <template #icon>📏</template>
           <template #label>{{ t('chart.avgExerciseDistance') }}</template>
           <template #badge>
@@ -25,7 +25,7 @@
           </template>
           <template #value>{{ stats.avgExerciseDistance }} km</template>
         </MetricCard>
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--orange">
           <template #icon>🔥</template>
           <template #label>{{ t('chart.avgDailyCalories') }}</template>
           <template #badge>
@@ -35,7 +35,7 @@
           </template>
           <template #value>{{ stats.avgDailyCalories }} kcal</template>
         </MetricCard>
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--purple">
           <template #icon>🕐</template>
           <template #label>{{ t('chart.totalExerciseDuration') }}</template>
           <template #badge>
@@ -45,7 +45,7 @@
           </template>
           <template #value>{{ stats.totalExerciseDuration }} {{ t('chart.hours') }}</template>
         </MetricCard>
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--cyan">
           <template #icon>📍</template>
           <template #label>{{ t('chart.totalExerciseDistance') }}</template>
           <template #badge>
@@ -55,7 +55,7 @@
           </template>
           <template #value>{{ stats.totalExerciseDistance }} km</template>
         </MetricCard>
-        <MetricCard compact>
+        <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--teal">
           <template #icon>📅</template>
           <template #label>{{ t('chart.exerciseDays') }}</template>
           <template #badge>
@@ -406,91 +406,68 @@ const handleResize = () => {
   gap: 12px;
 }
 
-.stat-item {
-  flex: 0 0 calc(33.333% - 8px);
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px;
+.steps-stat-card {
+  justify-content: flex-start;
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.08), rgba(24, 144, 255, 0.03));
-  border-radius: 10px;
   border: 1px solid rgba(24, 144, 255, 0.15);
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-height: 80px;
+  box-shadow: 0 1px 4px rgba(24, 144, 255, 0.05);
 }
 
-/* Responsive breakpoints */
-@media (max-width: 992px) {
-  .stat-item {
-    flex: 0 0 calc(50% - 6px);
-  }
-}
-
-@media (max-width: 576px) {
-  .stat-item {
-    flex: 0 0 100%;
-  }
-  
-  .stat-label {
-    font-size: 11px;
-  }
-  
-  .stat-value {
-    font-size: 18px;
-  }
-  
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 24px;
-  }
-}
-
-.stat-item:hover {
+.steps-stat-card:hover {
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.12), rgba(24, 144, 255, 0.06));
   border-color: rgba(24, 144, 255, 0.25);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.stat-icon {
-  font-size: 28px;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.1), rgba(24, 144, 255, 0.05));
-  border-radius: 10px;
-  flex-shrink: 0;
+.steps-stat-card--blue {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.08), rgba(24, 144, 255, 0.03));
 }
 
-.stat-content {
-  flex: 1;
-  min-width: 0;
+.steps-stat-card--green {
+  background: linear-gradient(135deg, rgba(82, 196, 26, 0.08), rgba(82, 196, 26, 0.03));
+  border-color: rgba(82, 196, 26, 0.15);
 }
 
-.stat-header {
-  display: flex;
+.steps-stat-card--orange {
+  background: linear-gradient(135deg, rgba(250, 140, 22, 0.08), rgba(250, 140, 22, 0.03));
+  border-color: rgba(250, 140, 22, 0.15);
+}
+
+.steps-stat-card--purple {
+  background: linear-gradient(135deg, rgba(114, 46, 209, 0.08), rgba(114, 46, 209, 0.03));
+  border-color: rgba(114, 46, 209, 0.15);
+}
+
+.steps-stat-card--cyan {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08), rgba(64, 158, 255, 0.03));
+  border-color: rgba(64, 158, 255, 0.15);
+}
+
+.steps-stat-card--teal {
+  background: linear-gradient(135deg, rgba(19, 206, 102, 0.08), rgba(19, 206, 102, 0.03));
+  border-color: rgba(19, 206, 102, 0.15);
+}
+
+.steps-stat-card :deep(.metric-card__header) {
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 6px;
 }
 
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.2;
-  flex: 1;
+.steps-stat-card :deep(.metric-card__label-wrap) {
+  gap: 8px;
 }
 
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.2;
+.steps-stat-card :deep(.metric-card__label) {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.steps-stat-card :deep(.metric-card__value) {
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .chart-container {
