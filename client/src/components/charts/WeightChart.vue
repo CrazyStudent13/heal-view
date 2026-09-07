@@ -5,13 +5,13 @@
     <div v-if="!loading && metrics" class="stats-card">
       <SectionTitle>{{ t('weight.stats') }}</SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--3">
-        <MetricCard compact class="weight-stat-card weight-stat-card--purple">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--purple">
           <template #icon><span class="weight-stat-icon">⚖️</span></template>
           <template #label>{{ t('weight.heightWeight') }}</template>
           <template #value>{{ userHeight }}cm / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</template>
         </MetricCard>
 
-        <MetricCard compact class="weight-stat-card weight-stat-card--violet">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--violet">
           <template #icon><span class="weight-stat-icon">📐</span></template>
           <template #label>{{ t('weight.bmi') }}</template>
           <template #badge>
@@ -27,7 +27,7 @@
           </template>
         </MetricCard>
 
-        <MetricCard compact class="weight-stat-card weight-stat-card--orange">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--orange">
           <template #icon><span class="weight-stat-icon">🔥</span></template>
           <template #label>{{ t('weight.avgDailyCalories') }}</template>
           <template #badge>
@@ -38,19 +38,19 @@
           <template #value>{{ formatNumber(metrics.avgDailyCalories || 0) }} {{ t('weight.kcal') }}</template>
         </MetricCard>
 
-        <MetricCard compact class="weight-stat-card weight-stat-card--rose">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--rose">
           <template #icon><span class="weight-stat-icon">🎯</span></template>
           <template #label>{{ t('weight.initTargetWeight') }}</template>
           <template #value>{{ initTargetDisplay }}</template>
         </MetricCard>
 
-        <MetricCard compact class="weight-stat-card weight-stat-card--blue">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--blue">
           <template #icon><span class="weight-stat-icon">📈</span></template>
           <template #label>{{ t('weight.highestWeight') }}</template>
           <template #value>{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">（{{ highestWeightDate }}）</span></template>
         </MetricCard>
 
-        <MetricCard compact class="weight-stat-card weight-stat-card--green">
+        <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--green">
           <template #icon>
             <span class="weight-stat-icon weight-change-icon" :class="weightChangeClass">{{ weightChangeIcon }}</span>
           </template>
