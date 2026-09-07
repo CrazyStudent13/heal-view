@@ -1,49 +1,61 @@
 <template>
-  <div class="chart-container">
-    <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
+  <ChartPanel :empty="!hasData" :empty-description="t('nav.selectDatesToCompare')">
+    <template #title>
+      <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
+    </template>
 
-    <div class="metrics-cards" v-if="hasData">
-      <div class="metric-card blood-pressure-card" :class="avgBloodPressureMetrics?.status || 'normal'">
-        <div class="metric-label blood-pressure-label">
-          {{ t('data.avgBloodPressure') }}
-          <el-tooltip :content="bloodPressureTipContent" placement="top" raw-content>
-            <el-icon class="help-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </div>
-        <div class="metric-value blood-pressure-value" :class="avgBloodPressureMetrics?.status || 'normal'">
-          {{ avgBloodPressure }}
-        </div>
-      </div>
+    <template #metrics>
+      <div v-if="hasData" class="chart-metrics-grid chart-metrics-grid--4">
+        <MetricCard class="blood-pressure-card" :class="avgBloodPressureMetrics?.status || 'normal'">
+          <template #label>
+            <span class="blood-pressure-label">
+              {{ t('data.avgBloodPressure') }}
+              <el-tooltip :content="bloodPressureTipContent" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
+          <template #value>
+            <span class="blood-pressure-value" :class="avgBloodPressureMetrics?.status || 'normal'">{{ avgBloodPressure }}</span>
+          </template>
+        </MetricCard>
 
-      <div class="metric-card blood-pressure-card peak" :class="peakBloodPressureMetrics?.status || 'normal'">
-        <div class="metric-label blood-pressure-label">
-          {{ t('chart.bloodPressurePeak') }}
-          <el-tooltip :content="bloodPressureTipContent" placement="top" raw-content>
-            <el-icon class="help-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </div>
-        <div class="metric-value blood-pressure-value" :class="peakBloodPressureMetrics?.status || 'normal'">
-          {{ peakBloodPressure }}
-        </div>
-      </div>
+        <MetricCard class="blood-pressure-card peak" :class="peakBloodPressureMetrics?.status || 'normal'">
+          <template #label>
+            <span class="blood-pressure-label">
+              {{ t('chart.bloodPressurePeak') }}
+              <el-tooltip :content="bloodPressureTipContent" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
+          <template #value>
+            <span class="blood-pressure-value" :class="peakBloodPressureMetrics?.status || 'normal'">{{ peakBloodPressure }}</span>
+          </template>
+        </MetricCard>
 
-      <div class="metric-card heartrate-card">
-        <div class="metric-label heart-label">{{ t('data.heartRate') }}</div>
-        <div class="metric-value heart-value">{{ avgHeartRate }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></div>
-      </div>
+        <MetricCard class="heartrate-card">
+          <template #label>
+            <span class="heart-label">{{ t('data.heartRate') }}</span>
+          </template>
+          <template #value>
+            <span class="heart-value">{{ avgHeartRate }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></span>
+          </template>
+        </MetricCard>
 
-      <div class="metric-card heartrate-card">
-        <div class="metric-label heart-label">{{ t('chart.heartRateRange') }}</div>
-        <div class="metric-value heart-value">{{ heartRateRange }}</div>
+        <MetricCard class="heartrate-card">
+          <template #label>
+            <span class="heart-label">{{ t('chart.heartRateRange') }}</span>
+          </template>
+          <template #value>
+            <span class="heart-value">{{ heartRateRange }}</span>
+          </template>
+        </MetricCard>
       </div>
-    </div>
+    </template>
 
     <div ref="chartRef" class="chart"></div>
-
-    <div v-if="!hasData" class="empty-state">
-      <p>{{ t('nav.selectDatesToCompare') }}</p>
-    </div>
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
@@ -52,6 +64,8 @@ import * as echarts from 'echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
@@ -496,41 +510,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.metrics-cards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
-  flex-shrink: 0;
-}
-
-.metric-card {
-  border-radius: 8px;
-  padding: 14px 12px;
-  text-align: center;
-  border: 1px solid transparent;
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 .blood-pressure-card {
   background: rgba(245, 108, 108, 0.05);
   border-color: rgba(245, 108, 108, 0.18);
+  text-align: center;
 }
 
 .blood-pressure-card.peak {
@@ -554,13 +537,7 @@ onBeforeUnmount(() => {
 .heartrate-card {
   background: rgba(84, 112, 198, 0.08);
   border-color: rgba(84, 112, 198, 0.22);
-}
-
-.metric-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .blood-pressure-label {
@@ -570,11 +547,19 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
-.metric-value {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
+.blood-pressure-card :deep(.metric-card__header),
+.heartrate-card :deep(.metric-card__header) {
+  justify-content: center;
+}
+
+.blood-pressure-card :deep(.metric-card__label),
+.heartrate-card :deep(.metric-card__label) {
+  text-align: center;
+}
+
+.blood-pressure-card :deep(.metric-card__value) {
+  color: #ff4d4f;
+  text-align: center;
 }
 
 .metric-unit {
@@ -599,27 +584,14 @@ onBeforeUnmount(() => {
   color: #3569dd;
 }
 
-.help-icon {
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: help;
+.heartrate-card :deep(.metric-card__value) {
+  color: #3569dd;
+  text-align: center;
 }
 
 .chart {
   width: 100%;
   flex: 1;
   min-height: 420px;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  background: var(--card-bg);
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
-  min-height: 320px;
 }
 </style>

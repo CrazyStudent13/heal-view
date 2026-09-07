@@ -1,117 +1,78 @@
 <template>
   <div class="chart-wrapper">
-    <!-- Skeleton loading state -->
-    <div v-show="loading" class="skeleton-wrapper">
-      <div class="stats-card skeleton-stats-card">
-        <div class="skeleton-title-text"></div>
-        <div class="stats-cards">
-          <div v-for="i in 6" :key="i" class="stat-item-skeleton">
-            <div class="skeleton-icon"></div>
-            <div class="skeleton-content">
-              <div class="skeleton-header">
-                <div class="skeleton-label"></div>
-              </div>
-              <div class="skeleton-value"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="chart-container skeleton-chart-container">
-        <div class="skeleton-title-text-small"></div>
-        <div class="skeleton-chart-area"></div>
-      </div>
-    </div>
-
+    <ChartLoadingSkeleton v-if="loading" :stat-count="6" :stat-columns="3" />
     <!-- Statistics cards -->
     <div v-if="!loading && metrics" class="stats-card">
       <SectionTitle>{{ t('weight.stats') }}</SectionTitle>
-      <div class="stats-cards">
-        <!-- Height / Weight -->
-        <div class="stat-item">
-          <div class="stat-icon">⚖️</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.heightWeight') }}</span>
-            </div>
-            <div class="stat-value">{{ userHeight }}cm / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</div>
-          </div>
-        </div>
+      <div class="chart-metrics-grid chart-metrics-grid--3">
+        <MetricCard compact class="weight-stat-card weight-stat-card--purple">
+          <template #icon><span class="weight-stat-icon">⚖️</span></template>
+          <template #label>{{ t('weight.heightWeight') }}</template>
+          <template #value>{{ userHeight }}cm / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</template>
+        </MetricCard>
 
-        <!-- BMI -->
-        <div class="stat-item">
-          <div class="stat-icon">📐</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.bmi') }}</span>
-              <el-tooltip :content="bmiTooltipContent" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="bmi-value-row">
-              <span class="stat-value">{{ metrics.bmi || 0 }}</span>
+        <MetricCard compact class="weight-stat-card weight-stat-card--violet">
+          <template #icon><span class="weight-stat-icon">📐</span></template>
+          <template #label>{{ t('weight.bmi') }}</template>
+          <template #badge>
+            <el-tooltip :content="bmiTooltipContent" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>
+            <span class="bmi-value-row">
+              <span>{{ metrics.bmi || 0 }}</span>
               <el-tag v-if="metrics.bmi" :type="bmiTagType" size="small">{{ bmiCategory }}</el-tag>
-            </div>
-          </div>
-        </div>
+            </span>
+          </template>
+        </MetricCard>
 
-        <!-- Avg Daily Calories -->
-        <div class="stat-item">
-          <div class="stat-icon">🔥</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.avgDailyCalories') }}</span>
-              <el-tooltip :content="caloriesTooltipContent" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ formatNumber(metrics.avgDailyCalories || 0) }} {{ t('weight.kcal') }}</div>
-          </div>
-        </div>
+        <MetricCard compact class="weight-stat-card weight-stat-card--orange">
+          <template #icon><span class="weight-stat-icon">🔥</span></template>
+          <template #label>{{ t('weight.avgDailyCalories') }}</template>
+          <template #badge>
+            <el-tooltip :content="caloriesTooltipContent" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ formatNumber(metrics.avgDailyCalories || 0) }} {{ t('weight.kcal') }}</template>
+        </MetricCard>
 
-        <!-- Initial / Target Weight -->
-        <div class="stat-item">
-          <div class="stat-icon">🎯</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.initTargetWeight') }}</span>
-            </div>
-            <div class="stat-value">
-              {{ initTargetDisplay }}
-            </div>
-          </div>
-        </div>
+        <MetricCard compact class="weight-stat-card weight-stat-card--rose">
+          <template #icon><span class="weight-stat-icon">🎯</span></template>
+          <template #label>{{ t('weight.initTargetWeight') }}</template>
+          <template #value>{{ initTargetDisplay }}</template>
+        </MetricCard>
 
-        <!-- Highest Weight -->
-        <div class="stat-item">
-          <div class="stat-icon">📈</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.highestWeight') }}</span>
-            </div>
-            <div class="stat-value">{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">（{{ highestWeightDate }}）</span></div>
-          </div>
-        </div>
+        <MetricCard compact class="weight-stat-card weight-stat-card--blue">
+          <template #icon><span class="weight-stat-icon">📈</span></template>
+          <template #label>{{ t('weight.highestWeight') }}</template>
+          <template #value>{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">（{{ highestWeightDate }}）</span></template>
+        </MetricCard>
 
-        <!-- Weight Change -->
-        <div class="stat-item">
-          <div class="stat-icon" :class="weightChangeClass">{{ weightChangeIcon }}</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('weight.weightChange') }}</span>
-            </div>
-            <div class="stat-value" :class="weightChangeValueClass">
-              {{ weightChangeText }}
-            </div>
-          </div>
-        </div>
+        <MetricCard compact class="weight-stat-card weight-stat-card--green">
+          <template #icon>
+            <span class="weight-stat-icon weight-change-icon" :class="weightChangeClass">{{ weightChangeIcon }}</span>
+          </template>
+          <template #label>{{ t('weight.weightChange') }}</template>
+          <template #value>
+            <span :class="weightChangeValueClass">{{ weightChangeText }}</span>
+          </template>
+        </MetricCard>
       </div>
     </div>
 
     <!-- Chart card -->
-    <div v-show="!loading" class="chart-container">
-      <SectionTitle>{{ t('weight.title') }}</SectionTitle>
+    <ChartPanel
+      v-show="!loading"
+      :empty="!loading && dailyData.length === 0"
+      :empty-description="t('chart.noData')"
+    >
+      <template #title>
+        <SectionTitle>{{ t('weight.title') }}</SectionTitle>
+      </template>
       <div ref="chartRef" class="chart"></div>
-    </div>
+    </ChartPanel>
   </div>
 </template>
 
@@ -120,6 +81,9 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as echarts from 'echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
+import ChartLoadingSkeleton from '../common/ChartLoadingSkeleton.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -545,6 +509,69 @@ const handleResize = () => {
   gap: 12px;
 }
 
+.weight-stat-card {
+  justify-content: flex-start;
+  background: linear-gradient(135deg, rgba(114, 46, 209, 0.08), rgba(114, 46, 209, 0.035));
+  border: 1px solid rgba(114, 46, 209, 0.14);
+  box-shadow: 0 1px 4px rgba(114, 46, 209, 0.05);
+}
+
+.weight-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(114, 46, 209, 0.08);
+  border-color: rgba(114, 46, 209, 0.2);
+}
+
+.weight-stat-card--purple {
+  background: linear-gradient(135deg, rgba(114, 46, 209, 0.09), rgba(114, 46, 209, 0.03));
+}
+
+.weight-stat-card--violet {
+  background: linear-gradient(135deg, rgba(180, 150, 255, 0.14), rgba(180, 150, 255, 0.04));
+  border-color: rgba(180, 150, 255, 0.22);
+}
+
+.weight-stat-card--orange {
+  background: linear-gradient(135deg, rgba(250, 173, 20, 0.1), rgba(250, 173, 20, 0.035));
+  border-color: rgba(250, 173, 20, 0.18);
+}
+
+.weight-stat-card--rose {
+  background: linear-gradient(135deg, rgba(245, 108, 108, 0.08), rgba(245, 108, 108, 0.03));
+  border-color: rgba(245, 108, 108, 0.16);
+}
+
+.weight-stat-card--blue {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08), rgba(64, 158, 255, 0.03));
+  border-color: rgba(64, 158, 255, 0.16);
+}
+
+.weight-stat-card--green {
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.08), rgba(103, 194, 58, 0.03));
+  border-color: rgba(103, 194, 58, 0.16);
+}
+
+.weight-stat-card :deep(.metric-card__header) {
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.weight-stat-card :deep(.metric-card__label-wrap) {
+  gap: 8px;
+}
+
+.weight-stat-card :deep(.metric-card__label) {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.weight-stat-card :deep(.metric-card__value) {
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
 .stat-item {
   flex: 0 0 calc(33.333% - 8px);
   min-width: 0;
@@ -577,6 +604,39 @@ const handleResize = () => {
   background: linear-gradient(135deg, rgba(114, 46, 209, 0.1), rgba(114, 46, 209, 0.05));
   border-radius: 10px;
   flex-shrink: 0;
+}
+
+.weight-stat-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 22px;
+  background: rgba(114, 46, 209, 0.12);
+  color: #7e57c2;
+  flex-shrink: 0;
+}
+
+.weight-stat-card--orange .weight-stat-icon {
+  background: rgba(250, 173, 20, 0.14);
+  color: #f59f00;
+}
+
+.weight-stat-card--rose .weight-stat-icon {
+  background: rgba(245, 108, 108, 0.12);
+  color: #f56c6c;
+}
+
+.weight-stat-card--blue .weight-stat-icon {
+  background: rgba(64, 158, 255, 0.12);
+  color: #409eff;
+}
+
+.weight-stat-card--green .weight-stat-icon {
+  background: rgba(103, 194, 58, 0.12);
+  color: #67c23a;
 }
 
 /* Weight change color classes */
@@ -646,18 +706,8 @@ const handleResize = () => {
   line-height: 1.3;
 }
 
-/* Chart container */
-.chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  overflow: hidden;
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.weight-change-icon {
+  font-size: 22px;
 }
 
 .chart {
@@ -667,7 +717,6 @@ const handleResize = () => {
   overflow: hidden;
 }
 
-/* Skeleton styles */
 .skeleton-stats-card {
   background: var(--card-bg);
   padding: 20px;
@@ -852,3 +901,5 @@ const handleResize = () => {
   --skeleton-highlight: #4a4a4a;
 }
 </style>
+
+

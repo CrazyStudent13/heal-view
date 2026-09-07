@@ -1,14 +1,17 @@
 <template>
-  <div class="time-series-chart">
-    <SectionTitle>{{ t('chart.dailyActivityTrend') }}</SectionTitle>
+  <ChartPanel :empty="stepsData.length === 0 && heartRateData.length === 0" :empty-description="t('chart.noData')">
+    <template #title>
+      <SectionTitle>{{ t('chart.dailyActivityTrend') }}</SectionTitle>
+    </template>
     <div ref="chartRef" class="chart"></div>
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -255,23 +258,6 @@ const handleResize = () => {
 </script>
 
 <style scoped>
-.time-series-chart {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-}
-
-.chart-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-  font-weight: 500;
-  text-align: left;
-}
-
 .chart {
   width: 100%;
   height: 350px;

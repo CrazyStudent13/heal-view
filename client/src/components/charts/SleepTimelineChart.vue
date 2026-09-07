@@ -1,36 +1,32 @@
 <template>
   <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="sleep-overview-cards">
-      <el-card class="overview-card" shadow="hover">
-        <div class="overview-card-content">
-          <div class="card-icon sleep-icon"><span class="icon-text">🌙</span></div>
-          <div class="card-info">
-            <div class="card-label">{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</div>
-            <div class="card-value">{{ totalSleepDuration }}</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="overview-card" shadow="hover">
-        <div class="overview-card-content">
-          <div class="card-icon heart-icon"><span class="icon-text">❤️</span></div>
-          <div class="card-info">
-            <div class="card-label">{{ t('sleep.avgHeartRate') }}</div>
-            <div class="card-value">{{ avgHeartRateDisplay }}</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="overview-card" shadow="hover">
-        <div class="overview-card-content interrupt-card-content">
-          <div class="card-icon interrupt-icon"><span class="icon-text">⏰</span></div>
-          <div class="card-info interrupt-card-info">
-            <div class="card-label">{{ t('sleep.interruptions') }}</div>
-            <div class="card-value-row">
-              <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
-              <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
-            </div>
-          </div>
-        </div>
-      </el-card>
+      <MetricCard class="overview-card" compact>
+        <template #icon>
+          <span class="card-icon sleep-icon">🌙</span>
+        </template>
+        <template #label>{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</template>
+        <template #value>{{ totalSleepDuration }}</template>
+      </MetricCard>
+      <MetricCard class="overview-card" compact>
+        <template #icon>
+          <span class="card-icon heart-icon">❤️</span>
+        </template>
+        <template #label>{{ t('sleep.avgHeartRate') }}</template>
+        <template #value>{{ avgHeartRateDisplay }}</template>
+      </MetricCard>
+      <MetricCard class="overview-card" compact>
+        <template #icon>
+          <span class="card-icon interrupt-icon">⏰</span>
+        </template>
+        <template #label>{{ t('sleep.interruptions') }}</template>
+        <template #value>
+          <span class="card-value-row">
+            <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
+            <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
+          </span>
+        </template>
+      </MetricCard>
     </div>
     <section class="timeline-card">
       <SectionTitle>
@@ -52,6 +48,7 @@ import * as echarts from 'echarts';
 import { ElEmpty } from 'element-plus';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useDataStore } from '../../stores/dataStore';
+import MetricCard from '../common/MetricCard.vue';
 import SleepStageAnalysis from './SleepStageAnalysis.vue';
 
 const localeStore = useLocaleStore();
@@ -502,23 +499,15 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   margin-bottom: 0; flex-shrink: 0;
 }
 .overview-card {
-  border: 2px solid var(--card-border); border-radius: 8px;
-  background: var(--card-bg); transition: all 0.3s;
   min-width: 0;
+  min-height: 90px;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
 }
 .overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
-.overview-card-content { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 4px 0; }
-.card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon-text { font-size: 24px; line-height: 1; }
+.overview-card :deep(.metric-card__label) { white-space: normal; }
+.overview-card :deep(.metric-card__value) { text-align: center; white-space: normal; }
+.card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 24px; }
 .sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
-.card-info { flex: 1; min-width: 0; }
-.interrupt-card-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.card-label { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px; overflow-wrap: anywhere; }
 .card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
 .card-value-row {
   display: flex;

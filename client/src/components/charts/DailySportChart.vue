@@ -4,41 +4,29 @@
     
     <!-- Summary cards -->
     <div v-if="sportRecords.length > 0" class="summary-cards">
-      <el-card class="summary-card-item" shadow="hover">
-        <div class="card-content">
-          <div class="card-icon calories">
-            <span class="icon-text">🔥</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('sport.totalCalories') }}</div>
-            <div class="card-value">{{ totalCalories }} kcal</div>
-          </div>
-        </div>
-      </el-card>
-      
-      <el-card class="summary-card-item" shadow="hover">
-        <div class="card-content">
-          <div class="card-icon duration">
-            <span class="icon-text">&#9201;</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('sport.totalDuration') }}</div>
-            <div class="card-value">{{ formatDuration(totalDuration) }}</div>
-          </div>
-        </div>
-      </el-card>
-      
-      <el-card class="summary-card-item" shadow="hover">
-        <div class="card-content">
-          <div class="card-icon steps">
-            <span class="icon-text">&#128099;</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('sport.totalSteps') }}</div>
-            <div class="card-value">{{ totalSteps.toLocaleString() }}</div>
-          </div>
-        </div>
-      </el-card>
+      <MetricCard compact>
+        <template #icon>
+          <span class="card-icon calories">🔥</span>
+        </template>
+        <template #label>{{ t('sport.totalCalories') }}</template>
+        <template #value>{{ totalCalories }} kcal</template>
+      </MetricCard>
+
+      <MetricCard compact>
+        <template #icon>
+          <span class="card-icon duration">&#9201;</span>
+        </template>
+        <template #label>{{ t('sport.totalDuration') }}</template>
+        <template #value>{{ formatDuration(totalDuration) }}</template>
+      </MetricCard>
+
+      <MetricCard compact>
+        <template #icon>
+          <span class="card-icon steps">&#128099;</span>
+        </template>
+        <template #label>{{ t('sport.totalSteps') }}</template>
+        <template #value>{{ totalSteps.toLocaleString() }}</template>
+      </MetricCard>
     </div>
     
     <!-- Empty state -->
@@ -301,10 +289,12 @@
         </div>
 
         <!-- Heart Rate Chart Section -->
-        <div class="chart-section">
-          <SectionTitle>{{ t('sport.exerciseHeartRate') }}</SectionTitle>
+        <ChartPanel class="chart-section">
+          <template #title>
+            <SectionTitle>{{ t('sport.exerciseHeartRate') }}</SectionTitle>
+          </template>
           <div class="chart-container" ref="heartRateChartRef"></div>
-        </div>
+        </ChartPanel>
       </div>
     </transition>
   </div>
@@ -312,11 +302,13 @@
 
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { ElTable, ElTableColumn, ElTag, ElButton, ElCard } from 'element-plus';
+import { ElTable, ElTableColumn, ElTag, ElButton } from 'element-plus';
 import * as echarts from 'echarts';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
@@ -867,29 +859,6 @@ watch(() => localeStore.currentLocale, () => {
   margin-bottom: 15px;
 }
 
-.summary-card-item {
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid var(--card-border);
-  border-radius: 8px;
-  background: var(--card-bg);
-  min-height: 90px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.summary-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
-}
-
-.card-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-}
-
 .card-icon {
   width: 48px;
   height: 48px;
@@ -899,10 +868,6 @@ watch(() => localeStore.currentLocale, () => {
   justify-content: center;
   flex-shrink: 0;
   font-size: 28px;
-}
-
-.icon-text {
-  line-height: 1;
 }
 
 .card-icon.calories {
@@ -918,22 +883,6 @@ watch(() => localeStore.currentLocale, () => {
 .card-icon.steps {
   background: #e6f7ff;
   color: #1890ff;
-}
-
-.card-info {
-  flex: 1;
-}
-
-.card-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.card-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 

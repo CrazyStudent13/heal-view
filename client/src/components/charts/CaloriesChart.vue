@@ -1,12 +1,11 @@
 <template>
-  <div class="chart-container">
-    <SectionTitle>{{ t('chart.caloriesBurned') }}</SectionTitle>
-    <div ref="chartRef" class="chart"></div>
+  <ChartPanel :empty="!hasData" :empty-description="t('chart.selectDate')">
+    <template #title>
+      <SectionTitle>{{ t('chart.caloriesBurned') }}</SectionTitle>
+    </template>
 
-    <div v-if="!hasData" class="empty-state">
-      <p>{{ t('chart.selectDate') }}</p>
-    </div>
-  </div>
+    <div ref="chartRef" class="chart"></div>
+  </ChartPanel>
 </template>
 
 <script setup>
@@ -14,6 +13,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
@@ -288,17 +288,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
 .chart {
   width: 100%;
   flex: 1;
@@ -307,17 +296,5 @@ onBeforeUnmount(() => {
 
 .chart :deep(canvas) {
   max-width: 100%;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  background: var(--card-bg);
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
-  min-height: 320px;
 }
 </style>

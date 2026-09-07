@@ -565,7 +565,7 @@ onMounted(loadHistory);
 <style scoped>
 .data-import-page {
   flex: 1;
-  padding: 26px 30px 28px;
+  padding: 20px;
   overflow: hidden;
   background: #f5f5f5;
 }

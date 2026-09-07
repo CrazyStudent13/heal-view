@@ -448,12 +448,6 @@ const bmiTagType = computed(() => {
   width: 100px;
 }
 
-.help-icon {
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
 .label-with-icon {
   display: inline-flex;
   align-items: center;

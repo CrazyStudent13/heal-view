@@ -1,115 +1,84 @@
-﻿<template>
+<template>
   <div class="chart-wrapper">
-    <!-- Skeleton loading state -->
-    <div v-show="loading" class="skeleton-wrapper">
-      <!-- Stats card skeleton -->
-      <div class="stats-card skeleton-stats-card">
-        <div class="skeleton-title-text"></div>
-        <div class="stats-cards">
-          <div v-for="i in 6" :key="i" class="stat-item-skeleton">
-            <div class="skeleton-icon"></div>
-            <div class="skeleton-content">
-              <div class="skeleton-header">
-                <div class="skeleton-label"></div>
-                <div class="skeleton-help-icon"></div>
-              </div>
-              <div class="skeleton-value"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Chart container skeleton -->
-      <div class="chart-container skeleton-chart-container">
-        <div class="skeleton-title-text-small"></div>
-        <div class="skeleton-chart-area"></div>
-      </div>
-    </div>
-    
+    <ChartLoadingSkeleton v-if="loading" :stat-count="6" :stat-columns="3" />
     <!-- Statistics cards card -->
     <div v-if="!loading && stats" class="stats-card">
       <SectionTitle>{{ t('chart.exerciseStats') }}</SectionTitle>
-      <div class="stats-cards">
-        <div class="stat-item">
-          <div class="stat-icon">⏱️</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.avgExerciseDuration') }}</span>
-              <el-tooltip :content="t('chart.avgExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDurationDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.avgExerciseDuration }} {{ t('chart.minutes') }}</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">📏</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.avgExerciseDistance') }}</span>
-              <el-tooltip :content="t('chart.avgExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDistanceDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.avgExerciseDistance }} km</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">🔥</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.avgDailyCalories') }}</span>
-              <el-tooltip :content="t('chart.avgDailyCaloriesFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgDailyCaloriesDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.avgDailyCalories }} kcal</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">🕐</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.totalExerciseDuration') }}</span>
-              <el-tooltip :content="t('chart.totalExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDurationDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.totalExerciseDuration }} {{ t('chart.hours') }}</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">📍</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.totalExerciseDistance') }}</span>
-              <el-tooltip :content="t('chart.totalExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDistanceDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.totalExerciseDistance }} km</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">📅</div>
-          <div class="stat-content">
-            <div class="stat-header">
-              <span class="stat-label">{{ t('chart.exerciseDays') }}</span>
-              <el-tooltip :content="t('chart.exerciseFrequencyFormula') + '<br/>' + t('chart.description') + '：' + t('chart.exerciseFrequencyDesc')" placement="top" raw-content>
-                <el-icon class="help-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </div>
-            <div class="stat-value">{{ stats.actualExerciseDays }}/{{ stats.totalDays }} {{ t('chart.days') }}</div>
-          </div>
-        </div>
+      <div class="chart-metrics-grid chart-metrics-grid--3">
+        <MetricCard compact>
+          <template #icon>⏱️</template>
+          <template #label>{{ t('chart.avgExerciseDuration') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.avgExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDurationDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.avgExerciseDuration }} {{ t('chart.minutes') }}</template>
+        </MetricCard>
+        <MetricCard compact>
+          <template #icon>📏</template>
+          <template #label>{{ t('chart.avgExerciseDistance') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.avgExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDistanceDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.avgExerciseDistance }} km</template>
+        </MetricCard>
+        <MetricCard compact>
+          <template #icon>🔥</template>
+          <template #label>{{ t('chart.avgDailyCalories') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.avgDailyCaloriesFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgDailyCaloriesDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.avgDailyCalories }} kcal</template>
+        </MetricCard>
+        <MetricCard compact>
+          <template #icon>🕐</template>
+          <template #label>{{ t('chart.totalExerciseDuration') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.totalExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDurationDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.totalExerciseDuration }} {{ t('chart.hours') }}</template>
+        </MetricCard>
+        <MetricCard compact>
+          <template #icon>📍</template>
+          <template #label>{{ t('chart.totalExerciseDistance') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.totalExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDistanceDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.totalExerciseDistance }} km</template>
+        </MetricCard>
+        <MetricCard compact>
+          <template #icon>📅</template>
+          <template #label>{{ t('chart.exerciseDays') }}</template>
+          <template #badge>
+            <el-tooltip :content="t('chart.exerciseFrequencyFormula') + '<br/>' + t('chart.description') + '：' + t('chart.exerciseFrequencyDesc')" placement="top" raw-content>
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          <template #value>{{ stats.actualExerciseDays }}/{{ stats.totalDays }} {{ t('chart.days') }}</template>
+        </MetricCard>
       </div>
     </div>
     
     <!-- Chart card -->
-    <div v-show="!loading" class="chart-container">
-      <SectionTitle>{{ t('chart.stepsDistanceTrend') }}</SectionTitle>
+    <ChartPanel
+      v-show="!loading"
+      :empty="!loading && data.length === 0"
+      :empty-description="t('chart.noData')"
+    >
+      <template #title>
+        <SectionTitle>{{ t('chart.stepsDistanceTrend') }}</SectionTitle>
+      </template>
       <div ref="chartRef" class="chart"></div>
-    </div>
+    </ChartPanel>
   </div>
 </template>
 
@@ -118,6 +87,9 @@ import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import * as echarts from 'echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
+import ChartLoadingSkeleton from '../common/ChartLoadingSkeleton.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -412,184 +384,6 @@ const handleResize = () => {
   position: relative;
 }
 
-.skeleton-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-}
-
-.stats-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  flex-shrink: 0;
-}
-
-.skeleton-chart {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-}
-
-/* Skeleton stats card styles */
-.skeleton-stats-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  flex-shrink: 0;
-}
-
-.skeleton-title-text {
-  width: 120px;
-  height: 24px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 4px;
-  margin-bottom: 24px;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-.stat-item-skeleton {
-  flex: 0 0 calc(33.333% - 8px);
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px;
-  background: var(--card-bg);
-  border-radius: 10px;
-  border: 1px solid var(--card-border);
-  min-height: 80px;
-}
-
-.skeleton-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 10px;
-  flex-shrink: 0;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-.skeleton-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.skeleton-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.skeleton-label {
-  width: 80%;
-  height: 14px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 3px;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-  flex: 1;
-}
-
-.skeleton-help-icon {
-  width: 14px;
-  height: 14px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 50%;
-  flex-shrink: 0;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-.skeleton-value {
-  width: 60%;
-  height: 20px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 3px;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-/* Skeleton chart container styles */
-.skeleton-chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton-title-text-small {
-  width: 140px;
-  height: 20px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 4px;
-  margin-bottom: 16px;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-.skeleton-chart-area {
-  flex: 1;
-  min-height: 280px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
-  background-size: 200% 100%;
-  border-radius: 8px;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 .card-title {
   margin: 0 0 24px 0;
   font-size: 18px;
@@ -685,19 +479,6 @@ const handleResize = () => {
   margin-bottom: 6px;
 }
 
-.help-icon {
-  font-size: 14px;
-  color: var(--text-secondary, #909399);
-  cursor: help;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.help-icon:hover {
-  color: var(--primary-color, #1890ff);
-  transform: scale(1.1);
-}
-
 .stat-label {
   font-size: 12px;
   color: var(--text-secondary, #909399);
@@ -760,3 +541,5 @@ const handleResize = () => {
   --skeleton-highlight: #4a4a4a;
 }
 </style>
+
+

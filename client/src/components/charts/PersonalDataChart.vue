@@ -1,13 +1,14 @@
 <template>
-  <div class="chart-container">
+  <ChartPanel :empty="!profileData" :empty-description="t('chart.noData')">
     <div ref="chartRef" class="chart"></div>
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -167,14 +168,8 @@ const handleResize = () => {
 </script>
 
 <style scoped>
-.chart-container {
-  width: 100%;
-  height: 300px;
-  margin-top: 16px;
-}
-
 .chart {
   width: 100%;
-  height: 100%;
+  min-height: 300px;
 }
 </style>

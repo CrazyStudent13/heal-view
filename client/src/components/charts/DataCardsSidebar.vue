@@ -38,111 +38,92 @@
     
     <div class="cards-list" v-else-if="hasData">
       <!-- Personal data card - only show in single mode -->
-      <el-card 
+      <MetricCard 
         v-if="!isCompareMode"
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'personal' }"
-        shadow="hover"
         @click="$emit('chart-change', 'personal')"
       >
-        <div class="card-content">
-          <div class="card-icon personal">
-            <span class="icon-text">👤</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.personalInfo') }}</div>
-            <div class="card-value" v-if="userProfile && userProfile.weight">{{ userProfile.weight }} kg</div>
-            <div class="card-value" v-else>{{ t('data.viewDetails') }}</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon personal">👤</span>
+        </template>
+        <template #label>{{ t('data.personalInfo') }}</template>
+        <template #value>{{ userProfile && userProfile.weight ? `${userProfile.weight} kg` : t('data.viewDetails') }}</template>
+      </MetricCard>
       
-      <el-card 
+      <MetricCard 
         v-if="isCompareMode"
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'weight' }"
-        shadow="hover"
         @click="$emit('chart-change', 'weight')"
       >
-        <div class="card-content">
-          <div class="card-icon weight">
-            <span class="icon-text">⚖️</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.avgWeight') }}</div>
-            <div class="card-value">{{ displayData.avgWeight }} kg</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon weight">⚖️</span>
+        </template>
+        <template #label>{{ t('data.avgWeight') }}</template>
+        <template #value>{{ displayData.avgWeight }} kg</template>
+      </MetricCard>
       
-      <el-card 
+      <MetricCard 
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'steps' }"
-        shadow="hover"
         @click="$emit('chart-change', 'steps')"
       >
-        <div class="card-content">
-          <div class="card-icon steps">
-            <span class="icon-text">👟</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ isCompareMode ? t('data.avgSteps') : t('data.steps') }}</div>
-            <div class="card-value">{{ formatSteps(displayData.avgSteps) }}</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon steps">👟</span>
+        </template>
+        <template #label>{{ isCompareMode ? t('data.avgSteps') : t('data.steps') }}</template>
+        <template #value>{{ formatSteps(displayData.avgSteps) }}</template>
+      </MetricCard>
 
-      <el-card 
+      <MetricCard 
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'heartrate' }"
-        shadow="hover"
         @click="$emit('chart-change', 'heartrate')"
       >
-        <div class="card-content">
-          <div class="card-icon heartrate">
-            <span class="icon-text">❤️</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.heartRate') }}</div>
-            <div class="card-value">{{ displayData.avgHeartRate }} bpm</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon heartrate">❤️</span>
+        </template>
+        <template #label>{{ t('data.heartRate') }}</template>
+        <template #value>{{ displayData.avgHeartRate }} bpm</template>
+      </MetricCard>
 
-      <el-card 
+      <MetricCard 
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'sleep' }"
-        shadow="hover"
         @click="$emit('chart-change', 'sleep')"
       >
-        <div class="card-content">
-          <div class="card-icon sleep">
-            <span class="icon-text">🌙</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</div>
-            <div class="card-value">{{ displayData.avgSleepHours }} h</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon sleep">🌙</span>
+        </template>
+        <template #label>{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</template>
+        <template #value>{{ displayData.avgSleepHours }} h</template>
+      </MetricCard>
 
-      <el-card 
+      <MetricCard 
         v-if="isCompareMode"
         class="card-item clickable"
+        compact
+        layout="row"
         :class="{ active: currentChartType === 'calories' }"
-        shadow="hover"
         @click="$emit('chart-change', 'calories')"
       >
-        <div class="card-content">
-          <div class="card-icon calories">
-            <span class="icon-text">🔥</span>
-          </div>
-          <div class="card-info">
-            <div class="card-label">{{ t('data.avgCalories') }}</div>
-            <div class="card-value">{{ formatNumber(displayData.avgCalories) }} kcal</div>
-          </div>
-        </div>
-      </el-card>
+        <template #icon>
+          <span class="card-icon calories">🔥</span>
+        </template>
+        <template #label>{{ t('data.avgCalories') }}</template>
+        <template #value>{{ formatNumber(displayData.avgCalories) }} kcal</template>
+      </MetricCard>
     </div>
 
     <el-empty v-else :description="t('chart.selectDate')" :image-size="100" />
@@ -153,6 +134,7 @@
 import { computed } from 'vue';
 import { DataLine } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import MetricCard from '../common/MetricCard.vue';
 
 const localeStore = useLocaleStore();
 
@@ -187,16 +169,6 @@ const props = defineProps({
 defineEmits(['chart-change', 'update:view-mode']);
 
 const isCompareMode = computed(() => props.viewMode === 'compare');
-
-// BMI category short label for sidebar card
-const bmiCategoryShort = computed(() => {
-  if (!props.userProfile || !props.userProfile.bmi) return '';
-  const bmi = props.userProfile.bmi;
-  if (bmi < 18.5) return t('personal.bmiUnderweight');
-  if (bmi < 24) return t('personal.bmiNormal');
-  if (bmi < 28) return t('personal.bmiOverweight');
-  return t('personal.bmiObese');
-});
 
 const hasData = computed(() => props.chartData.length > 0);
 
@@ -295,48 +267,33 @@ function formatSteps(num) {
 .card-item {
   cursor: pointer;
   transition: all 0.3s;
-  border: 2px solid var(--card-border);
+  border: 1px solid var(--card-border);
   border-radius: 8px;
   background: var(--card-bg);
-  min-height: 90px;
-}
-
-.card-item :deep(.el-card__body) {
-  padding: 16px 20px;
+  min-height: 96px;
 }
 
 .card-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
   border-color: var(--primary-color);
 }
 
 .card-item.active {
   border-color: var(--primary-color);
   background: var(--primary-light);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
-}
-
-.card-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.16);
 }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 28px;
-}
-
-.icon-text {
-  line-height: 1;
+  font-size: 24px;
 }
 
 .card-icon.steps {
@@ -369,28 +326,6 @@ function formatSteps(num) {
   color: var(--primary-color);
 }
 
-.card-info {
-  flex: 1;
-}
-
-.card-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.card-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.card-sub {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
 @media (max-width: 900px) {
   .data-cards-sidebar {
     height: auto;
@@ -404,6 +339,10 @@ function formatSteps(num) {
 
   .card-item {
     min-width: 0;
+  }
+
+  .card-item :deep(.metric-card--row) {
+    padding: 14px 14px 14px 12px;
   }
 }
 

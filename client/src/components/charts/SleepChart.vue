@@ -1,55 +1,68 @@
 <template>
-  <div class="chart-container" v-if="hasValidData">
-    <SectionTitle>{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</SectionTitle>
+  <ChartPanel :empty="!hasValidData" :empty-description="t('chart.noSleepData')">
+    <template #title>
+      <SectionTitle>{{ t('data.sleep') }}{{ t('chart.sleepAnalysis') }}</SectionTitle>
+    </template>
 
-    <div v-if="sleepRegularityMetrics.length > 0" class="regularity-cards">
-      <el-card class="regularity-card" :class="bedtimeRegularity.status" shadow="hover">
-        <div class="regularity-card-head">
-          <div class="regularity-card-title">
-            {{ t('sleep.bedtimeRegularity') }}
-            <el-tooltip :content="regularityTipContent" placement="top" raw-content>
-              <el-icon class="help-icon"><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </div>
-          <el-tag :type="regularityTagType(bedtimeRegularity.status)" size="small" effect="light">
-            {{ regularityStatusLabel(bedtimeRegularity.status) }}
-          </el-tag>
-        </div>
-        <div class="regularity-score">{{ regularityScoreText(bedtimeRegularity) }}</div>
-        <div class="regularity-meta">{{ regularityMetaText(bedtimeRegularity) }}</div>
-      </el-card>
+    <template #metrics>
+      <div v-if="sleepRegularityMetrics.length > 0" class="chart-metrics-grid chart-metrics-grid--2 regularity-cards">
+        <MetricCard class="regularity-card" :class="bedtimeRegularity.status" compact>
+          <template #label>
+            <span class="regularity-card-title">
+              {{ t('sleep.bedtimeRegularity') }}
+              <el-tooltip :content="regularityTipContent" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
+          <template #badge>
+            <el-tag :type="regularityTagType(bedtimeRegularity.status)" size="small" effect="light">
+              {{ regularityStatusLabel(bedtimeRegularity.status) }}
+            </el-tag>
+          </template>
+          <template #value>
+            <div class="regularity-score">{{ regularityScoreText(bedtimeRegularity) }}</div>
+          </template>
+          <template #footer>
+            <div class="regularity-meta">{{ regularityMetaText(bedtimeRegularity) }}</div>
+          </template>
+        </MetricCard>
 
-      <el-card class="regularity-card" :class="wakeRegularity.status" shadow="hover">
-        <div class="regularity-card-head">
-          <div class="regularity-card-title">
-            {{ t('sleep.wakeRegularity') }}
-            <el-tooltip :content="regularityTipContent" placement="top" raw-content>
-              <el-icon class="help-icon"><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </div>
-          <el-tag :type="regularityTagType(wakeRegularity.status)" size="small" effect="light">
-            {{ regularityStatusLabel(wakeRegularity.status) }}
-          </el-tag>
-        </div>
-        <div class="regularity-score">{{ regularityScoreText(wakeRegularity) }}</div>
-        <div class="regularity-meta">{{ regularityMetaText(wakeRegularity) }}</div>
-      </el-card>
-    </div>
+        <MetricCard class="regularity-card" :class="wakeRegularity.status" compact>
+          <template #label>
+            <span class="regularity-card-title">
+              {{ t('sleep.wakeRegularity') }}
+              <el-tooltip :content="regularityTipContent" placement="top" raw-content>
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
+          <template #badge>
+            <el-tag :type="regularityTagType(wakeRegularity.status)" size="small" effect="light">
+              {{ regularityStatusLabel(wakeRegularity.status) }}
+            </el-tag>
+          </template>
+          <template #value>
+            <div class="regularity-score">{{ regularityScoreText(wakeRegularity) }}</div>
+          </template>
+          <template #footer>
+            <div class="regularity-meta">{{ regularityMetaText(wakeRegularity) }}</div>
+          </template>
+        </MetricCard>
+      </div>
+    </template>
 
     <div ref="chartRef" class="chart"></div>
-  </div>
-
-  <div class="empty-state" v-else>
-    <el-empty :description="t('chart.noSleepData')" />
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, watch, ref } from 'vue';
 import * as echarts from 'echarts';
-import { ElEmpty } from 'element-plus';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 
@@ -416,32 +429,8 @@ const handleResize = () => {
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg);
-  padding: 16px 20px 18px;
-  border-radius: 8px;
-  margin-bottom: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  box-sizing: border-box;
-  overflow: hidden;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .regularity-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 8px 0 10px;
-}
-
-.regularity-card {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 6px 10px;
+  margin-bottom: 0;
 }
 
 .regularity-card.regular {
@@ -459,14 +448,6 @@ const handleResize = () => {
   border-color: rgba(255, 77, 79, 0.2);
 }
 
-.regularity-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
 .regularity-card-title {
   display: inline-flex;
   align-items: center;
@@ -475,16 +456,12 @@ const handleResize = () => {
   color: var(--text-secondary);
 }
 
-.help-icon {
-  font-size: 12px;
-  cursor: help;
-}
-
 .regularity-score {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
+  text-align: center;
 }
 
 .regularity-card.regular .regularity-score {
@@ -504,24 +481,12 @@ const handleResize = () => {
   font-size: 10px;
   color: var(--text-secondary);
   line-height: 1.25;
+  text-align: center;
 }
 
 .chart {
   width: 100%;
   flex: 1;
   min-height: 0;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 20px;
-  color: #999;
-  background: var(--card-bg);
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

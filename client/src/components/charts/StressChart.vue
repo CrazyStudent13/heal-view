@@ -1,14 +1,17 @@
 <template>
-  <div class="chart-container">
-    <SectionTitle>{{ t('data.stress') }}{{ t('chart.trend') }}</SectionTitle>
+  <ChartPanel :empty="data.length === 0" :empty-description="t('chart.noData')">
+    <template #title>
+      <SectionTitle>{{ t('data.stress') }}{{ t('chart.trend') }}</SectionTitle>
+    </template>
     <div ref="chartRef" class="chart"></div>
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -143,29 +146,9 @@ const handleResize = () => {
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  height: 100%; /* Use full height to match sidebar */
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
 .chart {
   width: 100%;
-  flex: 1; /* Take remaining space */
+  flex: 1;
   min-height: 300px;
 }
 </style>

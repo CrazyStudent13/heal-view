@@ -1,36 +1,36 @@
 <template>
-  <div class="chart-container">
-    <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
-    <!-- Heart rate metrics cards -->
-    <div class="metrics-cards" v-if="hasData">
-      <div class="metric-card">
-        <div class="metric-label">{{ t('chart.heartRateRange') }}</div>
-        <div class="metric-value">{{ minHR }}-{{ maxHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></div>
+  <ChartPanel
+    :loading="loading"
+    :empty="!loading && heartRateData.length === 0"
+    :empty-description="t('nav.selectDateToView')"
+    :empty-image-size="100"
+    :loading-text="t('common.loading')"
+  >
+    <template #title>
+      <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
+    </template>
+
+    <template #metrics>
+      <div v-if="hasData" class="chart-metrics-grid chart-metrics-grid--3">
+        <MetricCard class="heart-metric-card">
+          <template #label>{{ t('chart.heartRateRange') }}</template>
+          <template #value>{{ minHR }}-{{ maxHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+        </MetricCard>
+
+        <MetricCard class="heart-metric-card">
+          <template #label>{{ t('chart.avgHeartRate') }}</template>
+          <template #value>{{ avgHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+        </MetricCard>
+
+        <MetricCard class="heart-metric-card">
+          <template #label>{{ t('chart.restingHeartRate') }}</template>
+          <template #value>{{ restingHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+        </MetricCard>
       </div>
-      
-      <div class="metric-card">
-        <div class="metric-label">{{ t('chart.avgHeartRate') }}</div>
-        <div class="metric-value">{{ avgHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></div>
-      </div>
-      
-      <div class="metric-card">
-        <div class="metric-label">{{ t('chart.restingHeartRate') }}</div>
-        <div class="metric-value">{{ restingHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></div>
-      </div>
-    </div>
-    
+    </template>
+
     <div ref="chartRef" class="chart"></div>
-    
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-overlay">
-      <p>{{ t('common.loading') }}</p>
-    </div>
-    
-    <!-- Empty state -->
-    <div v-if="!loading && heartRateData.length === 0" class="empty-state">
-      <p>{{ t('nav.selectDateToView') }}</p>
-    </div>
-  </div>
+  </ChartPanel>
 </template>
 
 <script setup>
@@ -39,6 +39,8 @@ import * as echarts from 'echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
+import MetricCard from '../common/MetricCard.vue';
+import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -298,89 +300,41 @@ const handleResize = () => {
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--card-border);
-  position: relative;
-  height: 100%; /* Use full height to match sidebar */
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.metrics-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-shrink: 0;
-}
-
-.metric-card {
-  background: rgba(255, 77, 79, 0.05);
-  border: 1px solid rgba(255, 77, 79, 0.2);
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.2s;
-}
-
-.metric-card:hover {
-  background: rgba(255, 77, 79, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
-}
-
-.metric-label {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 8px;
-  white-space: nowrap;
-}
-
-.metric-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #ff4d4f;
-}
-
 .metric-unit {
   font-size: 14px;
   font-weight: normal;
   color: #999;
 }
 
+.heart-metric-card {
+  background: rgba(255, 77, 79, 0.05);
+  border-color: rgba(255, 77, 79, 0.2);
+  text-align: center;
+}
+
+.heart-metric-card:hover {
+  background: rgba(255, 77, 79, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+}
+
+.heart-metric-card :deep(.metric-card__header) {
+  justify-content: center;
+}
+
+.heart-metric-card :deep(.metric-card__label) {
+  text-align: center;
+}
+
+.heart-metric-card :deep(.metric-card__value) {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ff4d4f;
+  text-align: center;
+}
+
 .chart {
   width: 100%;
-  flex: 1; /* Take remaining space */
   min-height: 300px;
-}
-
-.loading-overlay, .empty-state {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.8);
-  color: #999;
-  font-size: 14px;
-}
-
-.empty-state {
-  background: transparent;
 }
 </style>
