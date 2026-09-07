@@ -10,7 +10,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
 import ChartPanel from '../common/ChartPanel.vue';

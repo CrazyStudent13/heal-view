@@ -78,7 +78,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import MetricCard from '../common/MetricCard.vue';

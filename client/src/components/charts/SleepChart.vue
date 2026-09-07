@@ -1,6 +1,6 @@
 <template>
   <div class="chart-wrapper">
-    <div v-if="sleepRegularityMetrics.length > 0" class="stats-card">
+    <div v-if="hasSleepRegularityMetrics" class="stats-card">
       <SectionTitle>{{ t('sleep.regularityTitle') }}</SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--2 regularity-cards">
         <MetricCard class="regularity-card" :class="bedtimeRegularity.status" compact layout="row">
@@ -62,7 +62,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, watch, ref } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
 import MetricCard from '../common/MetricCard.vue';
@@ -171,6 +171,7 @@ const sleepSummaryList = computed(() => {
 const bedtimeRegularity = computed(() => assessRegularity(sleepSummaryList.value.map(item => item.bedtime)));
 const wakeRegularity = computed(() => assessRegularity(sleepSummaryList.value.map(item => item.wakeUpTime)));
 const sleepRegularityMetrics = computed(() => [bedtimeRegularity.value, wakeRegularity.value].filter(item => item.total > 0));
+const hasSleepRegularityMetrics = computed(() => sleepRegularityMetrics.value.length > 0);
 
 const regularityTipContent = computed(() => `
   <div style="line-height:1.8">

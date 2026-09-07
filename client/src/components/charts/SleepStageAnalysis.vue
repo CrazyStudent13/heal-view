@@ -20,7 +20,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../../lib/echarts';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useThemeStore } from '../../stores/themeStore';
 

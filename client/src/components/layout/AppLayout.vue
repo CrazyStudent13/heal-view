@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue';
+import { defineAsyncComponent, ref, watch, onMounted, computed } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
@@ -94,7 +94,8 @@ import { useThemeStore } from '../../stores/themeStore';
 import TopNavbar from '../navigation/TopNavbar.vue';
 import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
 import ChartDisplay from '../charts/ChartDisplay.vue';
-import DataImportPage from '../import/DataImportPage.vue';
+
+const DataImportPage = defineAsyncComponent(() => import('../import/DataImportPage.vue'));
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();

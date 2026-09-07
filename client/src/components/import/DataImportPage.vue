@@ -231,7 +231,23 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ElAlert,
+  ElButton,
+  ElDialog,
+  ElEmpty,
+  ElIcon,
+  ElMessage,
+  ElMessageBox,
+  ElPopconfirm,
+  ElRadioButton,
+  ElRadioGroup,
+  ElTable,
+  ElTableColumn,
+  ElTag,
+  ElUpload,
+  vLoading
+} from 'element-plus';
 import {
   CircleCheckFilled,
   CircleCloseFilled,
