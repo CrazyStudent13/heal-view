@@ -1,23 +1,23 @@
 <template>
   <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="sleep-overview-cards">
-      <MetricCard class="overview-card" compact>
+      <MetricCard class="overview-card" compact layout="row">
         <template #icon>
-          <span class="card-icon sleep-icon">🌙</span>
+          <span class="sleep-card-icon sleep-card-icon--sleep">🌙</span>
         </template>
         <template #label>{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</template>
         <template #value>{{ totalSleepDuration }}</template>
       </MetricCard>
-      <MetricCard class="overview-card" compact>
+      <MetricCard class="overview-card" compact layout="row">
         <template #icon>
-          <span class="card-icon heart-icon">❤️</span>
+          <span class="sleep-card-icon sleep-card-icon--heart">❤️</span>
         </template>
         <template #label>{{ t('sleep.avgHeartRate') }}</template>
         <template #value>{{ avgHeartRateDisplay }}</template>
       </MetricCard>
-      <MetricCard class="overview-card" compact>
+      <MetricCard class="overview-card" compact layout="row">
         <template #icon>
-          <span class="card-icon interrupt-icon">⏰</span>
+          <span class="sleep-card-icon sleep-card-icon--interrupt">⏰</span>
         </template>
         <template #label>{{ t('sleep.interruptions') }}</template>
         <template #value>
@@ -495,26 +495,59 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .sleep-overview-cards {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
   margin-bottom: 0; flex-shrink: 0;
 }
 .overview-card {
   min-width: 0;
-  min-height: 90px;
+  min-height: 112px;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
 }
 .overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
-.overview-card :deep(.metric-card__label) { white-space: normal; }
-.overview-card :deep(.metric-card__value) { text-align: center; white-space: normal; }
-.card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 24px; }
-.sleep-icon { background: rgba(250, 140, 22, 0.12); } .heart-icon { background: rgba(245, 108, 108, 0.12); } .interrupt-icon { background: rgba(64, 158, 255, 0.12); }
-.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
-.card-value-row {
+.overview-card :deep(.metric-card__content--row) {
+  align-items: flex-start;
+  gap: 3px;
+}
+.overview-card :deep(.metric-card__header--row) {
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+.overview-card :deep(.metric-card__label) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.overview-card :deep(.metric-card__value) {
+  text-align: left;
+  white-space: nowrap;
+}
+.overview-card :deep(.metric-card__value--row) {
+  font-size: 18px;
+  line-height: 1.1;
+}
+.sleep-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  font-size: 24px;
+}
+.sleep-card-icon--sleep { background: rgba(250, 140, 22, 0.12); }
+.sleep-card-icon--heart { background: rgba(245, 108, 108, 0.12); }
+.sleep-card-icon--interrupt { background: rgba(64, 158, 255, 0.12); }
+.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; line-height: 1.1; }
+.card-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 .card-value-row .card-value { margin-bottom: 0; }
