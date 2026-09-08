@@ -309,11 +309,12 @@
 
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { ElTable, ElTableColumn, ElTag, ElButton } from 'element-plus';
+import { ElTable, ElTableColumn, ElTag } from 'element-plus';
 import echarts from '../../lib/echarts';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '../../utils/sportRecordParser.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 
@@ -327,15 +328,7 @@ const selectedRecord = ref(null);
 const heartRateChartRef = ref(null);
 let heartRateChart = null;
 
-// Heart rate zones
 const heartRateZones = ref(createHeartRateZones());
-
-// Check if there are valid heart rate zones data
-const hasHeartRateZones = computed(() => {
-  if (!selectedRecord.value) return false;
-  const totalDuration = heartRateZones.value.reduce((sum, zone) => sum + zone.duration, 0);
-  return totalDuration > 0;
-});
 
 const hasDetailCards = computed(() => {
   if (!selectedRecord.value) return false;
@@ -355,7 +348,6 @@ const totalSteps = computed(() => {
   return sportRecords.value.reduce((sum, record) => sum + (record.steps || 0), 0);
 });
 
-// Get average duration per group for rowing machine
 function getRowingGroupDuration(record) {
   if (!record || record.sport_type !== 13) return null;
   const totalDuration = record.duration || 0;
@@ -371,7 +363,6 @@ function getRowingGroupDuration(record) {
   return avgDurationPerGroup;
 }
 
-// Format timestamp to time string (HH:mm)
 function formatTime(timestamp) {
   if (!timestamp) return '--:--';
   const date = new Date(timestamp * 1000);
@@ -380,7 +371,6 @@ function formatTime(timestamp) {
   return `${hours}:${minutes}`;
 }
 
-// Format duration from seconds to readable format
 function formatDuration(seconds) {
   if (!seconds || seconds === 0) return t('sport.zeroMinutes');
   
@@ -393,7 +383,6 @@ function formatDuration(seconds) {
   return t('sport.durationMinutes', { minutes });
 }
 
-// Format pace from seconds per km to km/h (speed)
 function formatPace(paceSeconds) {
   if (!paceSeconds || paceSeconds === 0) return '--';
   // Convert seconds per km to km/h: speed = 3600 / paceSeconds
@@ -401,7 +390,6 @@ function formatPace(paceSeconds) {
   return `${speedKmh.toFixed(1)} km/h`;
 }
 
-// Get localized category name based on sport_type or category.
 function getCategoryName(record) {
   const sportType = record.sport_type;
   
@@ -431,18 +419,6 @@ function getCategoryName(record) {
   return categoryMap[category] ? t(`sport.typeName.${categoryMap[category]}`) : category;
 }
 
-function isWalkingRecord(record) {
-  return [2, 22].includes(record?.sport_type) || ['walking', 'outdoor_walking'].includes(record?.category);
-}
-
-function isEllipticalRecord(record) {
-  return record?.sport_type === 11 || ['elliptical', 'elliptical_trainer'].includes(record?.category);
-}
-
-function isRowingRecord(record) {
-  return record?.sport_type === 13 || ['rowing', 'rowing_machine'].includes(record?.category);
-}
-
 function isTrainingSegment(type) {
   return ['训练', 'training', 'work'].includes(String(type || '').toLowerCase());
 }
@@ -451,7 +427,6 @@ function getSegmentTypeLabel(type) {
   return isTrainingSegment(type) ? t('sport.training') : t('sport.rest');
 }
 
-// Get tag type for category (based on sport_type or category)
 function getCategoryTagType(record) {
   const sportType = record.sport_type;
   
@@ -520,19 +495,6 @@ function getCategoryTagType(record) {
   return typeMap[category] || 'info';
 }
 
-// Filter out night time records (23:00 - 08:00)
-function filterNightRecords(records) {
-  if (!records || records.length === 0) return [];
-  
-  return records.filter(record => {
-    if (!record.start_time) return false;
-    const date = new Date(record.start_time * 1000);
-    const hour = date.getHours();
-    // Keep records from 08:00 to 23:00 (exclude 23:00-08:00)
-    return hour >= 8 && hour < 23;
-  });
-}
-
 // Handle row selection
 function handleRowSelect(row) {
   selectedRecord.value = row;
@@ -542,15 +504,6 @@ function handleRowSelect(row) {
       initHeartRateChart();
       updateHeartRateZones(row);
     });
-  }
-}
-
-// Close detail panel
-function closeDetail() {
-  selectedRecord.value = null;
-  if (heartRateChart) {
-    heartRateChart.dispose();
-    heartRateChart = null;
   }
 }
 
@@ -749,116 +702,21 @@ function getPaceBarWidth(pace) {
 watch(() => dateStore.selectedDate, async (newDate) => {
   if (!newDate) return;
 
-  console.log('[DailySportChart] Loading sport records for date:', newDate);
-  
   try {
     const records = await dataStore.fetchSportRecords({
       startDate: newDate,
       endDate: newDate
     });
+    const parsedRecords = records
+      .map(record => parseSportRecordRow(record, {
+        formatTime,
+        formatDuration,
+        getCategoryName
+      }))
+      .filter(record => record !== null && record.start_time);
 
-    console.log('[DailySportChart] Records received:', records);
-    
-    // Parse the JSON value field and filter night time
-    const parsedRecords = records.map(record => {
-      try {
-        const value = typeof record.value === 'string' ? JSON.parse(record.value) : record.value;
-        
-        // Debug: Log segments for rowing machine
-        if (value.sport_type === 13 || value.category === 'rowing_machine') {
-          console.log('[DailySportChart] Rowing machine raw value:', value);
-          console.log('[DailySportChart] Segments:', value.segments);
-          console.log('[DailySportChart] All keys in value:', Object.keys(value));
-          // Check for any fields that might contain segment/group info
-          const possibleSegmentFields = ['segments', 'groups', 'sets', 'intervals', 'laps', 'splits'];
-          possibleSegmentFields.forEach(field => {
-            if (value[field]) {
-              console.log(`[DailySportChart] Found ${field}:`, value[field]);
-            }
-          });
-        }
-        
-        const startTime = value.start_time || record.time;
-        const endTime = value.end_time || (startTime + (value.duration || 0));
-        const duration = value.duration || 0;
-        
-        return {
-          // Time range
-          timeRange: `${formatTime(startTime)} - ${formatTime(endTime)}`,
-          
-          // Category - use sport_type from value JSON, fallback to category field
-          sport_type: value.sport_type,
-          category: record.category || 'other',
-          categoryName: getCategoryName({ sport_type: value.sport_type, category: record.category }),
-          
-          // Duration
-          duration: duration,
-          durationText: formatDuration(duration),
-          
-          // Basic metrics
-          calories: value.calories || 0,
-          distance: value.distance || 0,
-          distanceKm: ((value.distance || 0) / 1000).toFixed(2),
-          steps: value.steps || 0,
-          
-          // Heart rate
-          avgHrm: value.avg_hrm || value.avgHeartRate,
-          maxHrm: value.max_hrm || value.maxHeartRate,
-          
-          // Speed and pace
-          avgSpeed: value.avg_speed ? (value.avg_speed * 3.6).toFixed(2) : null, // Convert m/s to km/h
-          avgPace: value.avg_pace ? Math.floor(value.avg_pace / 60) : null, // seconds per km
-          
-          // Rowing specific
-          strokes: value.strokes || value.row_count,
-          avgStrokeRate: value.avg_stroke_rate || value.avg_row_freq,
-          maxStrokeRate: value.max_stroke_rate || value.best_row_freq,
-          restTime: value.rest_time || value.rest_between_group_duration || 0,
-          segments: value.segments || [],
-          segmentCount: value.group_count || 0,
-          
-          // Walking specific
-          avgPaceSeconds: value.avg_pace_seconds || value.avg_pace,
-          bestPaceSeconds: value.best_pace_seconds || value.best_pace,
-          avgCadence: value.avg_cadence || value.avg_step_freq,
-          maxCadence: value.max_cadence || value.max_step_freq,
-          avgStride: value.avg_stride || value.avg_step_length,
-          maxStride: value.max_stride || value.max_step_length,
-          elevationGain: value.elevation_gain || value.total_ascent,
-          kmPaces: value.km_paces || [],
-          
-          // Heart rate zones
-          hrZones: value.hr_zones || {
-            warmup: value.warmup_time || 0,
-            fatBurn: value.fat_burn_time || 0,
-            aerobic: value.aerobic_time || 0,
-            anaerobic: value.anaerobic_time || 0,
-            extreme: value.extreme_time || 0
-          },
-          
-          // Raw data for reference
-          start_time: startTime,
-          end_time: endTime
-        };
-      } catch (error) {
-        console.error('Failed to parse sport record:', error);
-        return null;
-      }
-    }).filter(record => record !== null && record.start_time);
-
-    // Filter out night time records and sort by start time
     sportRecords.value = filterNightRecords(parsedRecords).sort((a, b) => a.start_time - b.start_time);
-    
-    console.log('[DailySportChart] Filtered records:', sportRecords.value.length);
-    
-    // Debug: Log rowing machine data
-    const rowingRecord = sportRecords.value.find(isRowingRecord);
-    if (rowingRecord) {
-      console.log('[DailySportChart] Parsed rowing record:', rowingRecord);
-      console.log('[DailySportChart] Segment count:', rowingRecord.segmentCount);
-    }
-    
-    // Clear selected record when no sport records available
+
     if (sportRecords.value.length === 0) {
       selectedRecord.value = null;
       if (heartRateChart) {
@@ -866,7 +724,6 @@ watch(() => dateStore.selectedDate, async (newDate) => {
         heartRateChart = null;
       }
     } else {
-      // Auto-select first record if not already selected
       if (!selectedRecord.value) {
         selectedRecord.value = sportRecords.value[0];
         nextTick(() => {
