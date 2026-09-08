@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
 import { fileURLToPath } from 'url';
+import { normalizeDateParam, validateDateRange } from '../utils/requestValidation.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -167,8 +168,13 @@ function calculateAge(birthStr) {
  */
 export async function getWeightData(req, res) {
   try {
-    const { startDate, endDate } = req.query;
-    const cacheKey = `weight_data_${startDate || 'all'}_${endDate || 'all'}`;
+    const startDate = normalizeDateParam(req.query.startDate);
+    const endDate = normalizeDateParam(req.query.endDate);
+    const range = validateDateRange(startDate, endDate);
+    if (!range) {
+      return res.status(400).json({ error: 'Invalid date range' });
+    }
+    const cacheKey = `weight_data_${range.startDate || 'all'}_${range.endDate || 'all'}`;
 
     // Check cache
     const cached = cacheManager.get(cacheKey);
@@ -189,13 +195,13 @@ export async function getWeightData(req, res) {
       WHERE key = 'weight'
     `;
     const params = [];
-    if (startDate) {
+    if (range.startDate) {
       query += ` AND date >= ?`;
-      params.push(startDate);
+      params.push(range.startDate);
     }
-    if (endDate) {
+    if (range.endDate) {
       query += ` AND date <= ?`;
-      params.push(endDate);
+      params.push(range.endDate);
     }
     query += ` GROUP BY date ORDER BY date ASC`;
 
@@ -260,8 +266,8 @@ export async function getWeightData(req, res) {
         WHERE 1=1
     `;
     const sportParams = [];
-    if (startDate) { sportQuery += ` AND date >= ?`; sportParams.push(startDate); }
-    if (endDate) { sportQuery += ` AND date <= ?`; sportParams.push(endDate); }
+    if (range.startDate) { sportQuery += ` AND date >= ?`; sportParams.push(range.startDate); }
+    if (range.endDate) { sportQuery += ` AND date <= ?`; sportParams.push(range.endDate); }
     sportQuery += ` GROUP BY date )`;
     
     const sportResult = databaseService.query(sportQuery, sportParams);

@@ -1,6 +1,7 @@
 import { databaseService } from '../services/database.js';
 import { cacheManager } from '../services/cacheManager.js';
 import { config } from '../config/index.js';
+import { normalizeCategoryParam, normalizeDateParam, validateDateParam, validateDateRange, validateMetric } from '../utils/requestValidation.js';
 
 function isPositiveNumber(value) {
   const number = Number(value);
@@ -51,7 +52,8 @@ export function getDates(req, res) {
  */
 export function getDailySummary(req, res) {
   try {
-    const { date } = req.params;
+    const date = validateDateParam(res, req.params.date);
+    if (!date) return;
     const cacheKey = `summary_${date}`;
 
     // Check cache
@@ -220,7 +222,14 @@ export function getDailySummary(req, res) {
  */
 export function getTimeSeries(req, res) {
   try {
-    const { date, metric } = req.params;
+    const date = validateDateParam(res, req.params.date);
+    if (!date) return;
+
+    const metric = validateMetric(req.params.metric);
+    if (!metric) {
+      return res.status(400).json({ error: 'Invalid metric' });
+    }
+
     const cacheKey = `timeseries_${date}_${metric}`;
 
     // Check cache
@@ -329,8 +338,14 @@ export function getTimeSeries(req, res) {
  */
 export function getSportRecords(req, res) {
   try {
-    const { startDate, endDate, category } = req.query;
-    const cacheKey = `sports_${startDate}_${endDate}_${category || 'all'}`;
+    const startDate = normalizeDateParam(req.query.startDate);
+    const endDate = normalizeDateParam(req.query.endDate);
+    const range = validateDateRange(startDate, endDate);
+    if (!range) {
+      return res.status(400).json({ error: 'Invalid date range' });
+    }
+    const category = normalizeCategoryParam(req.query.category);
+    const cacheKey = `sports_${range.startDate || 'all'}_${range.endDate || 'all'}_${category || 'all'}`;
 
     // Check cache
     const cached = cacheManager.get(cacheKey);
@@ -343,13 +358,13 @@ export function getSportRecords(req, res) {
     let query = `SELECT * FROM sport_records WHERE 1=1`;
     const params = [];
 
-    if (startDate) {
+    if (range.startDate) {
       query += ` AND date >= ?`;
-      params.push(startDate);
+      params.push(range.startDate);
     }
-    if (endDate) {
+    if (range.endDate) {
       query += ` AND date <= ?`;
-      params.push(endDate);
+      params.push(range.endDate);
     }
     if (category) {
       query += ` AND category = ?`;
@@ -449,7 +464,8 @@ export function getFilterOptions(req, res) {
  */
 export function getSleepTimeline(req, res) {
   try {
-    const { date } = req.params;
+    const date = validateDateParam(res, req.params.date);
+    if (!date) return;
     const cacheKey = `sleep_timeline_${date}`;
 
     // Check cache
