@@ -7,7 +7,7 @@
           :current-chart-type="currentChartType"
           :view-mode="viewMode"
           :loading="initialLoading"
-          :user-profile="dashboard.userProfile"
+          :user-profile="userProfile"
           @chart-change="dashboard.handleChartChange"
           @update:view-mode="setViewMode"
         />
@@ -24,7 +24,7 @@
           :sleep-timeline-data="sleepTimelineData"
           :compare-sleep-timeline-data="compareSleepTimelineData"
           :weight-data="weightData"
-          :user-profile="dashboard.userProfile"
+          :user-profile="userProfile"
         />
       </main>
     </div>
@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue';
+import { computed, inject, unref } from 'vue';
 import DataCardsSidebar from '../components/charts/DataCardsSidebar.vue';
 import ChartDisplay from '../components/charts/ChartDisplay.vue';
 import { dashboardContextKey } from '../composables/dashboardContext.js';
@@ -53,6 +53,7 @@ const weightData = dashboard.weightData;
 const loading = dashboard.loading;
 const initialLoading = dashboard.initialLoading;
 const refreshing = dashboard.refreshing;
+const userProfile = computed(() => unref(dashboard.userProfile));
 const dashboardError = computed(() => {
   return normalizeErrorText(dashboard.error?.value ?? dashboard.error);
 });

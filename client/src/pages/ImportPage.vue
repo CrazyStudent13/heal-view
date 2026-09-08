@@ -1,7 +1,7 @@
 <template>
   <DataImportPage
     @imported="dashboard.handleImportCompleted"
-    @view-dashboard="router.push('/dashboard')"
+    @view-dashboard="handleViewDashboard"
   />
 </template>
 
@@ -16,5 +16,10 @@ const router = useRouter();
 
 if (!dashboard) {
   throw new Error('Dashboard context is missing');
+}
+
+async function handleViewDashboard() {
+  await dashboard.handleImportCompleted();
+  router.push('/dashboard');
 }
 </script>

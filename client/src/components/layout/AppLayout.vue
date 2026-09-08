@@ -52,6 +52,7 @@
 
 <script setup>
 import { computed, provide, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { RouterView } from 'vue-router';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
@@ -85,6 +86,7 @@ const isDarkMode = computed({
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+const { userProfile, error } = storeToRefs(dataStore);
 const dashboard = useDashboardData(dateStore, dataStore);
 const {
   viewMode,
@@ -102,8 +104,8 @@ const {
 
 provide(dashboardContextKey, {
   ...dashboard,
-  userProfile: computed(() => dataStore.userProfile),
-  error: computed(() => dataStore.error)
+  userProfile,
+  error
 });
 </script>
 
