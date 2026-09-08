@@ -41,8 +41,31 @@ export function createLatestRequest() {
 
 export function normalizeRequestError(error) {
   if (isAbortError(error)) return null;
-  if (error?.response?.data?.error) return error.response.data.error;
-  if (error?.response?.data?.message) return error.response.data.message;
-  if (error?.message) return error.message;
+  const responseData = error?.response?.data;
+  const responseError = normalizeErrorText(responseData?.error);
+  const responseMessage = normalizeErrorText(responseData?.message);
+  const errorMessage = normalizeErrorText(error?.message);
+
+  if (responseError) return responseError;
+  if (responseMessage) return responseMessage;
+  if (errorMessage) return errorMessage;
   return 'Request failed';
+}
+
+export function normalizeErrorText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Error) return value.message.trim();
+
+  const nestedMessage = normalizeErrorText(value.message);
+  if (nestedMessage) return nestedMessage;
+
+  const nestedTitle = normalizeErrorText(value.title);
+  if (nestedTitle) return nestedTitle;
+
+  const nestedDescription = normalizeErrorText(value.description);
+  if (nestedDescription) return nestedDescription;
+
+  return '';
 }

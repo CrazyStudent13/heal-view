@@ -36,6 +36,7 @@ import { computed, inject } from 'vue';
 import DataCardsSidebar from '../components/charts/DataCardsSidebar.vue';
 import ChartDisplay from '../components/charts/ChartDisplay.vue';
 import { dashboardContextKey } from '../composables/dashboardContext.js';
+import { normalizeErrorText } from '../utils/requestState.js';
 
 const dashboard = inject(dashboardContextKey);
 
@@ -53,8 +54,7 @@ const loading = dashboard.loading;
 const initialLoading = dashboard.initialLoading;
 const refreshing = dashboard.refreshing;
 const dashboardError = computed(() => {
-  const value = dashboard.error?.value ?? dashboard.error ?? '';
-  return String(value).trim();
+  return normalizeErrorText(dashboard.error?.value ?? dashboard.error);
 });
 
 function setViewMode(value) {
@@ -104,7 +104,6 @@ function setViewMode(value) {
 .chart-area :deep(.chart-display) {
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
 }
 

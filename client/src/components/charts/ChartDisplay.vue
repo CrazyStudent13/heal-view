@@ -71,6 +71,7 @@
 import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import { normalizeErrorText } from '../../utils/requestState.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 function createLazyChart(loader) {
@@ -141,8 +142,7 @@ const props = defineProps({
 const hasData = computed(() => props.chartData.length > 0);
 
 const errorMessage = computed(() => {
-  const value = props.error;
-  return value == null ? '' : String(value).trim();
+  return normalizeErrorText(props.error);
 });
 
 const hasDetailedSleepData = computed(() => {
@@ -168,8 +168,7 @@ const singleAvgHeartRate = computed(() => {
 
 <style scoped lang="scss">
 .chart-display {
-  height: 100%;
-  min-height: 420px;
+  min-height: 0;
   position: relative;
 }
 
