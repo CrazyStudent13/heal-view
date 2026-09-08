@@ -1,10 +1,10 @@
 <template>
   <div class="chart-display">
     <el-alert
-      v-if="error"
+      v-if="errorMessage"
       class="chart-error"
       type="warning"
-      :title="error"
+      :title="errorMessage"
       show-icon
       :closable="false"
     />
@@ -139,6 +139,11 @@ const props = defineProps({
 });
 
 const hasData = computed(() => props.chartData.length > 0);
+
+const errorMessage = computed(() => {
+  const value = props.error;
+  return value == null ? '' : String(value).trim();
+});
 
 const hasDetailedSleepData = computed(() => {
   return Boolean(props.sleepTimelineData?.segments?.length);

@@ -1,36 +1,38 @@
 <template>
-  <div class="content-area">
-    <div class="sidebar-wrapper">
-      <DataCardsSidebar
-        :chart-data="chartData"
-        :current-chart-type="currentChartType"
-        :view-mode="viewMode"
-        :loading="initialLoading"
-        :user-profile="dashboard.userProfile"
-        @chart-change="dashboard.handleChartChange"
-        @update:view-mode="setViewMode"
-      />
-    </div>
+  <section class="dashboard-page">
+    <div class="dashboard-grid">
+      <aside class="sidebar-wrapper">
+        <DataCardsSidebar
+          :chart-data="chartData"
+          :current-chart-type="currentChartType"
+          :view-mode="viewMode"
+          :loading="initialLoading"
+          :user-profile="dashboard.userProfile"
+          @chart-change="dashboard.handleChartChange"
+          @update:view-mode="setViewMode"
+        />
+      </aside>
 
-    <div class="chart-area">
-      <ChartDisplay
-        :chart-data="chartData"
-        :chart-type="currentChartType"
-        :view-mode="viewMode"
-        :loading="loading"
-        :refreshing="refreshing"
-        :error="dashboard.error || ''"
-        :sleep-timeline-data="sleepTimelineData"
-        :compare-sleep-timeline-data="compareSleepTimelineData"
-        :weight-data="weightData"
-        :user-profile="dashboard.userProfile"
-      />
+      <main class="chart-area">
+        <ChartDisplay
+          :chart-data="chartData"
+          :chart-type="currentChartType"
+          :view-mode="viewMode"
+          :loading="loading"
+          :refreshing="refreshing"
+          :error="dashboardError"
+          :sleep-timeline-data="sleepTimelineData"
+          :compare-sleep-timeline-data="compareSleepTimelineData"
+          :weight-data="weightData"
+          :user-profile="dashboard.userProfile"
+        />
+      </main>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
-import { inject } from 'vue';
+import { computed, inject } from 'vue';
 import DataCardsSidebar from '../components/charts/DataCardsSidebar.vue';
 import ChartDisplay from '../components/charts/ChartDisplay.vue';
 import { dashboardContextKey } from '../composables/dashboardContext.js';
@@ -50,6 +52,10 @@ const weightData = dashboard.weightData;
 const loading = dashboard.loading;
 const initialLoading = dashboard.initialLoading;
 const refreshing = dashboard.refreshing;
+const dashboardError = computed(() => {
+  const value = dashboard.error?.value ?? dashboard.error ?? '';
+  return String(value).trim();
+});
 
 function setViewMode(value) {
   viewMode.value = value;
@@ -57,27 +63,32 @@ function setViewMode(value) {
 </script>
 
 <style scoped lang="scss">
-.content-area {
+.dashboard-page {
   flex: 1;
-  display: flex;
-  gap: 20px;
-  padding: 20px;
   min-height: 0;
-  align-items: stretch;
   overflow: hidden;
   background: var(--app-bg);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 20px;
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
 }
 
 .sidebar-wrapper {
   width: 320px;
   flex-shrink: 0;
+  min-height: 0;
   background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow-y: auto;
   border: 1px solid var(--card-border);
-  height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -87,7 +98,6 @@ function setViewMode(value) {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0;
 }
 
@@ -113,11 +123,11 @@ function setViewMode(value) {
 }
 
 @media (max-width: 900px) {
-  .content-area {
+  .dashboard-grid {
     flex-direction: column;
     gap: 12px;
     padding: 12px;
-    overflow: visible;
+    height: auto;
   }
 
   .sidebar-wrapper {
