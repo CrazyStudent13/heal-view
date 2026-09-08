@@ -181,6 +181,19 @@ const singleAvgHeartRate = computed(() => {
   flex-shrink: 0;
 }
 
+.chart-display :deep(.personal-data-view) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.chart-display :deep(.personal-data-view > .content-wrapper) {
+  flex: 1;
+  min-height: 0;
+}
+
 .refresh-indicator {
   position: absolute;
   top: 12px;
