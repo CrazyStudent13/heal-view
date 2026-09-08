@@ -104,6 +104,14 @@ function setViewMode(value) {
 .chart-area :deep(.chart-display) {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.chart-area :deep(.chart-wrapper),
+.chart-area :deep(.chart-panel) {
+  flex: 1;
   min-height: 0;
 }
 
