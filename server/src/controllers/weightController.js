@@ -6,6 +6,7 @@ import path from 'path';
 import csv from 'csv-parser';
 import { fileURLToPath } from 'url';
 import { normalizeDateParam, validateDateRange } from '../utils/requestValidation.js';
+import { safeJsonParse } from '../utils/jsonSafe.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +38,7 @@ async function loadUserProfile() {
     `);
 
     if (importedProfile.length > 0) {
-      const profile = JSON.parse(importedProfile[0].values[0][0]);
+      const profile = safeJsonParse(importedProfile[0].values[0][0], {});
       userProfile = {
         height: parseFloat(profile.heightCm) || 0,
         sex: profile.sex || 'male',
@@ -92,7 +93,7 @@ async function loadUserProfile() {
 
         // Parse initial weight
         try {
-          const initialWeight = JSON.parse(row.InitialWeight);
+          const initialWeight = safeJsonParse(row.InitialWeight, {});
           userProfile.initialWeight = initialWeight.weight || null;
         } catch (e) {
           userProfile.initialWeight = null;
@@ -100,7 +101,7 @@ async function loadUserProfile() {
 
         // Parse RegularGoalList for target BMI (field:4) or target weight
         try {
-          const goals = JSON.parse(row.RegularGoalList);
+          const goals = safeJsonParse(row.RegularGoalList, []);
           const weightGoal = goals.find(g => g.field === 4); // field:4 seems to be BMI/weight goal
           if (weightGoal && weightGoal.target && userProfile.height > 0) {
             // Target is likely BMI, calculate target weight
