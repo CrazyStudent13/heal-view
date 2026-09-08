@@ -29,6 +29,7 @@
 
 ### 工程化
 - pnpm workspace：client / server 统一管理，单一锁文件（`pnpm-lock.yaml`）
+- 内置单元测试：`node:test` 覆盖核心规则计算与数据解析
 
 ## 快速开始
 
@@ -36,6 +37,15 @@
 
 - Node.js >= 22.13.0（使用内置的 `node:sqlite` 模块）
 - pnpm >= 9（`corepack enable pnpm` 或 `npm i -g pnpm` 安装）
+- 推荐同时准备一个支持 SQLite 文件持久化的本地或 NAS 存储目录
+
+### 环境变量
+
+后端默认只依赖以下变量，详见 [server/.env.example](server/.env.example)：
+
+- `PORT`：后端端口，默认 `3000`
+- `CACHE_TTL_DATES`：日期列表缓存秒数，默认 `86400`
+- `CACHE_TTL_SUMMARY`：日汇总缓存秒数，默认 `3600`
 
 ### 安装依赖
 
@@ -72,6 +82,21 @@ pnpm --filter heal-view-client dev
 ### 访问应用
 
 在浏览器中打开 http://localhost:5173 即可使用应用。
+
+### 运行测试
+
+在仓库根目录执行：
+
+```bash
+pnpm test
+```
+
+只跑前端或后端测试：
+
+```bash
+pnpm test:client
+pnpm test:server
+```
 
 ## NAS 部署（单容器方案）
 
@@ -113,16 +138,22 @@ heal-view/
 ├── client/                    # 前端应用
 │   ├── src/
 │   │   ├── api/               # API客户端
+│   │   ├── domain/            # 领域规则与数据兜底
 │   │   ├── components/        # Vue组件
 │   │   │   ├── layout/        # 布局组件
 │   │   │   ├── filters/       # 筛选组件
 │   │   │   └── charts/        # 图表组件
+│   │   ├── utils/             # 前端通用工具
 │   │   ├── stores/            # Pinia状态管理
 │   │   ├── composables/       # 组合式函数
 │   │   └── App.vue            # 根组件
 │   ├── public/                # 静态资源
 │   ├── dist/                  # 构建产物（vite build 生成）
 │   └── vite.config.js         # Vite配置
+│
+├── tests/                     # node:test 单元测试
+│   ├── client/                # 前端纯函数与兜底逻辑测试
+│   └── server/                # 后端 JSON 解析测试
 │
 ├── pnpm-workspace.yaml        # pnpm workspace 配置（client + server）
 ├── pnpm-lock.yaml             # 单一依赖锁文件
