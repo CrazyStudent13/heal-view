@@ -65,6 +65,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, watch, ref } from 'vue'
 import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import { assessSleepRegularity } from '../../domain/healthRules.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 
@@ -89,87 +90,14 @@ const props = defineProps({
 const chartRef = ref(null);
 let chartInstance = null;
 
-function parseTimeToMinutes(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const text = String(value).trim();
-  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-  return (hours * 60 + minutes) % 1440;
-}
-
-function formatMinutesToTime(minutes) {
-  if (!Number.isFinite(minutes)) return '--';
-  const value = ((Math.round(minutes) % 1440) + 1440) % 1440;
-  const hours = String(Math.floor(value / 60)).padStart(2, '0');
-  const mins = String(value % 60).padStart(2, '0');
-  return `${hours}:${mins}`;
-}
-
-function circularDistance(a, b) {
-  const diff = Math.abs(a - b) % 1440;
-  return Math.min(diff, 1440 - diff);
-}
-
-function circularMean(values) {
-  if (!values.length) return null;
-  let sinSum = 0;
-  let cosSum = 0;
-  values.forEach((value) => {
-    const angle = (value / 1440) * Math.PI * 2;
-    sinSum += Math.sin(angle);
-    cosSum += Math.cos(angle);
-  });
-  if (sinSum === 0 && cosSum === 0) return null;
-  let angle = Math.atan2(sinSum / values.length, cosSum / values.length);
-  if (angle < 0) angle += Math.PI * 2;
-  return (angle / (Math.PI * 2)) * 1440;
-}
-
-function assessRegularity(times) {
-  const validTimes = times
-    .map(parseTimeToMinutes)
-    .filter(value => Number.isFinite(value));
-
-  if (validTimes.length === 0) {
-    return {
-      score: null,
-      matched: 0,
-      total: 0,
-      referenceTime: '--',
-      status: 'none'
-    };
-  }
-
-  const reference = circularMean(validTimes);
-  const referenceTime = reference === null ? '--' : formatMinutesToTime(reference);
-  const tolerance = 90;
-  const matched = validTimes.filter(value => circularDistance(value, reference) <= tolerance).length;
-  const score = Math.round((matched / validTimes.length) * 100) / 10;
-
-  let status = 'chaotic';
-  if (score >= 7) status = 'regular';
-  else if (score >= 4) status = 'mixed';
-
-  return {
-    score,
-    matched,
-    total: validTimes.length,
-    referenceTime,
-    status
-  };
-}
-
 const sleepSummaryList = computed(() => {
   return Array.isArray(props.timelineList)
     ? props.timelineList.filter(item => item && (item.bedtime || item.wakeUpTime))
     : [];
 });
 
-const bedtimeRegularity = computed(() => assessRegularity(sleepSummaryList.value.map(item => item.bedtime)));
-const wakeRegularity = computed(() => assessRegularity(sleepSummaryList.value.map(item => item.wakeUpTime)));
+const bedtimeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map(item => item.bedtime)));
+const wakeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map(item => item.wakeUpTime)));
 const sleepRegularityMetrics = computed(() => [bedtimeRegularity.value, wakeRegularity.value].filter(item => item.total > 0));
 const hasSleepRegularityMetrics = computed(() => sleepRegularityMetrics.value.length > 0);
 

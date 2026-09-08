@@ -4,7 +4,7 @@
     
     <!-- Summary cards -->
     <div v-if="sportRecords.length > 0" class="summary-cards">
-      <MetricCard compact>
+      <MetricCard class="summary-card" layout="row">
         <template #icon>
           <span class="card-icon calories">🔥</span>
         </template>
@@ -12,7 +12,7 @@
         <template #value>{{ totalCalories }} kcal</template>
       </MetricCard>
 
-      <MetricCard compact>
+      <MetricCard class="summary-card" layout="row">
         <template #icon>
           <span class="card-icon duration">&#9201;</span>
         </template>
@@ -20,7 +20,7 @@
         <template #value>{{ formatDuration(totalDuration) }}</template>
       </MetricCard>
 
-      <MetricCard compact>
+      <MetricCard class="summary-card" layout="row">
         <template #icon>
           <span class="card-icon steps">&#128099;</span>
         </template>
@@ -43,8 +43,8 @@
       stripe
       highlight-current-row
       @current-change="handleRowSelect"
-      height="180"
-      style="width: 100%; margin-top: 15px;"
+      height="160"
+      style="width: 100%; margin-top: 10px;"
       :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
     >
       <!-- Time column -->
@@ -161,7 +161,7 @@
     <!-- Sport Detail Panel -->
     <transition name="slide-fade">
       <div v-if="selectedRecord" class="detail-panel">
-        <div class="detail-header">
+        <div v-if="hasDetailCards" class="detail-header">
           <SectionTitle>{{ t('sport.detailTitle', { name: getCategoryName(selectedRecord) }) }}</SectionTitle>
         </div>
 
@@ -289,11 +289,18 @@
         </div>
 
         <!-- Heart Rate Chart Section -->
-        <ChartPanel class="chart-section">
+        <ChartPanel
+          class="chart-section"
+          :class="{ 'chart-section--fill': !hasDetailCards }"
+        >
           <template #title>
             <SectionTitle>{{ t('sport.exerciseHeartRate') }}</SectionTitle>
           </template>
-          <div class="chart-container" ref="heartRateChartRef"></div>
+          <div
+            class="chart-container"
+            :class="{ 'chart-container--fill': !hasDetailCards }"
+            ref="heartRateChartRef"
+          ></div>
         </ChartPanel>
       </div>
     </transition>
@@ -328,6 +335,11 @@ const hasHeartRateZones = computed(() => {
   if (!selectedRecord.value) return false;
   const totalDuration = heartRateZones.value.reduce((sum, zone) => sum + zone.duration, 0);
   return totalDuration > 0;
+});
+
+const hasDetailCards = computed(() => {
+  if (!selectedRecord.value) return false;
+  return isRowingRecord(selectedRecord.value) || isWalkingRecord(selectedRecord.value) || isEllipticalRecord(selectedRecord.value);
 });
 
 // Summary calculations
@@ -571,6 +583,8 @@ function initHeartRateChart() {
   const maxHR = Math.max(...hrValues);
   const hrRange = maxHR - minHR;
   const padding = Math.max(hrRange * 0.15, 10); // At least 10 BPM padding
+  const avgHR = selectedRecord.value?.avgHrm || 0;
+  const avgHRLabel = t('sport.avgHeartRateTooltip', { value: avgHR });
   
   const option = {
     tooltip: {
@@ -578,14 +592,30 @@ function initHeartRateChart() {
       formatter: function(params) {
         const time = formatDuration(params[0].value[0]);
         const hr = params[0].value[1];
-        return `${time}<br/>${t('sport.heartRate')}: ${hr} BPM`;
+        const diff = hr - avgHR;
+        const isAboveAvg = diff > 0;
+        const isBelowAvg = diff < 0;
+        const deltaText = diff === 0
+          ? t('sport.heartRateEqualAvg')
+          : isAboveAvg
+            ? t('sport.heartRateAboveAvg', { value: Math.abs(diff) })
+            : t('sport.heartRateBelowAvg', { value: Math.abs(diff) });
+        const hrColor = isAboveAvg ? '#ff4d4f' : isBelowAvg ? '#52c41a' : '#666666';
+        const deltaColor = isAboveAvg ? '#ff4d4f' : isBelowAvg ? '#52c41a' : '#666666';
+
+        return [
+          `${time}`,
+          `<span style="color:${hrColor}">${t('sport.heartRate')}：${hr} BPM</span>`,
+          `<span style="color:#ff6b6b">${avgHRLabel}</span>`,
+          `<span style="color:${deltaColor}">${deltaText}</span>`
+        ].join('<br/>');
       }
     },
     grid: {
       left: '60px',
       right: '20px',
-      top: '10px',
-      bottom: '30px'
+      top: '8px',
+      bottom: '18px'
     },
     xAxis: {
       type: 'value',
@@ -642,7 +672,36 @@ function initHeartRateChart() {
             { offset: 0, color: 'rgba(145, 204, 117, 0.3)' },
             { offset: 1, color: 'rgba(145, 204, 117, 0.05)' }
           ])
-        }
+        },
+        markLine: avgHR
+          ? {
+              symbol: 'none',
+              tooltip: {
+                show: true,
+                formatter: avgHRLabel
+              },
+              data: [
+                {
+                  yAxis: avgHR,
+                  tooltip: {
+                    formatter: avgHRLabel
+                  },
+                  lineStyle: {
+                    color: '#ff6b6b',
+                    type: 'dashed',
+                    width: 2.5
+                  },
+                  label: {
+                    show: true,
+                    position: 'end',
+                    formatter: avgHRLabel,
+                    color: '#ff6b6b',
+                    fontSize: 12
+                  }
+                }
+              ]
+            }
+          : undefined
       }
     ]
   };
@@ -837,15 +896,15 @@ watch(() => localeStore.currentLocale, () => {
 <style scoped lang="scss">
 .daily-sport-chart {
   background: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--card-border);
   height: 100%;
 }
 
 .chart-title {
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   font-size: 20px;
   color: var(--text-primary);
   font-weight: 600;
@@ -855,19 +914,57 @@ watch(() => localeStore.currentLocale, () => {
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.summary-card {
+  min-height: 92px;
+}
+
+.summary-card :deep(.metric-card--row) {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.summary-card :deep(.metric-card__icon--row) {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  margin-top: 0;
+}
+
+.summary-card :deep(.metric-card__content--row) {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  padding-top: 0;
+}
+
+.summary-card :deep(.metric-card__label) {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.summary-card :deep(.metric-card__value--row) {
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 28px;
+  font-size: 22px;
 }
 
 .card-icon.calories {
@@ -956,17 +1053,21 @@ watch(() => localeStore.currentLocale, () => {
 
 /* Detail Panel Styles */
 .detail-panel {
-  margin-top: 15px;
+  margin-top: 12px;
   padding: 0;
   background: transparent;
   color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 4px;
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin: 10px 0 6px;
 }
 
 .detail-title {
@@ -1004,15 +1105,15 @@ watch(() => localeStore.currentLocale, () => {
 }
 
 .sport-specific {
-  background: var(--card-bg);
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  border: 1px solid var(--card-border);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  border: 0;
 }
 
 .section-title {
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1049,11 +1150,11 @@ watch(() => localeStore.currentLocale, () => {
 }
 
 .segments-section {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .km-paces-section {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .km-paces-list {
@@ -1100,7 +1201,42 @@ watch(() => localeStore.currentLocale, () => {
 }
 
 .chart-section {
-  margin-bottom: 15px;
+  margin-bottom: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.chart-section--fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-section :deep(.chart-panel) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.chart-section :deep(.chart-panel__title) {
+  margin: 6px 0 6px;
+}
+
+.chart-section :deep(.chart-panel__metrics) {
+  margin-bottom: 0;
+}
+
+.chart-section :deep(.chart-panel__body) {
+  min-height: 0;
+  padding: 0;
+}
+
+.chart-section--fill :deep(.chart-panel__body) {
+  flex: 1;
 }
 
 .hr-stats {
@@ -1127,18 +1263,23 @@ watch(() => localeStore.currentLocale, () => {
 }
 
 .chart-container {
-  height: 300px; /* Fixed height for heart rate chart in sport details */
+  height: 260px; /* Fixed height for heart rate chart in sport details */
   background: transparent;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 0;
+  padding: 0;
+}
+
+.chart-container--fill {
+  height: 100%;
+  min-height: 380px;
 }
 
 .hr-zones-section {
-  background: var(--card-bg);
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  border: 1px solid var(--card-border);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  border: 0;
 }
 
 .zones-list {

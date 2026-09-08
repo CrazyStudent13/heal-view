@@ -13,6 +13,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import echarts from '../../lib/echarts';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
+import { calculateCalorieEfficiency } from '../../domain/healthRules.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
@@ -35,9 +36,7 @@ const chartData = computed(() => {
   return props.data.map(item => {
     const duration = Number(item.totalDurationMinutes || 0);
     const calories = Number(item.sportCalories || 0);
-    const efficiency = duration > 0 && calories > 0
-      ? Math.round((calories / duration) * 100) / 100
-      : null;
+    const efficiency = calculateCalorieEfficiency(calories, duration);
 
     return {
       date: item.date,

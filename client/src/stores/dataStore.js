@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData, getUserProfile } from '../api/fitnessApi.js';
+import { isAbortError, normalizeRequestError } from '../utils/requestState.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});
@@ -10,148 +11,118 @@ export const useDataStore = defineStore('data', () => {
   const weightData = ref(null);
   const userProfile = ref(null);
   const loading = ref(false);
+  const pendingCount = ref(0);
   const error = ref(null);
 
-  /**
-   * Fetch daily summary for a date
-   */
-  async function fetchDailySummary(date) {
-    // Return cached data if available
-    if (dailySummaries.value[date]) {
-      return dailySummaries.value[date];
-    }
-
+  async function runRequest(request, fallback) {
+    pendingCount.value += 1;
     loading.value = true;
     error.value = null;
 
     try {
-      const summary = await getDailySummary(date);
+      return await request();
+    } catch (err) {
+      if (!isAbortError(err)) {
+        error.value = normalizeRequestError(err);
+        console.error('Data request failed:', err);
+      }
+      return fallback;
+    } finally {
+      pendingCount.value = Math.max(0, pendingCount.value - 1);
+      loading.value = pendingCount.value > 0;
+    }
+  }
+
+  /**
+   * Fetch daily summary for a date
+   */
+  async function fetchDailySummary(date, config = {}) {
+    // Return cached data if available
+    if (dailySummaries.value[date]) {
+      error.value = null;
+      return dailySummaries.value[date];
+    }
+
+    return runRequest(async () => {
+      const summary = await getDailySummary(date, config);
       dailySummaries.value[date] = summary;
       return summary;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch daily summary:', err);
-      return null;
-    } finally {
-      loading.value = false;
-    }
+    }, null);
   }
 
   /**
    * Fetch time series data for a date and metric
    */
-  async function fetchTimeSeries(date, metric) {
+  async function fetchTimeSeries(date, metric, config = {}) {
     const cacheKey = `${date}_${metric}`;
 
     // Return cached data if available
     if (timeSeriesData.value[cacheKey]) {
+      error.value = null;
       return timeSeriesData.value[cacheKey];
     }
 
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const data = await getTimeSeries(date, metric);
+    return runRequest(async () => {
+      const data = await getTimeSeries(date, metric, config);
       timeSeriesData.value[cacheKey] = data;
       return data;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch time series:', err);
-      return null;
-    } finally {
-      loading.value = false;
-    }
+    }, null);
   }
 
   /**
    * Fetch sport records with filters
    */
-  async function fetchSportRecords(params = {}) {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const data = await getSportRecords(params);
+  async function fetchSportRecords(params = {}, config = {}) {
+    return runRequest(async () => {
+      const data = await getSportRecords(params, config);
       sportRecords.value = data.records || [];
       return data.records;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch sport records:', err);
-      return [];
-    } finally {
-      loading.value = false;
-    }
+    }, []);
   }
 
   /**
    * Fetch sleep timeline for a date
    */
-  async function fetchSleepTimeline(date) {
+  async function fetchSleepTimeline(date, config = {}) {
     // Return cached data if available
     if (sleepTimelines.value[date]) {
+      error.value = null;
       return sleepTimelines.value[date];
     }
 
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const timeline = await getSleepTimeline(date);
+    return runRequest(async () => {
+      const timeline = await getSleepTimeline(date, config);
       sleepTimelines.value[date] = timeline;
       return timeline;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch sleep timeline:', err);
-      return null;
-    } finally {
-      loading.value = false;
-    }
+    }, null);
   }
 
   /**
    * Fetch weight data with optional date range
    */
-  async function fetchWeightData(params = {}) {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const data = await getWeightData(params);
+  async function fetchWeightData(params = {}, config = {}) {
+    return runRequest(async () => {
+      const data = await getWeightData(params, config);
       weightData.value = data;
       return data;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch weight data:', err);
-      return null;
-    } finally {
-      loading.value = false;
-    }
+    }, null);
   }
 
   /**
    * Fetch user profile data
    */
-  async function fetchUserProfile() {
+  async function fetchUserProfile(config = {}) {
     // Return cached data if available
     if (userProfile.value) {
+      error.value = null;
       return userProfile.value;
     }
 
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const data = await getUserProfile();
+    return runRequest(async () => {
+      const data = await getUserProfile(config);
       userProfile.value = data;
       return data;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Failed to fetch user profile:', err);
-      return null;
-    } finally {
-      loading.value = false;
-    }
+    }, null);
   }
 
   /**
@@ -164,6 +135,9 @@ export const useDataStore = defineStore('data', () => {
     sleepTimelines.value = {};
     weightData.value = null;
     userProfile.value = null;
+    pendingCount.value = 0;
+    loading.value = false;
+    error.value = null;
   }
 
   return {
@@ -174,6 +148,7 @@ export const useDataStore = defineStore('data', () => {
     weightData,
     userProfile,
     loading,
+    pendingCount,
     error,
     fetchDailySummary,
     fetchTimeSeries,

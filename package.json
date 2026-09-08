@@ -17,6 +17,9 @@
     "dev:server": "pnpm --filter heal-view-server dev",
     "build:client": "pnpm --filter heal-view-client build",
     "start:server": "pnpm --filter heal-view-server start",
-    "import": "pnpm --filter heal-view-server import"
+    "import": "pnpm --filter heal-view-server import",
+    "test": "node --test tests/index.test.js",
+    "test:client": "node --test tests/client/index.test.js",
+    "test:server": "node --test tests/server/index.test.js"
   }
 }

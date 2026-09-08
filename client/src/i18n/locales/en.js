@@ -71,6 +71,11 @@ export default {
     type: 'Type', training: 'Training', rest: 'Rest', strokeCount: 'Strokes', avgPace: 'Avg pace', fastestPace: 'Fastest pace',
     avgCadence: 'Avg cadence', maxCadence: 'Max cadence', avgStride: 'Avg stride', maxStride: 'Max stride', elevationGain: 'Elevation gain',
     perKmPace: 'Pace per kilometer', exerciseDistance: 'Exercise distance', exerciseSteps: 'Exercise steps', exerciseHeartRate: 'Exercise heart rate (BPM)',
+    avgHeartRateLine: 'Average line: {value} BPM',
+    avgHeartRateTooltip: 'Average heart rate: {value} BPM',
+    heartRateAboveAvg: 'Above average by {value} BPM',
+    heartRateBelowAvg: 'Below average by {value} BPM',
+    heartRateEqualAvg: 'Equal to average',
     time: 'Time', heartRate: 'Heart rate', zeroMinutes: '0 min', durationHoursMinutes: '{hours}h {minutes}min', durationMinutes: '{minutes}min',
     zone: { warmup: 'Warm-up', fatBurn: 'Fat burn', aerobic: 'Aerobic', anaerobic: 'Anaerobic', extreme: 'Maximum' },
     typeName: {

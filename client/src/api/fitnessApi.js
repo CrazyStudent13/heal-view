@@ -3,57 +3,57 @@ import apiClient from './client.js';
 /**
  * Get list of dates
  */
-export function getDates() {
-  return apiClient.get('/dates');
+export function getDates(config = {}) {
+  return apiClient.get('/dates', config);
 }
 
 /**
  * Get daily summary
  */
-export function getDailySummary(date) {
-  return apiClient.get(`/dates/${date}/summary`);
+export function getDailySummary(date, config = {}) {
+  return apiClient.get(`/dates/${date}/summary`, config);
 }
 
 /**
  * Get time series data
  */
-export function getTimeSeries(date, metric) {
-  return apiClient.get(`/dates/${date}/${metric}`);
+export function getTimeSeries(date, metric, config = {}) {
+  return apiClient.get(`/dates/${date}/${metric}`, config);
 }
 
 /**
  * Get sport records
  */
-export function getSportRecords(params = {}) {
-  return apiClient.get('/sports', { params });
+export function getSportRecords(params = {}, config = {}) {
+  return apiClient.get('/sports', { ...config, params });
 }
 
 /**
  * Get filter options
  */
-export function getFilterOptions() {
-  return apiClient.get('/filters/options');
+export function getFilterOptions(config = {}) {
+  return apiClient.get('/filters/options', config);
 }
 
 /**
  * Get sleep timeline for a specific date
  */
-export function getSleepTimeline(date) {
-  return apiClient.get(`/sleep/timeline/${date}`);
+export function getSleepTimeline(date, config = {}) {
+  return apiClient.get(`/sleep/timeline/${date}`, config);
 }
 
 /**
  * Get weight data with optional date range
  */
-export function getWeightData(params = {}) {
-  return apiClient.get('/weight/data', { params });
+export function getWeightData(params = {}, config = {}) {
+  return apiClient.get('/weight/data', { ...config, params });
 }
 
 /**
  * Get user profile data
  */
-export function getUserProfile() {
-  return apiClient.get('/user/profile');
+export function getUserProfile(config = {}) {
+  return apiClient.get('/user/profile', config);
 }
 
 /**
