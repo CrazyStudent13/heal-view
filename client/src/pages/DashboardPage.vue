@@ -64,7 +64,9 @@ function setViewMode(value) {
 
 <style scoped lang="scss">
 .dashboard-page {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   background: var(--app-bg);
@@ -75,7 +77,7 @@ function setViewMode(value) {
   grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   align-items: stretch;
 }
@@ -95,6 +97,7 @@ function setViewMode(value) {
 
 .chart-area {
   flex: 1;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
