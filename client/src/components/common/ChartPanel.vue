@@ -73,9 +73,10 @@ defineProps({
   min-height: 0;
 }
 
-.chart-panel__body > :first-child {
+.chart-panel__body :deep(.chart) {
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .chart-panel__state {
