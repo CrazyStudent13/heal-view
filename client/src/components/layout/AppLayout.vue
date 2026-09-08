@@ -3,9 +3,6 @@
     <!-- Top navigation bar -->
     <TopNavbar 
       v-model:viewMode="viewMode" 
-      :current-page="currentPage"
-      :show-date-controls="currentPage === 'dashboard'"
-      @page-change="currentPage = $event"
       @open-settings="settingsDrawerVisible = true"
     />
     
@@ -47,58 +44,22 @@
       </div>
     </el-drawer>
     
-    <!-- Main content area -->
-    <DataImportPage
-      v-if="currentPage === 'import'"
-      @imported="handleImportCompleted"
-      @view-dashboard="currentPage = 'dashboard'"
-    />
-
-    <div v-else class="content-area">
-      <!-- Left sidebar: Data cards -->
-      <div class="sidebar-wrapper">
-        <DataCardsSidebar 
-          :chart-data="chartData"
-          :current-chart-type="currentChartType"
-          :view-mode="viewMode"
-          :loading="initialLoading"
-          :user-profile="dataStore.userProfile"
-          @chart-change="handleChartChange"
-          @update:view-mode="viewMode = $event"
-        />
-      </div>
-      
-      <!-- Right area: Chart display -->
-      <div class="chart-area">
-        <ChartDisplay 
-          :chart-data="chartData"
-          :chart-type="currentChartType"
-          :view-mode="viewMode"
-          :loading="loading"
-          :refreshing="refreshing"
-          :error="dataStore.error || ''"
-          :sleep-timeline-data="sleepTimelineData"
-          :compare-sleep-timeline-data="compareSleepTimelineData"
-          :weight-data="weightData"
-          :user-profile="dataStore.userProfile"
-        />
-      </div>
-    </div>
+    <main class="layout-main">
+      <RouterView />
+    </main>
   </div>
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, computed } from 'vue';
+import { computed, provide, ref } from 'vue';
+import { RouterView } from 'vue-router';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useDashboardData } from '../../composables/useDashboardData.js';
+import { dashboardContextKey } from '../../composables/dashboardContext.js';
 import TopNavbar from '../navigation/TopNavbar.vue';
-import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
-import ChartDisplay from '../charts/ChartDisplay.vue';
-
-const DataImportPage = defineAsyncComponent(() => import('../import/DataImportPage.vue'));
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
@@ -108,9 +69,7 @@ function t(key) {
   return localeStore.t(key);
 }
 
-// Settings drawer visibility
 const settingsDrawerVisible = ref(false);
-const currentPage = ref('dashboard');
 
 // Language - use store value
 const currentLanguage = computed({
@@ -126,6 +85,7 @@ const isDarkMode = computed({
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+const dashboard = useDashboardData(dateStore, dataStore);
 const {
   viewMode,
   currentChartType,
@@ -138,7 +98,13 @@ const {
   refreshing,
   handleChartChange,
   handleImportCompleted
-} = useDashboardData(dateStore, dataStore);
+} = dashboard;
+
+provide(dashboardContextKey, {
+  ...dashboard,
+  userProfile: computed(() => dataStore.userProfile),
+  error: computed(() => dataStore.error)
+});
 </script>
 
 <style scoped lang="scss">
@@ -149,59 +115,11 @@ const {
   overflow: hidden;
 }
 
-.content-area {
+.layout-main {
   flex: 1;
-  display: flex;
-  gap: 20px;
-  padding: 20px;
   min-height: 0;
-  align-items: stretch;
   overflow: hidden;
   background: var(--app-bg);
-}
-
-.sidebar-wrapper {
-  width: 320px;
-  flex-shrink: 0;
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  overflow-y: auto;
-  border: 1px solid var(--card-border);
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-area {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.chart-area :deep(.chart-display) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.chart-area :deep(.sleep-timeline-view),
-.chart-area :deep(.chart-container),
-.chart-area :deep(.analysis-card) {
-  width: 100%;
-}
-
-.chart-area :deep(.chart-container) {
-  margin-bottom: 0;
-}
-
-.chart-area :deep(.sleep-timeline-view) {
-  min-height: 0;
 }
 
 /* Drawer content styles */
@@ -243,21 +161,7 @@ const {
     overflow: visible;
   }
 
-  .content-area {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    overflow: visible;
-  }
-
-  .sidebar-wrapper {
-    width: 100%;
-    height: auto;
-    overflow: visible;
-  }
-
-  .chart-area {
-    height: auto;
+  .layout-main {
     overflow: visible;
   }
 }

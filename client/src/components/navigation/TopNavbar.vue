@@ -2,20 +2,14 @@
   <div class="top-navbar">
     <nav class="primary-nav">
       <button
-        :class="['nav-button', { active: currentPage === 'dashboard' }]"
+        v-for="item in navItems"
+        :key="item.path"
+        :class="['nav-button', { active: isActive(item) }]"
         type="button"
-        @click="$emit('page-change', 'dashboard')"
+        @click="navigate(item.path)"
       >
-        <el-icon><DataLine /></el-icon>
-        <span>健康看板</span>
-      </button>
-      <button
-        :class="['nav-button', { active: currentPage === 'import' }]"
-        type="button"
-        @click="$emit('page-change', 'import')"
-      >
-        <el-icon><UploadFilled /></el-icon>
-        <span>数据导入</span>
+        <el-icon><component :is="item.icon" /></el-icon>
+        <span>{{ item.label }}</span>
       </button>
     </nav>
 
@@ -90,7 +84,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { DataLine, Setting, Search, UploadFilled } from '@element-plus/icons-vue';
+import { useRoute, useRouter } from 'vue-router';
+import { DataLine, Setting, Search, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 
@@ -101,7 +96,17 @@ function t(key) {
   return localeStore.t(key);
 }
 
-const emit = defineEmits(['update:viewMode', 'open-settings', 'page-change']);
+const emit = defineEmits(['update:viewMode', 'open-settings']);
+const route = useRoute();
+const router = useRouter();
+
+const navItems = [
+  { path: '/dashboard', label: '健康看板', icon: DataLine },
+  { path: '/import', label: '数据导入', icon: UploadFilled },
+  { path: '/plans', label: '运动计划', icon: Calendar },
+  { path: '/reports/weekly', label: '周报月报', icon: Document },
+  { path: '/profile', label: '个人配置', icon: UserFilled }
+];
 
 // Date picker shortcuts
 const dateShortcuts = computed(() => [
@@ -138,16 +143,10 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'single'
-  },
-  currentPage: {
-    type: String,
-    default: 'dashboard'
-  },
-  showDateControls: {
-    type: Boolean,
-    default: true
   }
 });
+
+const showDateControls = computed(() => route.name === 'dashboard');
 
 const store = useDateStore();
 
@@ -155,6 +154,17 @@ const viewModeLocal = computed({
   get: () => props.viewMode,
   set: (value) => emit('update:viewMode', value)
 });
+
+function isActive(item) {
+  if (item.path === '/reports/weekly') {
+    return route.path.startsWith('/reports');
+  }
+  return route.path === item.path;
+}
+
+function navigate(path) {
+  router.push(path);
+}
 
 const selectedSingleDate = ref('');
 const dateRange = ref([]);
