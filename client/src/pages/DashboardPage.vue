@@ -73,8 +73,8 @@ function setViewMode(value) {
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-  gap: 18px;
-  padding: 20px;
+  gap: 8px;
+  padding: 8px;
   height: 100%;
   min-height: 0;
   align-items: stretch;
@@ -123,9 +123,9 @@ function setViewMode(value) {
 
 @media (max-width: 900px) {
   .dashboard-grid {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
     height: auto;
   }
 
