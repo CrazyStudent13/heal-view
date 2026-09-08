@@ -76,6 +76,7 @@ import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
+import { classifyBloodPressure } from '../../domain/healthRules.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 
@@ -107,14 +108,6 @@ function formatBloodPressure(systolic, diastolic) {
   const dia = Math.round(Number(diastolic) || 0);
   if (!isValidNumber(sys) || !isValidNumber(dia)) return '--';
   return `${sys}/${dia} mmHg`;
-}
-
-function bloodPressureStatus(systolic, diastolic) {
-  const sys = Number(systolic) || 0;
-  const dia = Number(diastolic) || 0;
-  if (sys >= 140 || dia >= 90) return 'high';
-  if (sys >= 130 || dia >= 85) return 'elevated';
-  return 'normal';
 }
 
 function resolveBloodPressure(item) {
@@ -236,7 +229,7 @@ const avgBloodPressureMetrics = computed(() => {
       systolic,
       diastolic,
       text: formatBloodPressure(systolic, diastolic),
-      status: bloodPressureStatus(systolic, diastolic)
+      status: classifyBloodPressure(systolic, diastolic)
     };
   }
 
@@ -252,7 +245,7 @@ const avgBloodPressureMetrics = computed(() => {
     systolic,
     diastolic,
     text: formatBloodPressure(systolic, diastolic),
-    status: bloodPressureStatus(systolic, diastolic)
+    status: classifyBloodPressure(systolic, diastolic)
   };
 });
 
@@ -303,7 +296,7 @@ const peakBloodPressureMetrics = computed(() => {
     systolic: Number(record.systolic) || 0,
     diastolic: Number(record.diastolic) || 0,
     text: formatBloodPressure(record.systolic, record.diastolic),
-    status: bloodPressureStatus(record.systolic, record.diastolic)
+    status: classifyBloodPressure(record.systolic, record.diastolic)
   };
 });
 

@@ -1,5 +1,18 @@
 <template>
   <div class="chart-display">
+    <el-alert
+      v-if="error"
+      class="chart-error"
+      type="warning"
+      :title="error"
+      show-icon
+      :closable="false"
+    />
+
+    <div v-if="refreshing" class="refresh-indicator">
+      <el-icon class="is-loading"><Loading /></el-icon>
+    </div>
+
     <!-- Single day mode: show different content based on chart type -->
     <template v-if="viewMode === 'single'">
       <!-- Default to sport records when no specific chart selected -->
@@ -30,6 +43,12 @@
         v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData"
         :data="chartData"
       />
+      <ChartPanel
+        v-if="chartType === 'sleep' && !hasDetailedSleepData && !hasSleepSummaryData"
+        :empty="!loading"
+        :loading="loading"
+        :empty-description="t('chart.noSleepData')"
+      />
     </template>
 
     <!-- Multi-day comparison mode: show traditional charts -->
@@ -50,7 +69,9 @@
 
 <script setup>
 import { computed, defineAsyncComponent } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import ChartPanel from '../common/ChartPanel.vue';
 
 function createLazyChart(loader) {
   return defineAsyncComponent({
@@ -90,6 +111,14 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  refreshing: {
+    type: Boolean,
+    default: false
+  },
+  error: {
+    type: String,
+    default: ''
   },
   sleepTimelineData: {
     type: Object,
@@ -135,6 +164,30 @@ const singleAvgHeartRate = computed(() => {
 <style scoped lang="scss">
 .chart-display {
   height: 100%;
+  min-height: 420px;
+  position: relative;
+}
+
+.chart-error {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.refresh-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .empty-state, .loading-state {

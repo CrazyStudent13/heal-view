@@ -61,7 +61,7 @@
           :chart-data="chartData"
           :current-chart-type="currentChartType"
           :view-mode="viewMode"
-          :loading="loading"
+          :loading="initialLoading"
           :user-profile="dataStore.userProfile"
           @chart-change="handleChartChange"
           @update:view-mode="viewMode = $event"
@@ -75,6 +75,8 @@
           :chart-type="currentChartType"
           :view-mode="viewMode"
           :loading="loading"
+          :refreshing="refreshing"
+          :error="dataStore.error || ''"
           :sleep-timeline-data="sleepTimelineData"
           :compare-sleep-timeline-data="compareSleepTimelineData"
           :weight-data="weightData"
@@ -91,6 +93,8 @@ import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useThemeStore } from '../../stores/themeStore';
+import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '../../domain/healthDataFallbacks.js';
+import { createLatestRequest } from '../../utils/requestState.js';
 import TopNavbar from '../navigation/TopNavbar.vue';
 import DataCardsSidebar from '../charts/DataCardsSidebar.vue';
 import ChartDisplay from '../charts/ChartDisplay.vue';
@@ -129,15 +133,23 @@ const compareSleepTimelineData = ref([]);
 const weightData = ref(null);
 const loading = ref(false);
 const initializing = ref(false);
-let singleFetchSeq = 0;
-let compareFetchSeq = 0;
-let sleepFetchSeq = 0;
-let compareSleepFetchSeq = 0;
-let weightFetchSeq = 0;
-let weightSidebarFetchSeq = 0;
+const singleRequest = createLatestRequest();
+const compareRequest = createLatestRequest();
+const sleepRequest = createLatestRequest();
+const compareSleepRequest = createLatestRequest();
+const weightRequest = createLatestRequest();
+const weightSidebarRequest = createLatestRequest();
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+
+const initialLoading = computed(() => {
+  return loading.value && chartData.value.length === 0 && !weightData.value;
+});
+
+const refreshing = computed(() => {
+  return loading.value && !initialLoading.value;
+});
 
 function formatLocalDate(date) {
   const year = date.getFullYear();
@@ -163,21 +175,20 @@ function datesKey(dates) {
 }
 
 async function fetchSleepTimelineForDate(date) {
-  const requestId = ++sleepFetchSeq;
+  const request = sleepRequest.next();
   if (!date) {
     sleepTimelineData.value = null;
     return;
   }
 
-  sleepTimelineData.value = null;
-  const timeline = await dataStore.fetchSleepTimeline(date);
-  if (requestId === sleepFetchSeq && dateStore.selectedDate === date && currentChartType.value === 'sleep') {
-    sleepTimelineData.value = timeline;
+  const timeline = await dataStore.fetchSleepTimeline(date, { signal: request.signal });
+  if (request.isCurrent() && dateStore.selectedDate === date && currentChartType.value === 'sleep') {
+    sleepTimelineData.value = normalizeSleepTimeline(timeline, date);
   }
 }
 
 async function fetchCompareSleepTimelines(dates) {
-  const requestId = ++compareSleepFetchSeq;
+  const request = compareSleepRequest.next();
 
   if (dates.length === 0) {
     compareSleepTimelineData.value = [];
@@ -186,14 +197,15 @@ async function fetchCompareSleepTimelines(dates) {
 
   const data = [];
   for (const date of dates) {
-    const timeline = await dataStore.fetchSleepTimeline(date);
+    if (!request.isCurrent()) return;
+    const timeline = await dataStore.fetchSleepTimeline(date, { signal: request.signal });
     if (timeline) {
-      data.push(timeline);
+      data.push(normalizeSleepTimeline(timeline, date));
     }
   }
 
   if (
-    requestId !== compareSleepFetchSeq ||
+    !request.isCurrent() ||
     viewMode.value !== 'compare' ||
     currentChartType.value !== 'sleep'
   ) {
@@ -208,9 +220,7 @@ async function handleChartChange(type) {
   // Handle personal data chart type - fetch user profile first
   if (type === 'personal') {
     if (!dataStore.userProfile) {
-      loading.value = true;
       await dataStore.fetchUserProfile();
-      loading.value = false;
     }
   }
 
@@ -222,8 +232,8 @@ async function handleChartChange(type) {
   } else if (type === 'sleep' && viewMode.value === 'compare') {
     await fetchCompareSleepTimelines(dateStore.selectedDates);
   } else if (type !== 'sleep') {
-    sleepTimelineData.value = null;
-    compareSleepTimelineData.value = [];
+    sleepRequest.cancel();
+    compareSleepRequest.cancel();
   }
   
   // Fetch weight data when switching to weight chart in compare mode
@@ -234,7 +244,7 @@ async function handleChartChange(type) {
 
 // Fetch data for single mode
 async function fetchSingleDayData(date) {
-  const requestId = ++singleFetchSeq;
+  const request = singleRequest.next();
 
   if (!date) {
     chartData.value = [];
@@ -243,39 +253,19 @@ async function fetchSingleDayData(date) {
   }
 
   loading.value = true;
-  const summary = await dataStore.fetchDailySummary(date);
-  if (requestId !== singleFetchSeq || viewMode.value !== 'single' || dateStore.selectedDate !== date) {
+  const summary = await dataStore.fetchDailySummary(date, { signal: request.signal });
+  if (!request.isCurrent() || viewMode.value !== 'single' || dateStore.selectedDate !== date) {
     return;
   }
 
+  const normalized = normalizeDailySummary(summary || {}, date);
   if (summary) {
-    chartData.value = [{
-      date: summary.date,
-      steps: summary.steps,
-      distance: summary.distance,
-      calories: summary.calories,
-      avgHeartRate: summary.avgHeartRate,
-      minHeartRate: summary.minHeartRate,
-      maxHeartRate: summary.maxHeartRate,
-      avgStress: summary.avgStress,
-      bloodPressureCount: summary.bloodPressureCount || 0,
-      avgSystolic: summary.avgSystolic || 0,
-      avgDiastolic: summary.avgDiastolic || 0,
-      latestBloodPressure: summary.latestBloodPressure || null,
-      bloodPressureRecords: summary.bloodPressureRecords || [],
-      sleepHours: summary.sleepHours || 0,
-      deepSleepHours: summary.deepSleepHours || 0,
-      lightSleepHours: summary.lightSleepHours || 0,
-      remSleepHours: summary.remSleepHours || 0,
-      awakeSleepHours: summary.awakeSleepHours || 0,
-      totalDurationMinutes: summary.totalDurationMinutes || 0,
-      sportCalories: summary.sportCalories || 0
-    }];
+    chartData.value = [normalized];
   } else {
     chartData.value = [];
   }
 
-  if (requestId === singleFetchSeq) {
+  if (request.isCurrent()) {
     loading.value = false;
   }
 }
@@ -283,7 +273,7 @@ async function fetchSingleDayData(date) {
 // Fetch data for compare mode
 async function fetchCompareData(dates, options = {}) {
   const { includeWeightForSidebar = true } = options;
-  const requestId = ++compareFetchSeq;
+  const request = compareRequest.next();
 
   if (dates.length === 0) {
     chartData.value = [];
@@ -294,12 +284,14 @@ async function fetchCompareData(dates, options = {}) {
   loading.value = true;
   const data = [];
   for (const date of dates) {
-    const summary = await dataStore.fetchDailySummary(date);
+    if (!request.isCurrent()) return;
+    const summary = await dataStore.fetchDailySummary(date, { signal: request.signal });
     if (summary) {
-      data.push(summary);
+      const normalized = normalizeDailySummary(summary, date);
+      data.push(normalized);
     }
   }
-  if (requestId !== compareFetchSeq || viewMode.value !== 'compare') {
+  if (!request.isCurrent() || viewMode.value !== 'compare') {
     return;
   }
 
@@ -314,7 +306,7 @@ async function fetchCompareData(dates, options = {}) {
 
 // Fetch weight data only for sidebar display (no loading state change)
 async function fetchWeightDataForSidebar(dates) {
-  const requestId = ++weightSidebarFetchSeq;
+  const request = weightSidebarRequest.next();
   if (dates.length === 0) return;
   const requestedKey = datesKey(dates);
   
@@ -323,16 +315,16 @@ async function fetchWeightDataForSidebar(dates) {
     const startDate = sorted[0];
     const endDate = sorted[sorted.length - 1];
     
-    const data = await dataStore.fetchWeightData({ startDate, endDate });
+    const data = normalizeWeightData(await dataStore.fetchWeightData({ startDate, endDate }, { signal: request.signal }));
     if (
-      requestId !== weightSidebarFetchSeq ||
+      !request.isCurrent() ||
       viewMode.value !== 'compare' ||
       requestedKey !== datesKey(dateStore.selectedDates)
     ) {
       return;
     }
     
-    if (data && data.dailyData) {
+    if (data?.dailyData) {
       const weightChartData = data.dailyData.map(item => ({
         date: item.date,
         avgWeight: item.avgWeight
@@ -352,8 +344,8 @@ async function fetchWeightDataForSidebar(dates) {
 
 // Fetch weight data for the current date range
 async function fetchWeightData(dates = dateStore.selectedDates) {
-  const requestId = ++weightFetchSeq;
-  weightSidebarFetchSeq++;
+  const request = weightRequest.next();
+  weightSidebarRequest.cancel();
   if (dates.length === 0) {
     weightData.value = null;
     loading.value = false;
@@ -366,15 +358,15 @@ async function fetchWeightData(dates = dateStore.selectedDates) {
     const endDate = sorted[sorted.length - 1];
     
     loading.value = true;
-    const data = await dataStore.fetchWeightData({ startDate, endDate });
-    if (requestId !== weightFetchSeq || viewMode.value !== 'compare') {
+    const data = normalizeWeightData(await dataStore.fetchWeightData({ startDate, endDate }, { signal: request.signal }));
+    if (!request.isCurrent() || viewMode.value !== 'compare') {
       return;
     }
 
     weightData.value = data;
     
     // Also update chartData with weight info for sidebar card display
-    if (data && data.dailyData) {
+    if (data?.dailyData) {
       const weightChartData = data.dailyData.map(item => ({
         date: item.date,
         avgWeight: item.avgWeight
@@ -390,11 +382,11 @@ async function fetchWeightData(dates = dateStore.selectedDates) {
     }
   } catch (error) {
     console.error('Failed to fetch weight data:', error);
-    if (requestId === weightFetchSeq) {
+    if (request.isCurrent()) {
       weightData.value = null;
     }
   } finally {
-    if (requestId === weightFetchSeq) {
+    if (request.isCurrent()) {
       loading.value = false;
     }
   }
@@ -485,6 +477,13 @@ watch(() => dateStore.selectedDates, async (newDates) => {
 
 // Watch for view mode changes
 watch(viewMode, async (newMode) => {
+  singleRequest.cancel();
+  compareRequest.cancel();
+  sleepRequest.cancel();
+  compareSleepRequest.cancel();
+  weightRequest.cancel();
+  weightSidebarRequest.cancel();
+
   // Set default chart type based on mode
   currentChartType.value = newMode === 'single' ? 'personal' : 'weight';
   

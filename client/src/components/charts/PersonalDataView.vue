@@ -125,6 +125,7 @@
 import { computed, ref } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { classifyBloodPressureRecord } from '../../domain/healthRules.js';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -166,12 +167,7 @@ const bloodPressureRecords = computed(() => {
 });
 
 function bloodPressureStatus(record = bloodPressureSummary.value) {
-  if (!record) return 'normal';
-  const systolic = Number(record.latestSystolic ?? record.systolic ?? 0);
-  const diastolic = Number(record.latestDiastolic ?? record.diastolic ?? 0);
-  if (systolic >= 140 || diastolic >= 90) return 'high';
-  if (systolic >= 130 || diastolic >= 85) return 'elevated';
-  return 'normal';
+  return classifyBloodPressureRecord(record);
 }
 
 const bloodPressureStatusLabel = computed(() => {
