@@ -10,7 +10,7 @@
       <!-- Basic Info -->
       <div class="info-section">
         <SectionTitle>{{ t('personal.basicInfo') }}</SectionTitle>
-        <el-descriptions :column="1" border size="large">
+        <el-descriptions :column="2" border size="large">
           <el-descriptions-item>
             <template #label>{{ t('personal.height') }} / {{ t('personal.weight') }}</template>
             {{ profileData.height || '--' }} cm / {{ profileData.weight || '--' }} kg
@@ -35,7 +35,7 @@
               <el-tag v-if="profileData.bmi" :type="bmiTagType" size="small">{{ bmiCategory }}</el-tag>
             </span>
           </el-descriptions-item>
-          <el-descriptions-item :label="t('personal.bmr')">
+          <el-descriptions-item :span="2" :label="t('personal.bmr')">
             {{ profileData.bmr || '--' }} {{ t('personal.kcalPerDay') }}
           </el-descriptions-item>
         </el-descriptions>

@@ -1,13 +1,6 @@
 <template>
   <div class="settings-page">
-    <header class="page-heading">
-      <div class="page-heading-icon">
-        <el-icon><Lock /></el-icon>
-      </div>
-      <h2>{{ t('auth.accessProtection') }}</h2>
-    </header>
-
-    <el-card class="settings-card" shadow="never">
+    <div v-loading="settingsLoading" class="settings-card">
       <section class="protection-row">
         <div class="protection-copy">
           <div class="protection-title-row">
@@ -18,7 +11,7 @@
           </div>
           <p>{{ t('auth.accessProtectionDescription') }}</p>
         </div>
-        <el-switch v-model="enabled" />
+        <el-switch v-model="enabled" :disabled="settingsLoading || auth.loading" />
       </section>
 
       <el-divider />
@@ -35,6 +28,7 @@
               type="password"
               show-password
               autocomplete="new-password"
+              :disabled="settingsLoading || auth.loading"
             />
           </el-form-item>
           <el-form-item :label="t('auth.confirmPassword')">
@@ -43,6 +37,7 @@
               type="password"
               show-password
               autocomplete="new-password"
+              :disabled="settingsLoading || auth.loading"
             />
           </el-form-item>
         </el-form>
@@ -58,24 +53,24 @@
       />
 
       <div class="settings-actions">
-        <el-button type="primary" :loading="auth.loading" @click="save">
+        <el-button type="primary" :loading="auth.loading" :disabled="settingsLoading" @click="save">
           {{ t('auth.save') }}
         </el-button>
-        <el-button v-if="auth.enabled" @click="signOut">
+        <el-button v-if="auth.enabled" :disabled="settingsLoading || auth.loading" @click="signOut">
           {{ t('auth.loggedOut') }}
         </el-button>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Lock } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { useLocaleStore } from '../stores/localeStore.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { normalizeRequestError } from '../utils/requestState.js';
 
 const localeStore = useLocaleStore();
 const auth = useAuthStore();
@@ -84,10 +79,25 @@ const { t } = localeStore;
 const enabled = ref(false);
 const password = ref('');
 const confirmPassword = ref('');
+const settingsLoading = ref(true);
+let pageActive = true;
 
 onMounted(async () => {
-  const settings = await auth.fetchSettings();
-  enabled.value = settings.enabled;
+  auth.error = '';
+  try {
+    const settings = await auth.fetchSettings();
+    if (pageActive) enabled.value = settings.enabled;
+  } catch (requestError) {
+    if (pageActive) {
+      auth.error = normalizeRequestError(requestError) || '读取访问保护设置失败';
+    }
+  } finally {
+    if (pageActive) settingsLoading.value = false;
+  }
+});
+
+onUnmounted(() => {
+  pageActive = false;
 });
 
 async function save() {
@@ -101,65 +111,40 @@ async function save() {
     return;
   }
 
-  await auth.updateSettings({ enabled: enabled.value, password: password.value });
-  password.value = '';
-  confirmPassword.value = '';
-  ElMessage.success(t('auth.saved'));
+  try {
+    await auth.updateSettings({ enabled: enabled.value, password: password.value });
+    password.value = '';
+    confirmPassword.value = '';
+    ElMessage.success(t('auth.saved'));
+  } catch {
+    // The store exposes the normalized error for the page-level alert.
+  }
 }
 
 async function signOut() {
-  await auth.logout();
-  ElMessage.success(t('auth.loggedOut'));
-  router.push('/login');
+  try {
+    await auth.logout();
+    ElMessage.success(t('auth.loggedOut'));
+    router.push('/login');
+  } catch {
+    // The store exposes the normalized error for the page-level alert.
+  }
 }
 </script>
 
 <style scoped lang="scss">
 .settings-page {
-  width: min(100%, 720px);
-  margin: 0;
-  text-align: left;
-}
-
-.page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
   width: 100%;
-  margin-bottom: 16px;
-  padding: 0 2px;
-  text-align: left;
-}
-
-.page-heading-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  color: var(--primary-color);
-  background: var(--primary-light);
-  font-size: 17px;
-}
-
-.page-heading h2 {
-  display: block;
   margin: 0;
-  color: var(--text-primary);
-  font-size: 22px;
   text-align: left;
 }
 
 .settings-card {
   width: 100%;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  text-align: left;
-}
-
-.settings-card :deep(.el-card__body) {
+  min-height: 100%;
+  box-sizing: border-box;
   padding: 24px;
+  text-align: left;
 }
 
 .protection-row {

@@ -147,5 +147,9 @@ const menuItems = [
   flex: 1 1 auto;
   min-width: 0;
   padding: 8px 16px 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
 }
 </style>

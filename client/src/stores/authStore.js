@@ -40,8 +40,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    await logoutRequest();
-    authenticated.value = false;
+    loading.value = true;
+    error.value = '';
+    try {
+      await logoutRequest();
+      authenticated.value = false;
+    } catch (requestError) {
+      error.value = normalizeRequestError(requestError) || '退出访问保护失败';
+      throw requestError;
+    } finally {
+      loading.value = false;
+    }
   }
 
   async function fetchSettings() {
