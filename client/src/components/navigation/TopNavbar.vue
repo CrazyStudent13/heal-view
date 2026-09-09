@@ -170,6 +170,9 @@ function isActive(item) {
   if (item.path === '/reports/weekly') {
     return route.path.startsWith('/reports');
   }
+  if (item.path === '/profile') {
+    return route.path.startsWith('/profile');
+  }
   return route.path === item.path;
 }
 

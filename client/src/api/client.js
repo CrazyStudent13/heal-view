@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { createApiRequestError } from '../utils/requestState.js';
 
 const apiClient = axios.create({
   baseURL: '/api',
@@ -28,8 +29,21 @@ apiClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.error('API Error:', error.message);
-    return Promise.reject(error);
+    const normalizedError = createApiRequestError(error);
+    if (
+      normalizedError?.status === 401
+      && typeof window !== 'undefined'
+      && !String(error?.config?.url || '').includes('/auth/')
+    ) {
+      window.dispatchEvent(new CustomEvent('heal-view-auth-required'));
+    }
+    if (normalizedError?.code !== 'ERR_CANCELED') {
+      console.error('API Error:', normalizedError.message, {
+        code: normalizedError.code,
+        status: normalizedError.status
+      });
+    }
+    return Promise.reject(normalizedError);
   }
 );
 

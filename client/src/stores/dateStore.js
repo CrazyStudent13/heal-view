@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getDates, getDailySummary } from '../api/fitnessApi.js';
+import { normalizeRequestError } from '../utils/requestState.js';
 
 function formatLocalDate(date) {
   const year = date.getFullYear();
@@ -58,7 +59,7 @@ export const useDateStore = defineStore('date', () => {
         selectedDate.value = dateList.value.includes(today) ? today : dateList.value[0];
       }
     } catch (err) {
-      error.value = err.message;
+      error.value = normalizeRequestError(err);
       console.error('Failed to fetch dates:', err);
     } finally {
       loading.value = false;

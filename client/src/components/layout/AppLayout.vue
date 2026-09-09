@@ -1,8 +1,9 @@
 <template>
   <div class="app-layout">
     <!-- Top navigation bar -->
-    <TopNavbar 
-      v-model:viewMode="viewMode" 
+    <TopNavbar
+      v-if="route.name !== 'login'"
+      v-model:viewMode="viewMode"
       @open-settings="settingsDrawerVisible = true"
     />
     
@@ -53,7 +54,7 @@
 <script setup>
 import { computed, provide, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { RouterView } from 'vue-router';
+import { RouterView, useRoute } from 'vue-router';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore';
 import { useThemeStore } from '../../stores/themeStore';
@@ -71,6 +72,7 @@ function t(key) {
 }
 
 const settingsDrawerVisible = ref(false);
+const route = useRoute();
 
 // Language - use store value
 const currentLanguage = computed({

@@ -16,8 +16,24 @@ import {
   removeImportHistory,
   uploadArchive
 } from '../controllers/importController.js';
+import {
+  getAuthStatus,
+  getSettings,
+  login,
+  logout,
+  saveSettings
+} from '../controllers/authController.js';
+import { requireAccess } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.get('/auth/status', getAuthStatus);
+router.post('/auth/login', login);
+router.post('/auth/logout', logout);
+router.get('/auth/settings', requireAccess, getSettings);
+router.put('/auth/settings', requireAccess, saveSettings);
+
+router.use(requireAccess);
 
 // Get list of dates
 router.get('/dates', getDates);

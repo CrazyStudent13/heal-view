@@ -9,6 +9,7 @@ import App from './App.vue'
 import { router } from './router'
 import SectionTitle from './components/common/SectionTitle.vue'
 import { getElementPlusLocale, i18n, normalizeLocale } from './i18n'
+import { useAuthStore } from './stores/authStore'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -22,6 +23,17 @@ app.component('SectionTitle', SectionTitle)
 app.use(pinia)
 app.use(i18n)
 app.use(router)
+
+window.addEventListener('heal-view-auth-required', () => {
+  const auth = useAuthStore(pinia)
+  auth.authenticated = false
+  if (router.currentRoute.value.name !== 'login') {
+    router.push({
+      name: 'login',
+      query: { redirect: router.currentRoute.value.fullPath }
+    })
+  }
+})
 
 const defaultLocale = normalizeLocale(localStorage.getItem('locale') || navigator.language)
 

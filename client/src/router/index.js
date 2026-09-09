@@ -4,8 +4,18 @@ import ImportPage from '../pages/ImportPage.vue';
 import PlansPage from '../pages/PlansPage.vue';
 import ReportsPage from '../pages/ReportsPage.vue';
 import ProfilePage from '../pages/ProfilePage.vue';
+import ProfileAccessPage from '../pages/ProfileAccessPage.vue';
+import ProfilePlaceholderPage from '../pages/ProfilePlaceholderPage.vue';
+import LoginPage from '../pages/LoginPage.vue';
+import { useAuthStore } from '../stores/authStore.js';
 
 const routes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginPage,
+    meta: { title: '访问验证', public: true }
+  },
   { path: '/', redirect: '/dashboard' },
   {
     path: '/dashboard',
@@ -40,7 +50,30 @@ const routes = [
     path: '/profile',
     name: 'profile',
     component: ProfilePage,
-    meta: { title: '个人配置' }
+    redirect: '/profile/access',
+    meta: { title: '个人配置' },
+    children: [
+      {
+        path: 'access',
+        name: 'profile-access',
+        component: ProfileAccessPage,
+        meta: {
+          title: '访问保护',
+          titleKey: 'profile.access',
+          descriptionKey: 'auth.accessProtectionDescription'
+        }
+      },
+      {
+        path: 'about',
+        name: 'profile-about',
+        component: ProfilePlaceholderPage,
+        meta: {
+          title: '关于与运行信息',
+          titleKey: 'profile.about',
+          descriptionKey: 'profile.aboutDescription'
+        }
+      }
+    ]
   }
 ];
 
@@ -50,6 +83,28 @@ export const router = createRouter({
   scrollBehavior() {
     return { top: 0 };
   }
+});
+
+router.beforeEach(async (to) => {
+  if (to.meta.public) return true;
+
+  const auth = useAuthStore();
+  try {
+    const status = await auth.fetchStatus();
+    if (status.enabled && !status.authenticated) {
+      return {
+        name: 'login',
+        query: { redirect: to.fullPath }
+      };
+    }
+  } catch {
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath }
+    };
+  }
+
+  return true;
 });
 
 router.afterEach((to) => {

@@ -98,6 +98,13 @@ class DatabaseService {
         update_time INTEGER
       );
 
+      CREATE TABLE IF NOT EXISTS access_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        enabled INTEGER NOT NULL DEFAULT 0,
+        password_hash TEXT,
+        updated_at INTEGER NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_fitness_date ON fitness_data(date);
       CREATE INDEX IF NOT EXISTS idx_fitness_key ON fitness_data(key);
       CREATE INDEX IF NOT EXISTS idx_sport_date ON sport_records(date);

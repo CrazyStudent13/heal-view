@@ -12,6 +12,34 @@ export default {
     lastWeek: 'Last 7 days', lastMonth: 'Last month', lastThreeMonths: 'Last 3 months'
   },
   settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
+  auth: {
+    title: 'Access Verification',
+    description: 'Enter the access password to view personal health data',
+    passwordPlaceholder: 'Enter access password',
+    passwordRequired: 'Please enter the access password',
+    enter: 'Enter Dashboard',
+    forgotPassword: 'Forgot your password?',
+    resetCommand: 'Run this in the server console: pnpm reset-access-password',
+    accessProtection: 'Access Protection',
+    accessProtectionDescription: 'When enabled, the access password is required before viewing health data',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    newPassword: 'Set New Password',
+    confirmPassword: 'Confirm Password',
+    save: 'Save Protection Settings',
+    passwordMismatch: 'The passwords do not match',
+    passwordRequiredToEnable: 'Enter a password before enabling access protection',
+    saved: 'Access protection settings saved',
+    loggedOut: 'Access protection session ended'
+  },
+  profile: {
+    title: 'Personal Settings',
+    description: 'Manage access protection and runtime information',
+    access: 'Access Protection',
+    about: 'About & Runtime',
+    comingSoon: 'This settings module is coming soon',
+    aboutDescription: 'View version, runtime status, and project information'
+  },
   data: {
     overview: 'Data Overview', weight: 'Weight', avgWeight: 'Avg Weight', steps: 'Steps', avgSteps: 'Avg Steps', maxSteps: 'Max Steps',
     calories: 'Calories', avgCalories: 'Avg Calories', heartRate: 'Avg Heart Rate', avgBloodPressure: 'Avg Blood Pressure', stress: 'Stress Level', avgStress: 'Avg Stress',
