@@ -71,12 +71,24 @@
 
     <div style="flex: 1"></div>
 
-    <!-- Settings button -->
+    <!-- Import and settings actions -->
+    <el-tooltip :content="t('nav.import')" placement="bottom">
+      <el-button
+        :icon="UploadFilled"
+        circle
+        size="large"
+        :class="['nav-circle-button', { active: route.path === '/import' }]"
+        :aria-label="t('nav.import')"
+        @click="navigate('/import')"
+      />
+    </el-tooltip>
+
     <el-button 
       :icon="Setting" 
       circle 
       size="large"
       class="nav-circle-button"
+      :aria-label="t('settings.title')"
       @click="$emit('open-settings')"
     />
   </div>
@@ -102,7 +114,6 @@ const router = useRouter();
 
 const navItems = [
   { path: '/dashboard', label: '健康看板', icon: DataLine },
-  { path: '/import', label: '数据导入', icon: UploadFilled },
   { path: '/plans', label: '运动计划', icon: Calendar },
   { path: '/reports/weekly', label: '周报月报', icon: Document },
   { path: '/profile', label: '个人配置', icon: UserFilled }
@@ -378,6 +389,13 @@ watch(() => store.dateList, () => {
   height: 48px;
   border-color: #ebeef5;
   color: #909399;
+}
+
+.nav-circle-button:hover,
+.nav-circle-button.active {
+  border-color: #d9ecff;
+  background: #ecf5ff;
+  color: #409eff;
 }
 
 .date-section {

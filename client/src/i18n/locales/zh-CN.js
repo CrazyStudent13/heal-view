@@ -15,6 +15,7 @@ export default {
     selectDate: '选择日期',
     selectDatesToCompare: '请在左侧选择要对比的日期',
     selectDateToView: '请选择日期查看数据',
+    import: '数据导入',
     startDate: '开始日期',
     endDate: '结束日期',
     sportType: '运动类型',
