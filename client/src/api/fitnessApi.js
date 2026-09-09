@@ -93,3 +93,23 @@ export function deleteImportHistory(importId) {
 export function clearImportedData() {
   return apiClient.delete('/imports/data', { timeout: 120000 });
 }
+
+export function getAuthStatus() {
+  return apiClient.get('/auth/status');
+}
+
+export function loginWithPassword(password) {
+  return apiClient.post('/auth/login', { password });
+}
+
+export function logout() {
+  return apiClient.post('/auth/logout');
+}
+
+export function getAccessSettings() {
+  return apiClient.get('/auth/settings');
+}
+
+export function saveAccessSettings(settings) {
+  return apiClient.put('/auth/settings', settings);
+}

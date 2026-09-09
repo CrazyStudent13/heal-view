@@ -35,7 +35,7 @@
               <el-tag v-if="profileData.bmi" :type="bmiTagType" size="small">{{ bmiCategory }}</el-tag>
             </span>
           </el-descriptions-item>
-          <el-descriptions-item :label="t('personal.bmr')" :span="2">
+          <el-descriptions-item :span="2" :label="t('personal.bmr')">
             {{ profileData.bmr || '--' }} {{ t('personal.kcalPerDay') }}
           </el-descriptions-item>
         </el-descriptions>
@@ -262,8 +262,13 @@ const bmiTagType = computed(() => {
 
 <style scoped lang="scss">
 .personal-data-view {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  padding-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .loading-container {
@@ -273,6 +278,8 @@ const bmiTagType = computed(() => {
 .content-wrapper {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 24px;
 }
 

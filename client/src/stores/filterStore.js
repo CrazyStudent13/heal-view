@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { getFilterOptions } from '../api/fitnessApi.js';
+import { normalizeRequestError } from '../utils/requestState.js';
 
 export const useFilterStore = defineStore('filter', () => {
   const dateRange = ref([null, null]); // [startDate, endDate]
@@ -20,7 +21,7 @@ export const useFilterStore = defineStore('filter', () => {
       const options = await getFilterOptions();
       sportTypes.value = options.sportTypes || [];
     } catch (err) {
-      error.value = err.message;
+      error.value = normalizeRequestError(err);
       console.error('Failed to fetch filter options:', err);
     } finally {
       loading.value = false;

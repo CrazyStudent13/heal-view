@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "node --watch src/app.js",
-    "import": "node src/scripts/importData.js"
+    "import": "node src/scripts/importData.js",
+    "reset-access-password": "node src/scripts/resetAccessPassword.js"
   },
   "dependencies": {
     "@crazystudent13/health-archive-parser": "^0.2.3",

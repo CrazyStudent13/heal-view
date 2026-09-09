@@ -1,10 +1,10 @@
 <template>
   <div class="chart-display">
     <el-alert
-      v-if="error"
+      v-if="errorMessage"
       class="chart-error"
       type="warning"
-      :title="error"
+      :title="errorMessage"
       show-icon
       :closable="false"
     />
@@ -71,6 +71,7 @@
 import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import { normalizeErrorText } from '../../utils/requestState.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 function createLazyChart(loader) {
@@ -140,6 +141,10 @@ const props = defineProps({
 
 const hasData = computed(() => props.chartData.length > 0);
 
+const errorMessage = computed(() => {
+  return normalizeErrorText(props.error);
+});
+
 const hasDetailedSleepData = computed(() => {
   return Boolean(props.sleepTimelineData?.segments?.length);
 });
@@ -163,14 +168,30 @@ const singleAvgHeartRate = computed(() => {
 
 <style scoped lang="scss">
 .chart-display {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100%;
-  min-height: 420px;
   position: relative;
 }
 
 .chart-error {
   margin-bottom: 12px;
   flex-shrink: 0;
+}
+
+.chart-display :deep(.personal-data-view) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.chart-display :deep(.personal-data-view > .content-wrapper) {
+  flex: 1;
+  min-height: 0;
 }
 
 .refresh-indicator {

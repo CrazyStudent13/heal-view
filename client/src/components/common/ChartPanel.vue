@@ -50,3 +50,37 @@ defineProps({
   }
 });
 </script>
+
+<style scoped lang="scss">
+.chart-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.chart-panel__title,
+.chart-panel__metrics {
+  flex-shrink: 0;
+}
+
+.chart-panel__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-panel__body :deep(.chart) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.chart-panel__state {
+  flex: 1;
+  min-height: 0;
+}
+</style>

@@ -11,6 +11,7 @@
 - 😴 **睡眠分析**：睡眠阶段时间线（深睡/浅睡/REM/清醒），支持午睡与夜间睡眠区分
 - 📱 **响应式设计**：适配不同屏幕尺寸
 - ⚡ **高性能**：SQLite数据库 + 内存缓存，快速查询响应
+- 🔐 **隐私保护**：可在个人配置中开启单密码访问保护
 
 ## 技术栈
 
@@ -46,6 +47,8 @@
 - `PORT`：后端端口，默认 `3000`
 - `CACHE_TTL_DATES`：日期列表缓存秒数，默认 `86400`
 - `CACHE_TTL_SUMMARY`：日汇总缓存秒数，默认 `3600`
+- `AUTH_SESSION_TTL`：访问保护会话有效期秒数，默认 `604800`（7天）
+- `AUTH_COOKIE_NAME`：访问保护 Cookie 名称，默认 `heal_view_session`
 
 ### 安装依赖
 
@@ -78,6 +81,20 @@ pnpm --filter heal-view-client dev
 前端应用将运行在 http://localhost:5173
 
 > 根目录 `package.json` 提供了快捷脚本：`pnpm dev:client`、`pnpm dev:server`、`pnpm start:server`、`pnpm build:client`、`pnpm import`。
+
+### 访问保护
+
+应用默认关闭访问保护。进入“个人配置”后，可以开启“访问保护”并设置一个统一密码。
+
+开启后，查看看板、导入数据、运动计划、周报月报和个人配置都需要先输入密码。该功能是单用户个人版的隐私拦截，不包含用户名、注册、多用户和第三方登录。
+
+如果忘记密码，请在运行项目的服务器控制台执行：
+
+```bash
+pnpm reset-access-password
+```
+
+按照提示重新设置密码。直接回车可以关闭访问保护。
 
 ### 访问应用
 
@@ -172,6 +189,10 @@ heal-view/
 | `/api/sleep/timeline/:date` | GET | 获取指定日期的睡眠阶段时间线 |
 | `/api/weight/data` | GET | 获取体重数据（支持 startDate/endDate 筛选） |
 | `/api/user/profile` | GET | 获取用户档案（身高、BMI、BMR等） |
+| `/api/auth/status` | GET | 获取访问保护状态 |
+| `/api/auth/login` | POST | 使用统一密码登录 |
+| `/api/auth/logout` | POST | 退出访问保护会话 |
+| `/api/auth/settings` | GET/PUT | 读取或修改访问保护配置 |
 
 ## 数据说明
 

@@ -15,6 +15,7 @@ export default {
     selectDate: '选择日期',
     selectDatesToCompare: '请在左侧选择要对比的日期',
     selectDateToView: '请选择日期查看数据',
+    import: '数据导入',
     startDate: '开始日期',
     endDate: '结束日期',
     sportType: '运动类型',
@@ -29,6 +30,34 @@ export default {
     theme: '主题',
     light: '亮',
     dark: '暗'
+  },
+  auth: {
+    title: '访问验证',
+    description: '请输入访问密码查看个人健康数据',
+    passwordPlaceholder: '请输入访问密码',
+    passwordRequired: '请输入访问密码',
+    enter: '进入看板',
+    forgotPassword: '忘记密码？',
+    resetCommand: '请在服务器控制台执行：pnpm reset-access-password',
+    accessProtection: '访问保护',
+    accessProtectionDescription: '开启后，查看健康数据前需要输入统一访问密码',
+    enabled: '已开启',
+    disabled: '未开启',
+    newPassword: '设置新密码',
+    confirmPassword: '确认密码',
+    save: '保存保护设置',
+    passwordMismatch: '两次输入的密码不一致',
+    passwordRequiredToEnable: '开启访问保护时请输入密码',
+    saved: '访问保护设置已保存',
+    loggedOut: '已退出访问保护'
+  },
+  profile: {
+    title: '个人配置',
+    description: '管理访问保护与运行信息',
+    access: '访问保护',
+    about: '关于与运行信息',
+    comingSoon: '该配置模块即将接入',
+    aboutDescription: '查看版本、运行状态和项目说明'
   },
   data: {
     overview: '数据概览',

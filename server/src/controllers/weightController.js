@@ -10,7 +10,29 @@ import { safeJsonParse } from '../utils/jsonSafe.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dataDir = path.join(__dirname, '../../../data');
+const dataDir = path.join(__dirname, '../../data');
+
+function findDataFile(fileNameFragment) {
+  if (!fs.existsSync(dataDir)) return null;
+
+  const stack = [dataDir];
+  while (stack.length > 0) {
+    const currentDir = stack.pop();
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+        continue;
+      }
+      if (entry.name.includes(fileNameFragment)) {
+        return fullPath;
+      }
+    }
+  }
+
+  return null;
+}
 
 // Cached user profile data (loaded once at startup)
 let userProfile = null;
@@ -23,105 +45,152 @@ export function resetUserProfileCache() {
  * Load user profile from CSV files
  */
 async function loadUserProfile() {
-  if (userProfile) return userProfile;
-
   // Default profile: used when no profile CSV is present (e.g. data/ cleaned),
   // so the profile/weight endpoints degrade gracefully instead of erroring.
-  userProfile = { height: 0, sex: 'male', birth: '' };
+  const resolvedProfile = {
+    height: 0,
+    sex: 'male',
+    birth: '',
+    currentWeight: 0,
+    initialWeight: null,
+    targetWeight: null,
+    targetBMI: null,
+    dailyCalGoal: null,
+    vo2Max: null
+  };
 
-  try {
-    const importedProfile = databaseService.query(`
-      SELECT value FROM fitness_data
-      WHERE key = 'user_profile'
-      ORDER BY update_time DESC, id DESC
-      LIMIT 1
-    `);
-
-    if (importedProfile.length > 0) {
-      const profile = safeJsonParse(importedProfile[0].values[0][0], {});
-      userProfile = {
-        height: parseFloat(profile.heightCm) || 0,
-        sex: profile.sex || 'male',
-        birth: profile.birthDate || '',
-        currentWeight: parseFloat(profile.initialWeightKg) || 0,
-        initialWeight: parseFloat(profile.initialWeightKg) || null,
-        targetWeight: parseFloat(profile.targetWeightKg) || null,
-        dailyCalGoal: parseInt(profile.dailyCalorieGoal) || 700,
-        vo2Max: parseInt(profile.vo2Max) || 0
-      };
-      return userProfile;
+  function mergeProfilePatch(patch = {}) {
+    if (Number.isFinite(Number(patch.heightCm)) && Number(patch.heightCm) > 0) {
+      resolvedProfile.height = parseFloat(patch.heightCm);
     }
-  } catch (error) {
-    console.warn('Imported user profile unavailable:', error.message);
+    if (patch.sex) {
+      resolvedProfile.sex = patch.sex;
+    }
+    if (patch.birthDate) {
+      resolvedProfile.birth = patch.birthDate;
+    }
+    if (Number.isFinite(Number(patch.initialWeightKg)) && Number(patch.initialWeightKg) > 0) {
+      const weight = parseFloat(patch.initialWeightKg);
+      resolvedProfile.currentWeight = weight;
+      resolvedProfile.initialWeight = weight;
+    }
+    if (Number.isFinite(Number(patch.targetWeightKg)) && Number(patch.targetWeightKg) > 0) {
+      resolvedProfile.targetWeight = parseFloat(patch.targetWeightKg);
+    }
+    if (Number.isFinite(Number(patch.targetBMI)) && Number(patch.targetBMI) > 0) {
+      resolvedProfile.targetBMI = parseFloat(patch.targetBMI);
+    }
+    if (Number.isFinite(Number(patch.dailyCalorieGoal)) && Number(patch.dailyCalorieGoal) > 0) {
+      resolvedProfile.dailyCalGoal = parseInt(patch.dailyCalorieGoal);
+    }
+    if (Number.isFinite(Number(patch.vo2Max)) && Number(patch.vo2Max) > 0) {
+      resolvedProfile.vo2Max = parseInt(patch.vo2Max);
+    }
   }
 
   try {
     // Read user_member_profile.csv for height, sex, birth
-    const memberFile = fs.readdirSync(dataDir).find(f => f.includes('user_member_profile'));
+    const memberFile = findDataFile('user_member_profile');
     if (memberFile) {
       const memberRows = await new Promise((resolve) => {
         const results = [];
-        fs.createReadStream(path.join(dataDir, memberFile))
+        fs.createReadStream(memberFile)
           .pipe(csv())
           .on('data', (row) => results.push(row))
           .on('end', () => resolve(results));
       });
       if (memberRows.length > 0) {
         const row = memberRows[0];
-        userProfile = {
-          height: parseFloat(row.Height) || 0,   // cm
-          sex: row.Sex || 'male',
-          birth: row.Birth || '',
-          currentWeight: parseFloat(row.Weight) || 0
-        };
+        mergeProfilePatch({
+          heightCm: row.Height,
+          sex: row.Sex,
+          birthDate: row.Birth,
+          initialWeightKg: row.Weight
+        });
       }
     }
 
     // Read user_fitness_profile.csv for target weight / calorie goal
-    const profileFile = fs.readdirSync(dataDir).find(f => f.includes('user_fitness_profile'));
-    if (profileFile && userProfile) {
+    const profileFile = findDataFile('user_fitness_profile');
+    if (profileFile) {
       const profileRows = await new Promise((resolve) => {
         const results = [];
-        fs.createReadStream(path.join(dataDir, profileFile))
+        fs.createReadStream(profileFile)
           .pipe(csv())
           .on('data', (row) => results.push(row))
           .on('end', () => resolve(results));
       });
       if (profileRows.length > 0) {
         const row = profileRows[0];
-        userProfile.dailyCalGoal = parseInt(row.DailyCalGoal) || 700;
+        mergeProfilePatch({
+          dailyCalorieGoal: row.DailyCalGoal,
+          vo2Max: row.Vo2Max
+        });
 
         // Parse initial weight
         try {
           const initialWeight = safeJsonParse(row.InitialWeight, {});
-          userProfile.initialWeight = initialWeight.weight || null;
+          if (Number.isFinite(Number(initialWeight.weight)) && Number(initialWeight.weight) > 0) {
+            const weight = parseFloat(initialWeight.weight);
+            resolvedProfile.initialWeight = weight;
+            if (!Number.isFinite(resolvedProfile.currentWeight) || resolvedProfile.currentWeight <= 0) {
+              resolvedProfile.currentWeight = weight;
+            }
+          }
         } catch (e) {
-          userProfile.initialWeight = null;
+          resolvedProfile.initialWeight = null;
         }
 
         // Parse RegularGoalList for target BMI (field:4) or target weight
         try {
           const goals = safeJsonParse(row.RegularGoalList, []);
           const weightGoal = goals.find(g => g.field === 4); // field:4 seems to be BMI/weight goal
-          if (weightGoal && weightGoal.target && userProfile.height > 0) {
+          if (weightGoal && Number.isFinite(Number(weightGoal.target))) {
+            resolvedProfile.targetBMI = parseFloat(weightGoal.target);
+          }
+          if (weightGoal && weightGoal.target && resolvedProfile.height > 0) {
             // Target is likely BMI, calculate target weight
-            const heightM = userProfile.height / 100;
+            const heightM = resolvedProfile.height / 100;
             const targetBMI = weightGoal.target;
-            userProfile.targetWeight = parseFloat((targetBMI * heightM * heightM).toFixed(1));
-            userProfile.targetBMI = weightGoal.target;
+            resolvedProfile.targetWeight = parseFloat((targetBMI * heightM * heightM).toFixed(1));
           }
         } catch (e) {
           // Ignore parse error for goals
         }
-
-        userProfile.vo2Max = parseInt(row.Vo2Max) || 0;
       }
     }
 
+    try {
+      const importedProfile = databaseService.query(`
+        SELECT value FROM fitness_data
+        WHERE key = 'user_profile'
+        ORDER BY update_time DESC, id DESC
+        LIMIT 1
+      `);
+
+      if (importedProfile.length > 0) {
+        const profile = safeJsonParse(importedProfile[0].values[0][0], {});
+        mergeProfilePatch(profile);
+      }
+    } catch (error) {
+      console.warn('Imported user profile unavailable:', error.message);
+    }
+
+    userProfile = resolvedProfile;
     console.log('User profile loaded:', JSON.stringify(userProfile, null, 2));
   } catch (error) {
     console.error('Error loading user profile:', error);
-    userProfile = { height: 0, sex: 'male', birth: '' };
+    userProfile = {
+      height: 0,
+      sex: 'male',
+      birth: '',
+      currentWeight: 0,
+      initialWeight: null,
+      targetWeight: null,
+      targetBMI: null,
+      dailyCalGoal: null,
+      vo2Max: null
+    };
   }
 
   return userProfile;
