@@ -103,6 +103,7 @@ export default {
     deepSleep: '深睡',
     lightSleep: '浅睡',
     awakeSleep: '清醒',
+    sleepOverview: '睡眠概览',
     sleepTimeline: '睡眠时间段',
     sleepStageAnalysis: '睡眠阶段时长分析',
     sleepStageDuration: '各阶段时长',

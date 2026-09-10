@@ -1,32 +1,35 @@
 <template>
   <div class="sleep-timeline-view" v-if="hasTimelineSummary">
-    <div class="sleep-overview-cards">
-      <MetricCard class="overview-card" compact layout="row">
-        <template #icon>
-          <span class="sleep-card-icon sleep-card-icon--sleep">🌙</span>
-        </template>
-        <template #label>{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</template>
-        <template #value>{{ totalSleepDuration }}</template>
-      </MetricCard>
-      <MetricCard class="overview-card" compact layout="row">
-        <template #icon>
-          <span class="sleep-card-icon sleep-card-icon--heart">❤️</span>
-        </template>
-        <template #label>{{ t('sleep.avgHeartRate') }}</template>
-        <template #value>{{ avgHeartRateDisplay }}</template>
-      </MetricCard>
-      <MetricCard class="overview-card" compact layout="row">
-        <template #icon>
-          <span class="sleep-card-icon sleep-card-icon--interrupt">⏰</span>
-        </template>
-        <template #label>{{ t('sleep.interruptions') }}</template>
-        <template #value>
-          <span class="card-value-row">
-            <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
-            <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
-          </span>
-        </template>
-      </MetricCard>
+    <div class="stats-card">
+      <SectionTitle>{{ t('chart.sleepOverview') }}</SectionTitle>
+      <div class="chart-metrics-grid chart-metrics-grid--3 sleep-overview-cards">
+        <MetricCard class="overview-card" compact layout="row">
+          <template #icon>
+            <span class="sleep-card-icon sleep-card-icon--sleep">🌙</span>
+          </template>
+          <template #label>{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</template>
+          <template #value>{{ totalSleepDuration }}</template>
+        </MetricCard>
+        <MetricCard class="overview-card" compact layout="row">
+          <template #icon>
+            <span class="sleep-card-icon sleep-card-icon--heart">❤️</span>
+          </template>
+          <template #label>{{ t('sleep.avgHeartRate') }}</template>
+          <template #value>{{ avgHeartRateDisplay }}</template>
+        </MetricCard>
+        <MetricCard class="overview-card" compact layout="row">
+          <template #icon>
+            <span class="sleep-card-icon sleep-card-icon--interrupt">⏰</span>
+          </template>
+          <template #label>{{ t('sleep.interruptions') }}</template>
+          <template #value>
+            <span class="card-value-row">
+              <span class="card-value">{{ t('sleep.interruptionCount', { count: awakeEpisodes }) }}</span>
+              <el-tag :type="interruptTagType" size="small">{{ interruptDesc }}</el-tag>
+            </span>
+          </template>
+        </MetricCard>
+      </div>
     </div>
     <section class="timeline-card">
       <SectionTitle>
@@ -480,14 +483,31 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1;
-  min-height: 100%;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
   padding-bottom: 0;
+}
+.stats-card {
+  background: var(--card-bg);
+  padding: 12px 14px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.stats-card :deep(.chart-metrics-grid) {
+  gap: 10px;
+  margin-bottom: 0;
 }
 .timeline-card {
   display: flex;
   flex-direction: column;
-  min-height: clamp(240px, 32vh, 340px);
+  flex: 1 1 auto;
+  min-height: 240px;
   padding: 12px 18px 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -497,18 +517,21 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .sleep-overview-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
   margin-bottom: 0; flex-shrink: 0;
 }
 .overview-card {
+  text-align: left;
   min-width: 0;
   min-height: 112px;
+  height: 112px;
+  border-radius: 8px;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
 }
 .overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
 .overview-card :deep(.metric-card__content--row) {
   align-items: flex-start;
-  gap: 3px;
+  gap: 4px;
 }
 .overview-card :deep(.metric-card__header--row) {
   align-items: center;
@@ -525,7 +548,9 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
   white-space: nowrap;
 }
 .overview-card :deep(.metric-card__value--row) {
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
   line-height: 1.1;
 }
 .sleep-card-icon {
@@ -541,17 +566,17 @@ onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('re
 .sleep-card-icon--sleep { background: rgba(250, 140, 22, 0.12); }
 .sleep-card-icon--heart { background: rgba(245, 108, 108, 0.12); }
 .sleep-card-icon--interrupt { background: rgba(64, 158, 255, 0.12); }
-.card-value { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; line-height: 1.1; }
+.card-value { font-size: inherit; font-weight: inherit; color: inherit; white-space: nowrap; line-height: 1.1; }
 .card-value-row {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   width: 100%;
 }
 .card-value-row .card-value { margin-bottom: 0; }
-.chart { width: 100%; flex: 1; min-height: clamp(220px, 28vh, 300px); }
+.chart { width: 100%; flex: 1 1 auto; min-height: 0; }
 .timeline-card :deep(.app-section-title--level-2) {
   margin-bottom: 12px;
 }
