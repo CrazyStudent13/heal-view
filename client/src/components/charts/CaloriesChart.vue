@@ -1,7 +1,10 @@
 <template>
   <ChartPanel :empty="!hasData" :empty-description="t('chart.selectDate')">
     <template #title>
-      <SectionTitle>{{ t('chart.caloriesBurned') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('chart.caloriesBurned') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
     </template>
 
     <div ref="chartRef" class="chart"></div>
@@ -15,6 +18,7 @@ import { useLocaleStore } from '../../stores/localeStore.js';
 import { useThemeStore } from '../../stores/themeStore.js';
 import { calculateCalorieEfficiency } from '../../domain/healthRules.js';
 import ChartPanel from '../common/ChartPanel.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();

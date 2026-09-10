@@ -15,6 +15,8 @@ export const useDateStore = defineStore('date', () => {
   const datesWithTraining = ref(new Set()); // Dates that have training data
   const selectedDate = ref(null);
   const selectedDates = ref([]); // For multi-select mode
+  const selectedDateRange = ref([null, null]); // For compare mode
+  const viewMode = ref('single');
   const loading = ref(false);
   const error = ref(null);
 
@@ -73,6 +75,40 @@ export const useDateStore = defineStore('date', () => {
     selectedDate.value = date;
   }
 
+  function setViewMode(mode) {
+    viewMode.value = mode;
+  }
+
+  function selectDateRange(range) {
+    const [start, end] = Array.isArray(range) ? range : [];
+    const normalizedRange = start && end ? [start, end].sort() : [null, null];
+    selectedDateRange.value = normalizedRange;
+
+    if (!normalizedRange[0] || !normalizedRange[1]) {
+      selectedDates.value = [];
+      return;
+    }
+
+    selectedDates.value = trainingDates.value.filter(date => {
+      return date >= normalizedRange[0] && date <= normalizedRange[1];
+    });
+  }
+
+  function syncDateRangeFromSelectedDates() {
+    if (selectedDates.value.length === 0) {
+      selectedDateRange.value = [null, null];
+      return;
+    }
+
+    const sorted = [...selectedDates.value].sort();
+    selectedDateRange.value = [sorted[0], sorted[sorted.length - 1]];
+  }
+
+  function setSelectedDates(dates) {
+    selectedDates.value = Array.isArray(dates) ? [...dates] : [];
+    syncDateRangeFromSelectedDates();
+  }
+
   /**
    * Toggle date selection (multi mode)
    */
@@ -83,15 +119,17 @@ export const useDateStore = defineStore('date', () => {
     } else {
       selectedDates.value.push(date);
     }
+
+    syncDateRangeFromSelectedDates();
   }
 
   /**
    * Select all dates with training data
    */
   function selectAllTrainingDates() {
-    selectedDates.value = Array.from(datesWithTraining.value).sort((a, b) => 
+    setSelectedDates(Array.from(datesWithTraining.value).sort((a, b) =>
       new Date(b) - new Date(a)
-    );
+    ));
   }
 
   /**
@@ -99,6 +137,7 @@ export const useDateStore = defineStore('date', () => {
    */
   function clearSelectedDates() {
     selectedDates.value = [];
+    selectedDateRange.value = [null, null];
   }
 
   function clearCache() {
@@ -106,6 +145,7 @@ export const useDateStore = defineStore('date', () => {
     datesWithTraining.value = new Set();
     selectedDate.value = null;
     selectedDates.value = [];
+    selectedDateRange.value = [null, null];
     error.value = null;
   }
 
@@ -123,11 +163,16 @@ export const useDateStore = defineStore('date', () => {
     trainingDates,
     selectedDate,
     selectedDates,
+    selectedDateRange,
+    viewMode,
     loading,
     error,
     recentDates,
     fetchDateList,
     selectDate,
+    setViewMode,
+    selectDateRange,
+    setSelectedDates,
     toggleDateSelection,
     selectAllTrainingDates,
     clearSelectedDates,

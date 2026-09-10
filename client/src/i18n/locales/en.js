@@ -9,7 +9,7 @@ export default {
     selectDatesToCompare: 'Please select dates to compare on the left', selectDateToView: 'Please select a date to view data',
     import: 'Import Data',
     startDate: 'Start Date', endDate: 'End Date', sportType: 'Sport Type', selectSport: 'Select Sport Type',
-    lastWeek: 'Last 7 days', lastMonth: 'Last month', lastThreeMonths: 'Last 3 months'
+    lastWeek: 'Last 7 days', lastMonth: 'Last month', lastThreeMonths: 'Last 3 months', lastHalfYear: 'Last 6 months', lastYear: 'Last year'
   },
   settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
   auth: {

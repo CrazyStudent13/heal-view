@@ -1,7 +1,10 @@
 <template>
   <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="stats-card">
-      <SectionTitle>{{ t('chart.sleepOverview') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('chart.sleepOverview') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--3 sleep-overview-cards">
         <MetricCard class="overview-card" compact layout="row">
           <template #icon>
@@ -53,6 +56,7 @@ import { useLocaleStore } from '../../stores/localeStore';
 import { useDataStore } from '../../stores/dataStore';
 import MetricCard from '../common/MetricCard.vue';
 import SleepStageAnalysis from './SleepStageAnalysis.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 function t(key, params) { return localeStore.t(key, params); }

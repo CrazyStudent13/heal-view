@@ -22,7 +22,9 @@ export default {
     selectSport: '选择运动类型',
     lastWeek: '最近一周',
     lastMonth: '最近一月',
-    lastThreeMonths: '最近三月'
+    lastThreeMonths: '最近三月',
+    lastHalfYear: '最近半年',
+    lastYear: '最近一年'
   },
   settings: {
     title: '设置',

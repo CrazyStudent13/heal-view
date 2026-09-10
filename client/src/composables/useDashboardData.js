@@ -3,7 +3,10 @@ import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } fr
 import { createLatestRequest } from '../utils/requestState.js';
 
 export function useDashboardData(dateStore, dataStore) {
-  const viewMode = ref('single');
+  const viewMode = computed({
+    get: () => dateStore.viewMode,
+    set: value => dateStore.setViewMode(value)
+  });
   const currentChartType = ref('personal');
   const chartData = ref([]);
   const sleepTimelineData = ref(null);
@@ -245,6 +248,17 @@ export function useDashboardData(dateStore, dataStore) {
     return sorted.slice(0, 30);
   }
 
+  function initializeCompareSelection() {
+    if (dateStore.selectedDateRange[0] && dateStore.selectedDateRange[1]) {
+      dateStore.selectDateRange(dateStore.selectedDateRange);
+      return dateStore.selectedDates;
+    }
+
+    const last30Days = getLast30Days();
+    dateStore.setSelectedDates(last30Days);
+    return last30Days;
+  }
+
   async function initDefaultData() {
     initializing.value = true;
     loading.value = true;
@@ -334,9 +348,8 @@ export function useDashboardData(dateStore, dataStore) {
         await fetchSingleDayData(dateStore.selectedDate);
       }
     } else {
-      const last30Days = getLast30Days();
-      dateStore.selectedDates = last30Days;
-      await fetchCompareData(last30Days);
+      const selectedDates = initializeCompareSelection();
+      await fetchCompareData(selectedDates);
       await fetchWeightData();
     }
   });

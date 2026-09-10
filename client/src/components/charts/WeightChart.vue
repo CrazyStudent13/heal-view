@@ -3,7 +3,10 @@
     <ChartLoadingSkeleton v-if="loading" :stat-count="6" :stat-columns="3" />
     <!-- Statistics cards -->
     <div v-if="!loading && metrics" class="stats-card">
-      <SectionTitle>{{ t('weight.stats') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('weight.stats') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--3">
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--purple">
           <template #icon><span class="weight-stat-icon">⚖️</span></template>
@@ -84,6 +87,7 @@ import { useLocaleStore } from '../../stores/localeStore.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 import ChartLoadingSkeleton from '../common/ChartLoadingSkeleton.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

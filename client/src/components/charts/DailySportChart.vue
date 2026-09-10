@@ -1,6 +1,9 @@
 <template>
   <div class="daily-sport-chart">
-    <SectionTitle>{{ t('chart.dailySportActivities') }}</SectionTitle>
+    <SectionTitle>
+      {{ t('chart.dailySportActivities') }}
+      <template #actions><DateSelectionControls /></template>
+    </SectionTitle>
     
     <!-- Summary cards -->
     <div v-if="sportRecords.length > 0" class="summary-cards">
@@ -317,6 +320,7 @@ import { useLocaleStore } from '../../stores/localeStore.js';
 import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '../../utils/sportRecordParser.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();

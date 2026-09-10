@@ -6,6 +6,9 @@
     <el-text :tag="headingTag" class="section-title__text">
       <slot />
     </el-text>
+    <div v-if="$slots.actions" class="section-title__actions">
+      <slot name="actions" />
+    </div>
   </div>
 </template>
 
@@ -62,6 +65,20 @@ const headingTag = computed(() => props.level === 1 ? 'h1' : 'h2');
   line-height: 1.4;
   letter-spacing: 0;
   text-align: left;
+}
+
+.section-title__actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .section-title__actions {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .app-section-title--level-1 .section-title__text {
