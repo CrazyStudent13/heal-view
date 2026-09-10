@@ -9,7 +9,10 @@
     <div v-else-if="profileData" class="content-wrapper">
       <!-- Basic Info -->
       <div class="info-section">
-        <SectionTitle>{{ t('personal.basicInfo') }}</SectionTitle>
+        <SectionTitle>
+          {{ t('personal.basicInfo') }}
+          <template #actions><DateSelectionControls /></template>
+        </SectionTitle>
         <el-descriptions :column="2" border size="large">
           <el-descriptions-item>
             <template #label>{{ t('personal.height') }} / {{ t('personal.weight') }}</template>
@@ -126,6 +129,7 @@ import { computed, ref } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { classifyBloodPressureRecord } from '../../domain/healthRules.js';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

@@ -1,7 +1,10 @@
 <template>
   <div class="chart-wrapper">
     <div v-if="hasData" class="stats-card">
-      <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('chart.heartRateMonitor') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--3">
         <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--range">
           <template #icon><span class="heart-metric-icon">📊</span></template>
@@ -48,6 +51,7 @@ import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

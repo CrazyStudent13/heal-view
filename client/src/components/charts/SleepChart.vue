@@ -1,7 +1,10 @@
 <template>
   <div class="chart-wrapper">
     <div v-if="hasSleepRegularityMetrics" class="stats-card">
-      <SectionTitle>{{ t('sleep.regularityTitle') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('sleep.regularityTitle') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--2 regularity-cards">
         <MetricCard class="regularity-card" :class="bedtimeRegularity.status" compact layout="row">
           <template #icon><span class="regularity-icon bedtime-icon">🌙</span></template>
@@ -68,6 +71,7 @@ import { useLocaleStore } from '../../stores/localeStore';
 import { assessSleepRegularity } from '../../domain/healthRules.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 

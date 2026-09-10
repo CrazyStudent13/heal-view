@@ -1,7 +1,10 @@
 <template>
   <div class="chart-wrapper">
     <div v-if="hasData" class="stats-card">
-      <SectionTitle>{{ t('chart.heartRateMonitor') }}</SectionTitle>
+      <SectionTitle>
+        {{ t('chart.heartRateMonitor') }}
+        <template #actions><DateSelectionControls /></template>
+      </SectionTitle>
       <div class="chart-metrics-grid chart-metrics-grid--4">
         <MetricCard
           compact
@@ -79,6 +82,7 @@ import { useThemeStore } from '../../stores/themeStore.js';
 import { classifyBloodPressure } from '../../domain/healthRules.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
+import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
