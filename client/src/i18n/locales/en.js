@@ -55,7 +55,7 @@ export default {
     bloodPressureElevatedRangeValue: 'Systolic 130-139 mmHg or diastolic 85-89 mmHg',
     systolic: 'Systolic', diastolic: 'Diastolic', caloriesBurned: 'Calories Burned', avgCaloriesLine: 'Avg Calories', caloriesEfficiency: 'Calorie Efficiency', caloriesEfficiencyUnit: 'kcal/min', totalSleep: 'Total Sleep', sleepAnalysis: 'Analysis',
     noBloodPressureData: 'No blood pressure data for this date range',
-    deepSleep: 'Deep Sleep', lightSleep: 'Light Sleep', awakeSleep: 'Awake', sleepTimeline: 'Sleep Timeline',
+    deepSleep: 'Deep Sleep', lightSleep: 'Light Sleep', awakeSleep: 'Awake', sleepOverview: 'Sleep Overview', sleepTimeline: 'Sleep Timeline',
     sleepStageAnalysis: 'Sleep Stage Duration Analysis', sleepStageDuration: 'Duration by stage', sleepStageRatio: 'Stage distribution',
     hourShort: 'h', minuteShort: 'min', deep: 'Deep', light: 'Light', rem: 'REM', awake: 'Awake', bedtime: 'Bedtime',
     wakeUpTime: 'Wake Up Time', bedtimeLabel: 'Bedtime', wakeUpLabel: 'Wake up', minutes: 'min', unknown: 'Unknown', hours: 'Hours(h)',

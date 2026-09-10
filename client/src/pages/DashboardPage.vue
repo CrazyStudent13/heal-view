@@ -99,7 +99,7 @@ function setViewMode(value) {
 .chart-area {
   flex: 1;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -130,6 +130,8 @@ function setViewMode(value) {
 }
 
 .chart-area :deep(.sleep-timeline-view) {
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 0;
 }
 
