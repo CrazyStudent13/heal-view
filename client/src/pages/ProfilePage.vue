@@ -8,7 +8,6 @@
           </div>
           <div>
             <h1>{{ t('profile.title') }}</h1>
-            <p>{{ t('profile.description') }}</p>
           </div>
         </div>
 
@@ -89,7 +88,9 @@ const menuItems = [
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 4px 8px 20px;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 0 8px;
   border-bottom: 1px solid var(--card-border);
 }
 
@@ -109,12 +110,6 @@ const menuItems = [
   margin: 0;
   color: var(--text-primary);
   font-size: 20px;
-}
-
-.profile-heading p {
-  margin: 5px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
 }
 
 .profile-nav {
