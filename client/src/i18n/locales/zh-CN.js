@@ -59,7 +59,9 @@ export default {
     access: '访问保护',
     about: '关于与运行信息',
     comingSoon: '该配置模块即将接入',
-    aboutDescription: '查看版本、运行状态和项目说明'
+    aboutDescription: '查看项目说明和相关信息',
+    github: 'GitHub 项目地址',
+    githubDescription: '查看源代码、提交记录和项目文档'
   },
   data: {
     overview: '数据概览',

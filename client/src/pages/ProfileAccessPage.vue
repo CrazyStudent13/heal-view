@@ -151,6 +151,8 @@ async function signOut() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 64px;
+  box-sizing: border-box;
   gap: 16px;
 }
 

@@ -38,7 +38,9 @@ export default {
     access: 'Access Protection',
     about: 'About & Runtime',
     comingSoon: 'This settings module is coming soon',
-    aboutDescription: 'View version, runtime status, and project information'
+    aboutDescription: 'View project details and related information',
+    github: 'GitHub Repository',
+    githubDescription: 'View the source code, commit history, and project documentation'
   },
   data: {
     overview: 'Data Overview', weight: 'Weight', avgWeight: 'Avg Weight', steps: 'Steps', avgSteps: 'Avg Steps', maxSteps: 'Max Steps',
