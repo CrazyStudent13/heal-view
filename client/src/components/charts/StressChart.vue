@@ -8,13 +8,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import echarts from '../../lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
+const themeColors = useEchartsThemeColors();
 
 const props = defineProps({
   data: {
@@ -24,25 +26,24 @@ const props = defineProps({
 });
 
 const chartRef = ref(null);
-let chartInstance = null;
+const { chartInstance, initChart: initChartInstance } = useEchartsInstance(chartRef);
 
 const initChart = () => {
-  if (!chartRef.value || chartInstance) return;
-  chartInstance = echarts.init(chartRef.value);
-  updateChart();
+  initChartInstance(updateChart);
 };
 
 const updateChart = () => {
-  if (!chartInstance || props.data.length === 0) return;
+  if (!chartInstance.value) return;
+
+  if (props.data.length === 0) {
+    chartInstance.value.clear();
+    return;
+  }
 
   const dates = props.data.map(item => item.date);
   const stress = props.data.map(item => item.avgStress || 0);
 
-  // Get theme colors
-  const isDark = document.documentElement.classList.contains('dark-theme');
-  const textColor = isDark ? '#a8a8a8' : '#606266';
-  const axisLineColor = isDark ? '#3a3a3a' : '#e8e8e8';
-  const splitLineColor = isDark ? '#3a3a3a' : '#ebeef5';
+  const { textColor, axisLineColor, splitLineColor } = themeColors.value;
 
   const option = {
     tooltip: {
@@ -119,7 +120,7 @@ const updateChart = () => {
     }]
   };
 
-  chartInstance.setOption(option);
+  chartInstance.value.setOption(option);
 };
 
 watch(() => props.data, () => {
@@ -127,23 +128,9 @@ watch(() => props.data, () => {
 }, { deep: true });
 
 watch(() => localeStore.currentLocale, updateChart);
+watch(themeColors, updateChart);
 
-onMounted(() => {
-  initChart();
-  window.addEventListener('resize', handleResize);
-});
-
-onBeforeUnmount(() => {
-  if (chartInstance) {
-    chartInstance.dispose();
-    chartInstance = null;
-  }
-  window.removeEventListener('resize', handleResize);
-});
-
-const handleResize = () => {
-  chartInstance?.resize();
-};
+onMounted(initChart);
 </script>
 
 <style scoped lang="scss">

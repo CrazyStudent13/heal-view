@@ -10,11 +10,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import echarts from '../../lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
+const themeColors = useEchartsThemeColors();
 
 const props = defineProps({
   stepsData: {
@@ -28,7 +30,7 @@ const props = defineProps({
 });
 
 const chartRef = ref(null);
-let chartInstance = null;
+const { chartInstance, initChart: initChartInstance } = useEchartsInstance(chartRef);
 let initTimer = null;
 
 // Convert timestamp to time string (HH:mm)
@@ -52,24 +54,15 @@ function filterNightData(data) {
 }
 
 const initChart = () => {
-  if (!chartRef.value || chartInstance) return;
-  chartInstance = echarts.init(chartRef.value);
-  updateChart();
+  initChartInstance(updateChart);
 };
 
 const updateChart = () => {
-  if (!chartInstance) return;
-
-  console.log('[TimeSeriesChart] Updating chart with data:');
-  console.log('  Steps data length:', props.stepsData.length);
-  console.log('  Heart rate data length:', props.heartRateData.length);
+  if (!chartInstance.value) return;
 
   // Filter out night time data (23:00 - 08:00)
   const filteredStepsData = filterNightData(props.stepsData);
   const filteredHrData = filterNightData(props.heartRateData);
-
-  console.log('  Filtered steps data length:', filteredStepsData.length);
-  console.log('  Filtered heart rate data length:', filteredHrData.length);
 
   // Process steps data
   const stepsTimes = filteredStepsData.map(item => formatTime(item.time));
@@ -79,13 +72,12 @@ const updateChart = () => {
   const hrTimes = filteredHrData.map(item => formatTime(item.time));
   const hrValues = filteredHrData.map(item => item.value || 0);
 
-  console.log('  Chart will render with', stepsTimes.length, 'time points');
+  if (stepsTimes.length === 0 && hrTimes.length === 0) {
+    chartInstance.value.clear();
+    return;
+  }
 
-  // Get theme colors
-  const isDark = document.documentElement.classList.contains('dark-theme');
-  const textColor = isDark ? '#a8a8a8' : '#606266';
-  const axisLineColor = isDark ? '#3a3a3a' : '#e8e8e8';
-  const splitLineColor = isDark ? '#3a3a3a' : '#ebeef5';
+  const { textColor, axisLineColor, splitLineColor } = themeColors.value;
 
   const option = {
     tooltip: {
@@ -226,42 +218,29 @@ const updateChart = () => {
     ]
   };
 
-  chartInstance.setOption(option);
+  chartInstance.value.setOption(option);
 };
 
 watch(() => [props.stepsData, props.heartRateData], () => {
-  if (chartInstance && (props.stepsData.length > 0 || props.heartRateData.length > 0)) {
-    updateChart();
-  }
+  updateChart();
 }, { deep: true });
 
-watch(() => localeStore.currentLocale, () => {
-  if (chartInstance) updateChart();
-});
+watch(() => localeStore.currentLocale, updateChart);
+watch(themeColors, updateChart);
 
 onMounted(() => {
   initTimer = setTimeout(() => {
     initTimer = null;
     initChart();
   }, 100);
-  window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
-  if (chartInstance) {
-    chartInstance.dispose();
-    chartInstance = null;
-  }
   if (initTimer) {
     clearTimeout(initTimer);
     initTimer = null;
   }
-  window.removeEventListener('resize', handleResize);
 });
-
-const handleResize = () => {
-  chartInstance?.resize();
-};
 </script>
 
 <style scoped lang="scss">

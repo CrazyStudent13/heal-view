@@ -12,17 +12,17 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import echarts from '../../lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
-import { useThemeStore } from '../../stores/themeStore.js';
 import { calculateCalorieEfficiency } from '../../domain/healthRules.js';
 import ChartPanel from '../common/ChartPanel.vue';
 import DateSelectionControls from '../common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
-const themeStore = useThemeStore();
 const { t } = localeStore;
+const themeColors = useEchartsThemeColors();
 
 const props = defineProps({
   data: {
@@ -32,7 +32,7 @@ const props = defineProps({
 });
 
 const chartRef = ref(null);
-let chartInstance = null;
+const { chartInstance, initChart: initChartInstance } = useEchartsInstance(chartRef);
 
 const hasData = computed(() => props.data.length > 0);
 
@@ -60,17 +60,8 @@ const avgCaloriesValue = computed(() => {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 });
 
-function getThemeColors() {
-  const isDark = themeStore.isDarkMode;
-  return {
-    textColor: isDark ? '#a8a8a8' : '#606266',
-    axisLineColor: isDark ? '#3a3a3a' : '#e8e8e8',
-    splitLineColor: isDark ? '#3a3a3a' : '#ebeef5'
-  };
-}
-
 function buildOption() {
-  const colors = getThemeColors();
+  const colors = themeColors.value;
   const dates = chartData.value.map(item => item.date);
   const calories = chartData.value.map(item => item.calories);
   const efficiencies = chartData.value.map(item => item.efficiency);
@@ -253,42 +244,25 @@ function buildOption() {
 }
 
 const initChart = () => {
-  if (!chartRef.value) return;
-  if (!chartInstance) {
-    chartInstance = echarts.init(chartRef.value);
-  }
-  updateChart();
+  initChartInstance(updateChart);
 };
 
 const updateChart = () => {
-  if (!chartInstance) return;
+  if (!chartInstance.value) return;
 
   if (!hasData.value) {
-    chartInstance.clear();
+    chartInstance.value.clear();
     return;
   }
 
-  chartInstance.setOption(buildOption(), true);
-};
-
-const handleResize = () => {
-  chartInstance?.resize();
+  chartInstance.value.setOption(buildOption(), true);
 };
 
 watch(() => props.data, updateChart, { deep: true });
 watch(() => localeStore.currentLocale, updateChart);
-watch(() => themeStore.isDarkMode, updateChart);
+watch(themeColors, updateChart);
 
-onMounted(() => {
-  initChart();
-  window.addEventListener('resize', handleResize);
-});
-
-onBeforeUnmount(() => {
-  chartInstance?.dispose();
-  chartInstance = null;
-  window.removeEventListener('resize', handleResize);
-});
+onMounted(initChart);
 </script>
 
 <style scoped lang="scss">

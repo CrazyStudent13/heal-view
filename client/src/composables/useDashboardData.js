@@ -275,7 +275,6 @@ export function useDashboardData(dateStore, dataStore) {
         dateStore.selectDate(defaultDate);
         await fetchSingleDayData(defaultDate);
         await dataStore.fetchUserProfile();
-        console.log('Loaded single day data for:', defaultDate);
       } else {
         console.warn('No dates available');
       }

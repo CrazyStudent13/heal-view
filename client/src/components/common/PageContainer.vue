@@ -172,19 +172,6 @@ const containerStyle = computed(() => ({
   padding: var(--page-content-padding);
 }
 
-:global(.page-surface-card) {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
-}
-
-:global(.page-surface-header) {
-  min-height: 82px;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--card-border);
-}
-
 @media (max-width: 640px) {
   .page-container {
     padding: 16px;

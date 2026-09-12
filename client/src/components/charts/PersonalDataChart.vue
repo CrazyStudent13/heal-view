@@ -6,12 +6,13 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import echarts from '../../lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
+const themeColors = useEchartsThemeColors();
 
 const props = defineProps({
   profileData: {
@@ -21,26 +22,28 @@ const props = defineProps({
 });
 
 const chartRef = ref(null);
-let chartInstance = null;
+const { chartInstance, initChart: initChartInstance } = useEchartsInstance(chartRef);
 let initTimer = null;
 
 const initChart = () => {
-  if (!chartRef.value || !props.profileData || chartInstance) return;
-  
-  chartInstance = echarts.init(chartRef.value);
-  updateChart();
+  if (!props.profileData) return;
+  initChartInstance(updateChart);
 };
 
 const updateChart = () => {
-  if (!chartInstance || !props.profileData) return;
+  if (!chartInstance.value) return;
+
+  if (!props.profileData) {
+    chartInstance.value.clear();
+    return;
+  }
 
   const bmi = props.profileData.bmi || 0;
   const bmiRef = props.profileData.bmiReference;
   
   if (!bmiRef) return;
 
-  const isDark = document.documentElement.classList.contains('dark-theme');
-  const textColor = isDark ? '#a8a8a8' : '#606266';
+  const { textColor } = themeColors.value;
 
   // BMI reference ranges
   const ranges = [
@@ -140,38 +143,28 @@ const updateChart = () => {
     ]
   };
 
-  chartInstance.setOption(option, true);
+  chartInstance.value.setOption(option, true);
 };
 
 watch(() => props.profileData, () => {
-  if (chartInstance) {
-    updateChart();
-  }
+  if (chartInstance.value) updateChart();
+  else initChart();
 }, { deep: true });
+watch(themeColors, updateChart);
 
 onMounted(() => {
   initTimer = setTimeout(() => {
     initTimer = null;
     initChart();
   }, 100);
-  window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
-  if (chartInstance) {
-    chartInstance.dispose();
-    chartInstance = null;
-  }
   if (initTimer) {
     clearTimeout(initTimer);
     initTimer = null;
   }
-  window.removeEventListener('resize', handleResize);
 });
-
-const handleResize = () => {
-  chartInstance?.resize();
-};
 </script>
 
 <style scoped lang="scss">

@@ -1,18 +1,14 @@
 import echarts from '../lib/echarts';
 import { translate as t } from '../i18n';
+import { resolveEchartsThemeColors } from './useEchartsInstance.js';
 
 /**
  * Get chart theme colors based on current theme
  */
 function getChartThemeColors() {
   const isDark = document.documentElement.classList.contains('dark-theme');
-  
-  return {
-    textColor: isDark ? '#a8a8a8' : '#606266',
-    axisLineColor: isDark ? '#3a3a3a' : '#e8e8e8',
-    splitLineColor: isDark ? '#3a3a3a' : '#ebeef5',
-    backgroundColor: isDark ? '#262626' : '#ffffff'
-  };
+
+  return resolveEchartsThemeColors(isDark);
 }
 
 /**

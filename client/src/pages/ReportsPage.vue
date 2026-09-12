@@ -5,7 +5,7 @@
       :options="periodOptions"
       class="period-switch"
     />
-    <el-empty :description="emptyDescription" :image-size="120" />
+    <AsyncState empty :empty-description="emptyDescription" />
   </PageContainer>
 </template>
 
@@ -13,6 +13,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useLocaleStore } from '../stores/localeStore.js';
+import AsyncState from '../components/common/AsyncState.vue';
 import PageContainer from '../components/common/PageContainer.vue';
 
 const { t } = useLocaleStore();
