@@ -48,6 +48,8 @@ export default {
   auth: {
     title: 'Access Verification',
     description: 'Enter the access password to view personal health data',
+    productLabel: 'Personal health data space',
+    passwordLabel: 'Access password',
     passwordPlaceholder: 'Enter access password',
     passwordRequired: 'Please enter the access password',
     enter: 'Enter Dashboard',

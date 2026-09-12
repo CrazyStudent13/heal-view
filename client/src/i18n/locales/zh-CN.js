@@ -71,6 +71,8 @@ export default {
   auth: {
     title: '访问验证',
     description: '请输入访问密码查看个人健康数据',
+    productLabel: '个人健康数据空间',
+    passwordLabel: '访问密码',
     passwordPlaceholder: '请输入访问密码',
     passwordRequired: '请输入访问密码',
     enter: '进入看板',
