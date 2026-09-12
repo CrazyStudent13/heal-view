@@ -1,8 +1,8 @@
 <template>
-  <section class="profile-page">
+  <PageContainer class="profile-page" full-height content-width="none">
     <div class="profile-layout">
-      <aside class="profile-sidebar">
-        <div class="profile-heading">
+      <aside class="profile-sidebar page-surface-card">
+        <div class="profile-heading page-surface-header">
           <div class="profile-icon">
             <el-icon><UserFilled /></el-icon>
           </div>
@@ -25,17 +25,18 @@
         </nav>
       </aside>
 
-      <main class="profile-content">
+      <main class="profile-content page-surface-card">
         <RouterView />
       </main>
     </div>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { InfoFilled, Lock, UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../stores/localeStore.js';
+import PageContainer from '../components/common/PageContainer.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
@@ -49,14 +50,7 @@ const menuItems = [
 
 <style lang="scss">
 .profile-page {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
   padding: 16px;
-  box-sizing: border-box;
-  overflow: hidden;
-  background: var(--app-bg);
 }
 
 .profile-layout {
@@ -77,11 +71,7 @@ const menuItems = [
 .profile-sidebar {
   width: 320px;
   flex: 0 0 320px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  padding: 20px 12px;
-  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
+  padding: 0 12px 20px;
 }
 
 .profile-heading {
@@ -91,7 +81,6 @@ const menuItems = [
   height: 64px;
   box-sizing: border-box;
   padding: 0 8px;
-  border-bottom: 1px solid var(--card-border);
 }
 
 .profile-icon {
@@ -142,10 +131,6 @@ const menuItems = [
   flex: 1 1 auto;
   min-width: 0;
   padding: 8px 16px 24px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
 }
 
 @media (max-width: 640px) {

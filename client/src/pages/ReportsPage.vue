@@ -1,5 +1,5 @@
 <template>
-  <PageContainer :title="t('reports.title')">
+  <PageContainer :title="t('reports.title')" card content-width="none">
     <el-segmented
       v-model="period"
       :options="periodOptions"

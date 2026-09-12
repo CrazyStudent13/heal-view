@@ -1,37 +1,40 @@
 <template>
-  <div class="data-import-page">
-    <section class="history-panel">
-      <div class="panel-toolbar">
-        <div class="panel-title">
-          <h2>{{ t('import.historyTitle') }}</h2>
-          <span>{{ t('import.historyCount', { count: history.length }) }}</span>
-        </div>
+  <PageContainer
+    class="data-import-page"
+    :title="t('import.historyTitle')"
+    card
+    full-height
+    content-width="none"
+    content-padding="0"
+  >
+    <template #title-meta>
+      <span class="history-count">{{ t('import.historyCount', { count: history.length }) }}</span>
+    </template>
 
-        <div class="toolbar-actions">
-          <el-popconfirm :title="t('import.confirmClearData')" @confirm="clearData">
-            <template #reference>
-              <el-button class="toolbar-button danger-soft" type="danger" plain :icon="Delete" :loading="clearing">
-                {{ t('import.clearData') }}
-              </el-button>
-            </template>
-          </el-popconfirm>
-
-          <el-button
-            type="danger"
-            plain
-            class="toolbar-button danger-soft"
-            :icon="Delete"
-            :disabled="selectedRows.length === 0"
-            @click="deleteSelected"
-          >
-            {{ t('import.deleteSelected') }}
+    <template #actions>
+      <el-popconfirm :title="t('import.confirmClearData')" @confirm="clearData">
+        <template #reference>
+          <el-button class="toolbar-button danger-soft" type="danger" plain :icon="Delete" :loading="clearing">
+            {{ t('import.clearData') }}
           </el-button>
+        </template>
+      </el-popconfirm>
 
-          <el-button class="toolbar-button primary-action" type="primary" :icon="Upload" @click="openUploadDialog">
-            {{ t('import.uploadArchive') }}
-          </el-button>
-        </div>
-      </div>
+      <el-button
+        type="danger"
+        plain
+        class="toolbar-button danger-soft"
+        :icon="Delete"
+        :disabled="selectedRows.length === 0"
+        @click="deleteSelected"
+      >
+        {{ t('import.deleteSelected') }}
+      </el-button>
+
+      <el-button class="toolbar-button primary-action" type="primary" :icon="Upload" @click="openUploadDialog">
+        {{ t('import.uploadArchive') }}
+      </el-button>
+    </template>
 
       <el-table
         v-if="!loadingHistory && !historyError"
@@ -95,7 +98,6 @@
         :show-retry="Boolean(historyError)"
         @retry="loadHistory"
       />
-    </section>
 
     <el-dialog
       v-model="uploadDialogVisible"
@@ -234,7 +236,7 @@
         </el-button>
       </template>
     </el-dialog>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup>
@@ -273,6 +275,7 @@ import {
 } from '../../api/fitnessApi.js';
 import { normalizeRequestError } from '../../utils/requestState.js';
 import AsyncState from '../common/AsyncState.vue';
+import PageContainer from '../common/PageContainer.vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 
 const emit = defineEmits(['imported', 'view-dashboard']);
@@ -597,53 +600,14 @@ onMounted(loadHistory);
 <style scoped lang="scss">
 .data-import-page {
   flex: 1;
-  padding: 20px;
-  overflow: hidden;
-  background: #f5f5f5;
 }
 
-.history-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
-  box-shadow: none;
-}
-
-.panel-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 82px;
-  padding: 20px 24px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.panel-title {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.panel-title h2 {
-  margin: 0;
-  color: #303133;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.panel-title span {
+.history-count {
   color: #909399;
   font-size: 16px;
   font-weight: 600;
 }
 
-.toolbar-actions,
 .row-actions {
   display: flex;
   align-items: center;
@@ -980,23 +944,12 @@ onMounted(loadHistory);
 
 @media (max-width: 900px) {
   .data-import-page {
-    height: auto;
-    min-height: calc(100vh - 64px);
     padding: 12px;
-    overflow: visible;
+    min-height: calc(100vh - 64px);
   }
 
-  .history-panel {
+  .data-import-page :deep(.page-container__shell) {
     min-height: 620px;
-  }
-
-  .panel-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .toolbar-actions {
-    flex-wrap: wrap;
   }
 }
 </style>

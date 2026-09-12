@@ -1,5 +1,5 @@
 <template>
-  <PageContainer :title="t('plans.title')">
+  <PageContainer :title="t('plans.title')" card content-width="none">
     <el-empty :description="t('plans.comingSoon')" :image-size="120" />
   </PageContainer>
 </template>
