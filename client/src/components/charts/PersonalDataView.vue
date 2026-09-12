@@ -1,9 +1,12 @@
 <template>
   <div class="personal-data-view">
     <!-- Loading state -->
-    <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="10" animated />
-    </div>
+    <AsyncState
+      v-if="loading || !profileData"
+      :loading="loading"
+      :empty="!loading && !profileData"
+      :empty-description="t('personal.noData')"
+    />
 
     <!-- Content -->
     <div v-else-if="profileData" class="content-wrapper">
@@ -130,6 +133,7 @@ import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { classifyBloodPressureRecord } from '../../domain/healthRules.js';
 import DateSelectionControls from '../common/DateSelectionControls.vue';
+import AsyncState from '../common/AsyncState.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

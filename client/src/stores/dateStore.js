@@ -1,9 +1,19 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { getDates, getDailySummary } from '../api/fitnessApi.js';
 import { createLatestRequest, normalizeRequestError } from '../utils/requestState.js';
 
 const DATE_LIST_CACHE_TTL = 30_000;
+const DATE_PREFERENCE_KEY = 'heal-view-date-preferences';
+
+function readDatePreferences() {
+  try {
+    const value = JSON.parse(localStorage.getItem(DATE_PREFERENCE_KEY) || '{}');
+    return value && typeof value === 'object' ? value : {};
+  } catch {
+    return {};
+  }
+}
 
 function formatLocalDate(date) {
   const year = date.getFullYear();
@@ -13,17 +23,31 @@ function formatLocalDate(date) {
 }
 
 export const useDateStore = defineStore('date', () => {
+  const preferences = readDatePreferences();
   const dateList = ref([]);
   const datesWithTraining = ref(new Set()); // Dates that have training data
-  const selectedDate = ref(null);
-  const selectedDates = ref([]); // For multi-select mode
-  const selectedDateRange = ref([null, null]); // For compare mode
-  const viewMode = ref('single');
+  const selectedDate = ref(preferences.selectedDate || null);
+  const selectedDates = ref(Array.isArray(preferences.selectedDates) ? preferences.selectedDates : []); // For multi-select mode
+  const selectedDateRange = ref(Array.isArray(preferences.selectedDateRange) ? preferences.selectedDateRange : [null, null]); // For compare mode
+  const viewMode = ref(['single', 'compare'].includes(preferences.viewMode) ? preferences.viewMode : 'single');
   const loading = ref(false);
   const error = ref(null);
   const dateListRequest = createLatestRequest();
   let dateListPromise = null;
   let dateListFetchedAt = 0;
+
+  watch(
+    [selectedDate, selectedDates, selectedDateRange, viewMode],
+    () => {
+      localStorage.setItem(DATE_PREFERENCE_KEY, JSON.stringify({
+        selectedDate: selectedDate.value,
+        selectedDates: selectedDates.value,
+        selectedDateRange: selectedDateRange.value,
+        viewMode: viewMode.value
+      }));
+    },
+    { deep: true }
+  );
 
   // Get first 7 dates (most recent)
   const recentDates = computed(() => {

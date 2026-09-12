@@ -156,7 +156,12 @@
       </MetricCard>
     </div>
 
-    <el-empty v-else :description="t('chart.selectDate')" :image-size="100" />
+    <AsyncState
+      v-else
+      :empty="true"
+      :empty-description="t('chart.selectDate')"
+      :empty-image-size="100"
+    />
   </div>
 </template>
 
@@ -165,6 +170,7 @@ import { computed } from 'vue';
 import { DataLine } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
 import MetricCard from '../common/MetricCard.vue';
+import AsyncState from '../common/AsyncState.vue';
 
 const localeStore = useLocaleStore();
 

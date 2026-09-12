@@ -3,7 +3,6 @@
     <!-- Top navigation bar -->
     <TopNavbar
       v-if="route.name !== 'login'"
-      v-model:viewMode="viewMode"
       @open-settings="settingsDrawerVisible = true"
     />
     
@@ -93,7 +92,6 @@ const { error: dateError } = storeToRefs(dateStore);
 const dashboardError = computed(() => dataError.value || dateError.value);
 const dashboard = useDashboardData(dateStore, dataStore);
 const {
-  viewMode,
   currentChartType,
   chartData,
   sleepTimelineData,

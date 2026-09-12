@@ -51,7 +51,7 @@ function t(key) {
   return localeStore.t(key);
 }
 
-const emit = defineEmits(['update:viewMode', 'open-settings']);
+defineEmits(['open-settings']);
 const route = useRoute();
 const router = useRouter();
 
@@ -61,13 +61,6 @@ const navItems = [
   { path: '/reports/weekly', labelKey: 'nav.reports', icon: Document },
   { path: '/profile', labelKey: 'profile.title', icon: UserFilled }
 ];
-
-const props = defineProps({
-  viewMode: {
-    type: String,
-    default: 'single'
-  }
-});
 
 function isActive(item) {
   if (item.path === '/reports/weekly') {

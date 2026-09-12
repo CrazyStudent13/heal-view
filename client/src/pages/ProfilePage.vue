@@ -147,4 +147,41 @@ const menuItems = [
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
 }
+
+@media (max-width: 640px) {
+  .profile-page {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    padding: 12px;
+  }
+
+  .profile-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .profile-sidebar {
+    width: 100%;
+    flex: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .profile-content {
+    height: auto;
+    min-height: 360px;
+    overflow: visible;
+    padding: 8px 12px 20px;
+  }
+
+  .profile-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-nav-item {
+    min-width: 0;
+  }
+}
 </style>
