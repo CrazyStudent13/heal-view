@@ -60,20 +60,23 @@
         :title="t('auth.forgotPassword')"
       >
         <template #default>
-          <div class="forgot-password-tip__command">
-            <code>{{ resetCommandText }}</code>
-            <el-tooltip :content="t('auth.copyCommand')" placement="top">
-              <el-button
-                circle
-                text
-                size="small"
-                :icon="copied ? SuccessFilled : CopyDocument"
-                :type="copied ? 'success' : 'info'"
-                :aria-label="t('auth.copyCommand')"
-                :aria-pressed="copied"
-                @click="copyResetCommand"
-              />
-            </el-tooltip>
+          <div class="forgot-password-tip__content">
+            <p>{{ t('auth.resetCommandHint') }}</p>
+            <div class="forgot-password-tip__command">
+              <code>{{ resetCommandText }}</code>
+              <el-tooltip :content="t('auth.copyCommand')" placement="top">
+                <el-button
+                  circle
+                  text
+                  size="small"
+                  :icon="copied ? SuccessFilled : CopyDocument"
+                  :type="copied ? 'success' : 'info'"
+                  :aria-label="t('auth.copyCommand')"
+                  :aria-pressed="copied"
+                  @click="copyResetCommand"
+                />
+              </el-tooltip>
+            </div>
           </div>
         </template>
       </el-alert>
@@ -231,10 +234,26 @@ onBeforeUnmount(() => {
   margin-top: 26px;
 }
 
+.forgot-password-tip :deep(.el-alert__content) {
+  text-align: left;
+}
+
+.forgot-password-tip__content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forgot-password-tip__content p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 .forgot-password-tip__command {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
   line-height: 1.5;
 }
@@ -255,7 +274,15 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   width: 44px;
+  height: 44px;
   margin-right: 0;
+}
+
+.login-form :deep(.el-input__prefix-inner) {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
@@ -266,12 +293,22 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   width: 44px;
+  height: 44px;
   margin-left: 0;
 }
 
 .login-form :deep(.el-input__suffix-inner) {
   display: grid;
   place-items: center;
+  width: 44px;
+  height: 44px;
+}
+
+.login-form :deep(.el-input__suffix-inner > *) {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
 }
 
 @media (max-width: 640px) {

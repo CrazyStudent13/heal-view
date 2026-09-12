@@ -78,6 +78,7 @@ export default {
     enter: '进入看板',
     forgotPassword: '忘记密码？',
     resetCommand: '请在服务器控制台执行：pnpm reset-access-password',
+    resetCommandHint: '复制后在服务端执行重置',
     copyCommand: '复制命令',
     commandCopied: '命令已复制',
     commandCopyFailed: '复制失败，请手动复制',

@@ -55,6 +55,7 @@ export default {
     enter: 'Enter Dashboard',
     forgotPassword: 'Forgot your password?',
     resetCommand: 'Run this in the server console: pnpm reset-access-password',
+    resetCommandHint: 'Copy and run it on the server.',
     copyCommand: 'Copy command',
     commandCopied: 'Command copied',
     commandCopyFailed: 'Copy failed. Please copy it manually.',
