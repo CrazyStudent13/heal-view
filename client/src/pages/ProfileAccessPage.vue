@@ -65,7 +65,7 @@
         <el-button type="primary" :loading="auth.loading" @click="save">
           {{ t('auth.save') }}
         </el-button>
-        <el-button v-if="auth.enabled" :disabled="auth.loading" @click="signOut">
+        <el-button v-if="auth.canLogout" :disabled="auth.loading" @click="signOut">
           {{ t('auth.loggedOut') }}
         </el-button>
       </div>

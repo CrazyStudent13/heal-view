@@ -37,22 +37,24 @@
       @click="$emit('open-settings')"
     />
 
-    <el-tooltip v-if="showLogoutButton" :content="t('auth.logout')" placement="bottom">
-      <el-button
-        :icon="SwitchButton"
-        circle
-        size="large"
-        class="nav-circle-button logout-button"
-        :loading="auth.loading"
-        :aria-label="t('auth.logout')"
-        @click="handleLogout"
-      />
-    </el-tooltip>
+    <template v-if="auth.canLogout">
+      <el-tooltip :content="t('auth.logout')" placement="bottom">
+        <el-button
+          :icon="SwitchButton"
+          circle
+          size="large"
+          class="nav-circle-button logout-button"
+          :loading="auth.loading"
+          :aria-label="t('auth.logout')"
+          @click="handleLogout"
+        />
+      </el-tooltip>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
@@ -70,7 +72,6 @@ defineEmits(['open-settings']);
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-const showLogoutButton = computed(() => auth.enabled && auth.authenticated);
 
 const navItems = [
   { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },

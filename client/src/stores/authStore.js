@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
   getAccessSettings,
   getAuthStatus,
@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const authenticated = ref(true);
   const loading = ref(false);
   const error = ref('');
+  const canLogout = computed(() => enabled.value && authenticated.value);
 
   async function fetchStatus() {
     const response = await getAuthStatus();
@@ -83,6 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
     enabled,
     configured,
     authenticated,
+    canLogout,
     loading,
     error,
     fetchStatus,
