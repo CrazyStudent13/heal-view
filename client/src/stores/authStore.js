@@ -58,6 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     const response = await getAccessSettings();
     enabled.value = Boolean(response.enabled);
     configured.value = Boolean(response.configured);
+    authenticated.value = !enabled.value || authenticated.value;
     return response;
   }
 
