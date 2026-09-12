@@ -14,7 +14,7 @@
       </button>
     </nav>
 
-    <div style="flex: 1"></div>
+    <div class="nav-spacer"></div>
 
     <!-- Import and settings actions -->
     <el-tooltip :content="t('nav.import')" placement="bottom">
@@ -117,13 +117,17 @@ async function handleLogout() {
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.04);
+  box-shadow: var(--card-shadow);
 }
 
 .primary-nav {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.nav-spacer {
+  flex: 1 1 auto;
 }
 
 .nav-button {
@@ -136,7 +140,7 @@ async function handleLogout() {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #909399;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
@@ -145,9 +149,9 @@ async function handleLogout() {
 
 .nav-button:hover,
 .nav-button.active {
-  border-color: #d9ecff;
-  background: #ecf5ff;
-  color: #409eff;
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .nav-button :deep(.el-icon) {
@@ -157,25 +161,25 @@ async function handleLogout() {
 .nav-circle-button {
   width: 48px;
   height: 48px;
-  border-color: #ebeef5;
-  color: #909399;
+  border-color: var(--card-border);
+  color: var(--text-secondary);
 }
 
 .nav-circle-button:hover,
 .nav-circle-button.active {
-  border-color: #d9ecff;
-  background: #ecf5ff;
-  color: #409eff;
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .logout-button {
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .logout-button:hover {
-  border-color: #fbc4c4;
-  background: #fef0f0;
-  color: #f56c6c;
+  border-color: var(--danger-color);
+  background: var(--danger-light);
+  color: var(--danger-color);
 }
 
 @media (max-width: 600px) {
@@ -187,6 +191,7 @@ async function handleLogout() {
 
   .primary-nav {
     width: 100%;
+    overflow-x: auto;
   }
 
   .logout-button {

@@ -5,13 +5,10 @@
     :aria-label="chartAriaLabel"
     :aria-busy="loading"
   >
-    <el-alert
+    <AsyncState
       v-if="errorMessage"
       class="chart-error"
-      type="warning"
-      :title="errorMessage"
-      show-icon
-      :closable="false"
+      :error="errorMessage"
     />
 
     <div v-if="refreshing" class="refresh-indicator">
@@ -66,9 +63,12 @@
     </template>
 
     <!-- Empty state for compare mode -->
-    <div v-if="!hasData && !loading && viewMode === 'compare'" class="empty-state">
-      <p>{{ t('chart.selectDate') }}</p>
-    </div>
+    <AsyncState
+      v-if="!hasData && !loading && viewMode === 'compare'"
+      class="chart-empty"
+      empty
+      :empty-description="t('chart.selectDate')"
+    />
   </div>
 </template>
 
@@ -77,6 +77,7 @@ import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
 import { normalizeErrorText } from '../../utils/requestState.js';
+import AsyncState from '../common/AsyncState.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 
 function createLazyChart(loader) {
@@ -229,16 +230,8 @@ const singleAvgHeartRate = computed(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.empty-state, .loading-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-secondary);
-  background: var(--card-bg);
-  border-radius: 8px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.chart-empty {
+  min-height: 240px;
 }
 </style>
 

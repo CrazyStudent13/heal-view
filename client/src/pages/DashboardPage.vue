@@ -1,7 +1,7 @@
 <template>
   <section class="dashboard-page">
     <div class="dashboard-grid">
-      <aside class="sidebar-wrapper">
+      <aside class="sidebar-wrapper page-surface-card">
         <DataCardsSidebar
           :chart-data="chartData"
           :current-chart-type="currentChartType"
@@ -87,11 +87,7 @@ function setViewMode(value) {
   width: 320px;
   flex-shrink: 0;
   min-height: 0;
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow-y: auto;
-  border: 1px solid var(--card-border);
   display: flex;
   flex-direction: column;
 }

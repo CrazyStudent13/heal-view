@@ -130,33 +130,33 @@ onMounted(() => {
 
 .selection-controls {
   padding: 12px 20px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid var(--card-border);
   display: flex;
   gap: 8px;
   align-items: center;
-  background: #fafafa;
+  background: var(--control-hover-bg);
 }
 
 .control-btn {
   padding: 6px 12px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
+  background: var(--card-bg);
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  color: #666;
-  transition: all 0.2s;
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .control-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .selected-count {
   margin-left: auto;
   font-size: 13px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .date-list {
@@ -176,7 +176,7 @@ onMounted(() => {
 }
 
 .date-item:hover {
-  background: #f5f5f5;
+  background: var(--control-hover-bg);
 }
 
 .date-item:focus-visible,
@@ -186,13 +186,13 @@ onMounted(() => {
 }
 
 .date-item.active {
-  background: #e6f7ff;
-  border-left-color: #1890ff;
+  background: var(--primary-light);
+  border-left-color: var(--primary-color);
 }
 
 .date-item.selected {
-  background: #f6ffed;
-  border-left-color: #52c41a;
+  background: var(--success-light);
+  border-left-color: var(--success-color);
 }
 
 .date-checkbox {
@@ -209,14 +209,14 @@ onMounted(() => {
 .date-text {
   display: block;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .date-raw {
   display: block;
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 </style>

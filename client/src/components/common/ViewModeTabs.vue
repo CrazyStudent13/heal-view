@@ -42,8 +42,8 @@ defineEmits(['update:modelValue']);
   display: flex;
   gap: 8px;
   padding: 16px 20px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .tab-btn {
@@ -53,25 +53,30 @@ defineEmits(['update:modelValue']);
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--control-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--card-bg);
   cursor: pointer;
   font-size: 14px;
-  color: #666;
-  transition: all 0.2s;
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .tab-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .tab-btn.active {
-  background: #e6f7ff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   font-weight: 500;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .tab-icon {

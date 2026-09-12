@@ -10,7 +10,7 @@
         <el-radio-button
           v-for="locale in localeStore.availableLocales"
           :key="locale.code"
-          :label="locale.code"
+          :value="locale.code"
         >
           {{ locale.code === 'zh-CN' ? '中' : 'EN' }}
         </el-radio-button>

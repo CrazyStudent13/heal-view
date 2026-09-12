@@ -87,7 +87,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="t('import.noHistory')" :image-size="120" />
+          <AsyncState class="history-empty-state" empty :empty-description="t('import.noHistory')" />
         </template>
       </el-table>
       <AsyncState
@@ -245,7 +245,6 @@ import {
   ElAlert,
   ElButton,
   ElDialog,
-  ElEmpty,
   ElIcon,
   ElMessage,
   ElMessageBox,
@@ -653,6 +652,10 @@ onMounted(loadHistory);
 
 .history-state {
   flex: 1;
+  min-height: 240px;
+}
+
+.history-empty-state {
   min-height: 240px;
 }
 
