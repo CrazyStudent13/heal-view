@@ -30,7 +30,6 @@
             v-model="password"
             type="password"
             show-password
-            clearable
             autocomplete="current-password"
             :placeholder="t('auth.passwordPlaceholder')"
             :disabled="auth.loading"
@@ -215,7 +214,7 @@ onBeforeUnmount(() => {
 
 .login-form :deep(.el-input__wrapper) {
   min-height: 44px;
-  padding: 1px 20px;
+  padding: 0;
 }
 
 .login-form :deep(.el-input__inner) {
@@ -253,7 +252,10 @@ onBeforeUnmount(() => {
 }
 
 .login-form :deep(.el-input__prefix) {
-  margin-right: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  margin-right: 0;
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
@@ -261,7 +263,15 @@ onBeforeUnmount(() => {
 }
 
 .login-form :deep(.el-input__suffix) {
-  margin-left: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  margin-left: 0;
+}
+
+.login-form :deep(.el-input__suffix-inner) {
+  display: grid;
+  place-items: center;
 }
 
 @media (max-width: 640px) {
