@@ -15,6 +15,7 @@ export default {
   settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
   plans: { title: 'Exercise Plans', comingSoon: 'Exercise plans are coming soon' },
   reports: { title: 'Reports', weekly: 'Weekly', monthly: 'Monthly', weeklyComingSoon: 'Weekly reports are coming soon', monthlyComingSoon: 'Monthly reports are coming soon' },
+  filter: { noOptions: 'No filter options available' },
   auth: {
     title: 'Access Verification',
     description: 'Enter the access password to view personal health data',
@@ -33,7 +34,8 @@ export default {
     passwordMismatch: 'The passwords do not match',
     passwordRequiredToEnable: 'Enter a password before enabling access protection',
     saved: 'Access protection settings saved',
-    loggedOut: 'Access protection session ended'
+    loggedOut: 'Access protection session ended',
+    settingsLoadFailed: 'Failed to load access protection settings'
   },
   profile: {
     title: 'Personal Settings',

@@ -38,6 +38,7 @@ export default {
   },
   plans: { title: '运动计划', comingSoon: '运动计划模块待接入' },
   reports: { title: '周报月报', weekly: '周报', monthly: '月报', weeklyComingSoon: '周报模块待接入', monthlyComingSoon: '月报模块待接入' },
+  filter: { noOptions: '暂无可用筛选项' },
   auth: {
     title: '访问验证',
     description: '请输入访问密码查看个人健康数据',
@@ -56,7 +57,8 @@ export default {
     passwordMismatch: '两次输入的密码不一致',
     passwordRequiredToEnable: '开启访问保护时请输入密码',
     saved: '访问保护设置已保存',
-    loggedOut: '已退出访问保护'
+    loggedOut: '已退出访问保护',
+    settingsLoadFailed: '读取访问保护设置失败'
   },
   profile: {
     title: '个人配置',

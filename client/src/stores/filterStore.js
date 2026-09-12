@@ -1,31 +1,23 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { getFilterOptions } from '../api/fitnessApi.js';
-import { normalizeRequestError } from '../utils/requestState.js';
+import { useAsyncRequest } from '../composables/useAsyncRequest.js';
 
 export const useFilterStore = defineStore('filter', () => {
   const dateRange = ref([null, null]); // [startDate, endDate]
   const sportTypes = ref([]);
   const selectedSportTypes = ref([]);
-  const loading = ref(false);
-  const error = ref(null);
+  const requestState = useAsyncRequest();
 
   /**
    * Fetch filter options from API
    */
   async function fetchFilterOptions() {
-    loading.value = true;
-    error.value = null;
-
-    try {
+    return requestState.run(async () => {
       const options = await getFilterOptions();
       sportTypes.value = options.sportTypes || [];
-    } catch (err) {
-      error.value = normalizeRequestError(err);
-      console.error('Failed to fetch filter options:', err);
-    } finally {
-      loading.value = false;
-    }
+      return sportTypes.value;
+    }, { fallback: [] });
   }
 
   /**
@@ -59,8 +51,8 @@ export const useFilterStore = defineStore('filter', () => {
     dateRange,
     sportTypes,
     selectedSportTypes,
-    loading,
-    error,
+    loading: requestState.loading,
+    error: requestState.error,
     fetchFilterOptions,
     updateDateRange,
     toggleSportType,

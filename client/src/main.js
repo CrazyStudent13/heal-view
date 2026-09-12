@@ -1,6 +1,37 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
+import {
+  ElAlert,
+  ElButton,
+  ElCard,
+  ElConfigProvider,
+  ElDatePicker,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDivider,
+  ElDrawer,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElIcon,
+  ElInput,
+  ElOption,
+  ElPopconfirm,
+  ElRadioButton,
+  ElRadioGroup,
+  ElSegmented,
+  ElSelect,
+  ElSkeleton,
+  ElSkeletonItem,
+  ElSwitch,
+  ElTable,
+  ElTableColumn,
+  ElTag,
+  ElText,
+  ElTooltip,
+  ElUpload
+} from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/index.scss'
@@ -18,6 +49,38 @@ app.component('SectionTitle', SectionTitle)
 app.use(pinia)
 app.use(i18n)
 app.use(router)
+[
+  ElAlert,
+  ElButton,
+  ElCard,
+  ElConfigProvider,
+  ElDatePicker,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDivider,
+  ElDrawer,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElIcon,
+  ElInput,
+  ElOption,
+  ElPopconfirm,
+  ElRadioButton,
+  ElRadioGroup,
+  ElSegmented,
+  ElSelect,
+  ElSkeleton,
+  ElSkeletonItem,
+  ElSwitch,
+  ElTable,
+  ElTableColumn,
+  ElTag,
+  ElText,
+  ElTooltip,
+  ElUpload
+].forEach(component => app.component(component.name, component))
 
 window.addEventListener('heal-view-auth-required', () => {
   const auth = useAuthStore(pinia)

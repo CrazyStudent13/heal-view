@@ -34,7 +34,7 @@
       </div>
 
       <el-table
-        v-loading="loadingHistory"
+        v-if="!loadingHistory && !historyError"
         :data="history"
         class="history-table"
         height="100%"
@@ -87,6 +87,14 @@
           <el-empty description="暂无导入记录" :image-size="120" />
         </template>
       </el-table>
+      <AsyncState
+        v-else
+        class="history-state"
+        :loading="loadingHistory"
+        :error="historyError"
+        :show-retry="Boolean(historyError)"
+        @retry="loadHistory"
+      />
     </section>
 
     <el-dialog
@@ -246,7 +254,6 @@ import {
   ElTableColumn,
   ElTag,
   ElUpload,
-  vLoading
 } from 'element-plus';
 import {
   CircleCheckFilled,
@@ -264,6 +271,8 @@ import {
   getImportHistory,
   parseImportArchive
 } from '../../api/fitnessApi.js';
+import { normalizeRequestError } from '../../utils/requestState.js';
+import AsyncState from '../common/AsyncState.vue';
 
 const emit = defineEmits(['imported', 'view-dashboard']);
 
@@ -272,6 +281,7 @@ const MAX_FILE_SIZE = 200 * 1024 * 1024;
 const history = ref([]);
 const selectedRows = ref([]);
 const loadingHistory = ref(false);
+const historyError = ref('');
 const uploadDialogVisible = ref(false);
 const resultDialogVisible = ref(false);
 const platform = ref('xiaomi');
@@ -532,10 +542,12 @@ function viewDashboard() {
 
 async function loadHistory() {
   loadingHistory.value = true;
+  historyError.value = '';
   try {
     const response = await getImportHistory();
     history.value = response.records || [];
   } catch (error) {
+    historyError.value = normalizeRequestError(error) || '加载导入记录失败';
     console.error('Failed to load import history:', error);
   } finally {
     loadingHistory.value = false;
@@ -669,6 +681,11 @@ onMounted(loadHistory);
   --el-table-row-hover-bg-color: #f7fbff;
   color: #606266;
   font-size: 16px;
+}
+
+.history-state {
+  flex: 1;
+  min-height: 240px;
 }
 
 .history-table :deep(.el-table__header th) {
