@@ -28,17 +28,6 @@
       />
     </el-tooltip>
 
-    <el-button
-      v-if="auth.enabled && auth.authenticated"
-      :icon="SwitchButton"
-      class="logout-button"
-      :loading="auth.loading"
-      :aria-label="t('auth.logout')"
-      @click="handleLogout"
-    >
-      {{ t('auth.logout') }}
-    </el-button>
-
     <el-button 
       :icon="Setting" 
       circle 
@@ -47,6 +36,18 @@
       :aria-label="t('settings.title')"
       @click="$emit('open-settings')"
     />
+
+    <el-tooltip v-if="auth.enabled && auth.authenticated" :content="t('auth.logout')" placement="bottom">
+      <el-button
+        :icon="SwitchButton"
+        circle
+        size="large"
+        class="nav-circle-button logout-button"
+        :loading="auth.loading"
+        :aria-label="t('auth.logout')"
+        @click="handleLogout"
+      />
+    </el-tooltip>
   </div>
 </template>
 
@@ -168,9 +169,7 @@ async function handleLogout() {
 }
 
 .logout-button {
-  min-height: 44px;
-  border-color: #ebeef5;
-  color: #606266;
+  color: #909399;
 }
 
 .logout-button:hover {
