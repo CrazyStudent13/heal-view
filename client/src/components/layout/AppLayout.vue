@@ -54,13 +54,13 @@
 import { computed, provide, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { RouterView, useRoute } from 'vue-router';
-import { useDateStore } from '../../stores/dateStore.js';
-import { useLocaleStore } from '../../stores/localeStore';
-import { useThemeStore } from '../../stores/themeStore';
-import { useDataStore } from '../../stores/dataStore.js';
-import { useDashboardData } from '../../composables/useDashboardData.js';
-import { dashboardContextKey } from '../../composables/dashboardContext.js';
-import TopNavbar from '../navigation/TopNavbar.vue';
+import { useDateStore } from '@/stores/dateStore.js';
+import { useLocaleStore } from '@/stores/localeStore';
+import { useThemeStore } from '@/stores/themeStore';
+import { useDataStore } from '@/stores/dataStore.js';
+import { useDashboardData } from '@/composables/useDashboardData.js';
+import { dashboardContextKey } from '@/composables/dashboardContext.js';
+import TopNavbar from '@/components/navigation/TopNavbar.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();

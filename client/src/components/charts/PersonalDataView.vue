@@ -130,10 +130,10 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { classifyBloodPressureRecord } from '../../domain/healthRules.js';
-import DateSelectionControls from '../common/DateSelectionControls.vue';
-import AsyncState from '../common/AsyncState.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { classifyBloodPressureRecord } from '@/domain/healthRules.js';
+import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
+import AsyncState from '@/components/common/AsyncState.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

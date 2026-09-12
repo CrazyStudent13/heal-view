@@ -168,10 +168,10 @@
 <script setup>
 import { computed } from 'vue';
 import { DataLine } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore';
-import MetricCard from '../common/MetricCard.vue';
-import AsyncState from '../common/AsyncState.vue';
-import { formatNumber as formatLocalizedNumber } from '../../i18n/index.js';
+import { useLocaleStore } from '@/stores/localeStore';
+import MetricCard from '@/components/common/MetricCard.vue';
+import AsyncState from '@/components/common/AsyncState.vue';
+import { formatNumber as formatLocalizedNumber } from '@/i18n/index.js';
 
 const localeStore = useLocaleStore();
 

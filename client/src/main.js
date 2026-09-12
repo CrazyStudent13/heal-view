@@ -34,12 +34,12 @@ import {
 } from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
-import './styles/index.scss'
-import App from './App.vue'
-import { router } from './router'
-import SectionTitle from './components/common/SectionTitle.vue'
-import { i18n } from './i18n'
-import { useAuthStore } from './stores/authStore'
+import '@/styles/index.scss'
+import App from '@/App.vue'
+import { router } from '@/router'
+import SectionTitle from '@/components/common/SectionTitle.vue'
+import { i18n } from '@/i18n'
+import { useAuthStore } from '@/stores/authStore'
 
 const app = createApp(App)
 const pinia = createPinia()

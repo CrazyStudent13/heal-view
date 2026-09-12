@@ -50,14 +50,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import echarts from '../../lib/echarts';
+import echarts from '@/lib/echarts';
 import { ElEmpty } from 'element-plus';
 import { MoonNight } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore';
-import { useDataStore } from '../../stores/dataStore';
-import MetricCard from '../common/MetricCard.vue';
-import SleepStageAnalysis from './SleepStageAnalysis.vue';
-import DateSelectionControls from '../common/DateSelectionControls.vue';
+import { useLocaleStore } from '@/stores/localeStore';
+import { useDataStore } from '@/stores/dataStore';
+import MetricCard from '@/components/common/MetricCard.vue';
+import SleepStageAnalysis from '@/components/charts/SleepStageAnalysis.vue';
+import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 function t(key, params) { return localeStore.t(key, params); }

@@ -6,9 +6,9 @@ import {
   loginWithPassword,
   logout as logoutRequest,
   saveAccessSettings
-} from '../api/fitnessApi.js';
-import { normalizeRequestError } from '../utils/requestState.js';
-import { translate } from '../i18n/index.js';
+} from '@/api/fitnessApi.js';
+import { normalizeRequestError } from '@/utils/requestState.js';
+import { translate } from '@/i18n/index.js';
 
 export const useAuthStore = defineStore('auth', () => {
   const enabled = ref(false);

@@ -313,15 +313,15 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue';
 import { ElTable, ElTableColumn, ElTag } from 'element-plus';
-import echarts from '../../lib/echarts';
-import { useDateStore } from '../../stores/dateStore.js';
-import { useDataStore } from '../../stores/dataStore.js';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { formatNumber } from '../../i18n/index.js';
-import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '../../utils/sportRecordParser.js';
-import MetricCard from '../common/MetricCard.vue';
-import ChartPanel from '../common/ChartPanel.vue';
-import DateSelectionControls from '../common/DateSelectionControls.vue';
+import echarts from '@/lib/echarts';
+import { useDateStore } from '@/stores/dateStore.js';
+import { useDataStore } from '@/stores/dataStore.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { formatNumber } from '@/i18n/index.js';
+import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '@/utils/sportRecordParser.js';
+import MetricCard from '@/components/common/MetricCard.vue';
+import ChartPanel from '@/components/common/ChartPanel.vue';
+import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();

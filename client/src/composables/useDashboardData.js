@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted } from 'vue';
-import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '../domain/healthDataFallbacks.js';
-import { createLatestRequest } from '../utils/requestState.js';
+import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '@/domain/healthDataFallbacks.js';
+import { createLatestRequest } from '@/utils/requestState.js';
 
 export function useDashboardData(dateStore, dataStore) {
   const viewMode = computed({

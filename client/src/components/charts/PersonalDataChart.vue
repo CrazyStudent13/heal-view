@@ -6,9 +6,9 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import ChartPanel from '../common/ChartPanel.vue';
+import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import ChartPanel from '@/components/common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

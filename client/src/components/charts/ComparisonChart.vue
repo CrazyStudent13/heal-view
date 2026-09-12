@@ -9,11 +9,11 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import echarts from '../../lib/echarts';
-import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { formatDate, formatNumber } from '../../i18n/index.js';
-import ChartPanel from '../common/ChartPanel.vue';
+import echarts from '@/lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { formatDate, formatNumber } from '@/i18n/index.js';
+import ChartPanel from '@/components/common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

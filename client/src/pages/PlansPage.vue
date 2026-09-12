@@ -5,9 +5,9 @@
 </template>
 
 <script setup>
-import { useLocaleStore } from '../stores/localeStore.js';
-import AsyncState from '../components/common/AsyncState.vue';
-import PageContainer from '../components/common/PageContainer.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import AsyncState from '@/components/common/AsyncState.vue';
+import PageContainer from '@/components/common/PageContainer.vue';
 
 const { t } = useLocaleStore();
 </script>

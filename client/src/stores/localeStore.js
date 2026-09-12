@@ -6,7 +6,7 @@ import {
   i18n,
   localeOptions,
   normalizeLocale
-} from '../i18n';
+} from '@/i18n';
 
 export const useLocaleStore = defineStore('locale', () => {
   const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : '';

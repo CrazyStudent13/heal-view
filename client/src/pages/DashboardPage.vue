@@ -33,10 +33,10 @@
 
 <script setup>
 import { computed, inject, unref } from 'vue';
-import DataCardsSidebar from '../components/charts/DataCardsSidebar.vue';
-import ChartDisplay from '../components/charts/ChartDisplay.vue';
-import { dashboardContextKey } from '../composables/dashboardContext.js';
-import { normalizeErrorText } from '../utils/requestState.js';
+import DataCardsSidebar from '@/components/charts/DataCardsSidebar.vue';
+import ChartDisplay from '@/components/charts/ChartDisplay.vue';
+import { dashboardContextKey } from '@/composables/dashboardContext.js';
+import { normalizeErrorText } from '@/utils/requestState.js';
 
 const dashboard = inject(dashboardContextKey);
 

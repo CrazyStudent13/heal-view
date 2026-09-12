@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue';
-import echarts from '../lib/echarts.js';
-import { useThemeStore } from '../stores/themeStore.js';
+import echarts from '@/lib/echarts.js';
+import { useThemeStore } from '@/stores/themeStore.js';
 
 export function resolveEchartsThemeColors(isDark) {
   return {

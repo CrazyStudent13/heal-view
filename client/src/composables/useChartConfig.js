@@ -1,6 +1,6 @@
-import echarts from '../lib/echarts';
-import { formatNumber, translate as t } from '../i18n/index.js';
-import { resolveEchartsThemeColors } from './useEchartsInstance.js';
+import echarts from '@/lib/echarts';
+import { formatNumber, translate as t } from '@/i18n/index.js';
+import { resolveEchartsThemeColors } from '@/composables/useEchartsInstance.js';
 
 /**
  * Get chart theme colors based on current theme

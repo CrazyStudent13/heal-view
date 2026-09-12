@@ -13,13 +13,13 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import echarts from '../../lib/echarts';
-import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { calculateCalorieEfficiency } from '../../domain/healthRules.js';
-import { formatDate } from '../../i18n/index.js';
-import ChartPanel from '../common/ChartPanel.vue';
-import DateSelectionControls from '../common/DateSelectionControls.vue';
+import echarts from '@/lib/echarts';
+import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { calculateCalorieEfficiency } from '@/domain/healthRules.js';
+import { formatDate } from '@/i18n/index.js';
+import ChartPanel from '@/components/common/ChartPanel.vue';
+import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

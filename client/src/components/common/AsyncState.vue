@@ -45,8 +45,8 @@
 <script setup>
 import { computed } from 'vue';
 import { Loading, Refresh } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { normalizeErrorText } from '../../utils/requestState.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { normalizeErrorText } from '@/utils/requestState.js';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

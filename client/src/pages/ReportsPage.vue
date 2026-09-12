@@ -12,9 +12,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useLocaleStore } from '../stores/localeStore.js';
-import AsyncState from '../components/common/AsyncState.vue';
-import PageContainer from '../components/common/PageContainer.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import AsyncState from '@/components/common/AsyncState.vue';
+import PageContainer from '@/components/common/PageContainer.vue';
 
 const { t } = useLocaleStore();
 const route = useRoute();

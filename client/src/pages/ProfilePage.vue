@@ -35,8 +35,8 @@
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { InfoFilled, Lock, UserFilled } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../stores/localeStore.js';
-import PageContainer from '../components/common/PageContainer.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import PageContainer from '@/components/common/PageContainer.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

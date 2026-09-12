@@ -75,14 +75,14 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import echarts from '../../lib/echarts';
+import echarts from '@/lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore.js';
-import { useThemeStore } from '../../stores/themeStore.js';
-import { classifyBloodPressure } from '../../domain/healthRules.js';
-import MetricCard from '../common/MetricCard.vue';
-import ChartPanel from '../common/ChartPanel.vue';
-import DateSelectionControls from '../common/DateSelectionControls.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { useThemeStore } from '@/stores/themeStore.js';
+import { classifyBloodPressure } from '@/domain/healthRules.js';
+import MetricCard from '@/components/common/MetricCard.vue';
+import ChartPanel from '@/components/common/ChartPanel.vue';
+import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const themeStore = useThemeStore();

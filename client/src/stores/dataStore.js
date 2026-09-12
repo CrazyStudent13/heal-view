@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData, getUserProfile } from '../api/fitnessApi.js';
-import { isAbortError, normalizeRequestError } from '../utils/requestState.js';
-import { translate } from '../i18n/index.js';
+import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData, getUserProfile } from '@/api/fitnessApi.js';
+import { isAbortError, normalizeRequestError } from '@/utils/requestState.js';
+import { translate } from '@/i18n/index.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});

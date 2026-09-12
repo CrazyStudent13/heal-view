@@ -75,10 +75,10 @@
 <script setup>
 import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore';
-import { normalizeErrorText } from '../../utils/requestState.js';
-import AsyncState from '../common/AsyncState.vue';
-import ChartPanel from '../common/ChartPanel.vue';
+import { useLocaleStore } from '@/stores/localeStore';
+import { normalizeErrorText } from '@/utils/requestState.js';
+import AsyncState from '@/components/common/AsyncState.vue';
+import ChartPanel from '@/components/common/ChartPanel.vue';
 
 function createLazyChart(loader) {
   return defineAsyncComponent({
@@ -89,15 +89,15 @@ function createLazyChart(loader) {
   });
 }
 
-const StepsChart = createLazyChart(() => import('./StepsChart.vue'));
-const CaloriesChart = createLazyChart(() => import('./CaloriesChart.vue'));
-const HeartRateChart = createLazyChart(() => import('./HeartRateChart.vue'));
-const SleepChart = createLazyChart(() => import('./SleepChart.vue'));
-const SleepTimelineChart = createLazyChart(() => import('./SleepTimelineChart.vue'));
-const DailySportChart = createLazyChart(() => import('./DailySportChart.vue'));
-const SingleDayHeartRateChart = createLazyChart(() => import('./SingleDayHeartRateChart.vue'));
-const WeightChart = createLazyChart(() => import('./WeightChart.vue'));
-const PersonalDataView = createLazyChart(() => import('./PersonalDataView.vue'));
+const StepsChart = createLazyChart(() => import('@/components/charts/StepsChart.vue'));
+const CaloriesChart = createLazyChart(() => import('@/components/charts/CaloriesChart.vue'));
+const HeartRateChart = createLazyChart(() => import('@/components/charts/HeartRateChart.vue'));
+const SleepChart = createLazyChart(() => import('@/components/charts/SleepChart.vue'));
+const SleepTimelineChart = createLazyChart(() => import('@/components/charts/SleepTimelineChart.vue'));
+const DailySportChart = createLazyChart(() => import('@/components/charts/DailySportChart.vue'));
+const SingleDayHeartRateChart = createLazyChart(() => import('@/components/charts/SingleDayHeartRateChart.vue'));
+const WeightChart = createLazyChart(() => import('@/components/charts/WeightChart.vue'));
+const PersonalDataView = createLazyChart(() => import('@/components/charts/PersonalDataView.vue'));
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

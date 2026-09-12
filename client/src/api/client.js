@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { createApiRequestError } from '../utils/requestState.js';
+import { createApiRequestError } from '@/utils/requestState.js';
 
 const apiClient = axios.create({
   baseURL: '/api',

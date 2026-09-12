@@ -28,7 +28,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { Link } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../stores/localeStore.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
 
 const route = useRoute();
 const localeStore = useLocaleStore();

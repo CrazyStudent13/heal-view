@@ -82,10 +82,10 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { useLocaleStore } from '../stores/localeStore.js';
-import { useAuthStore } from '../stores/authStore.js';
-import { useAsyncRequest } from '../composables/useAsyncRequest.js';
-import AsyncState from '../components/common/AsyncState.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { useAuthStore } from '@/stores/authStore.js';
+import { useAsyncRequest } from '@/composables/useAsyncRequest.js';
+import AsyncState from '@/components/common/AsyncState.vue';
 
 const localeStore = useLocaleStore();
 const auth = useAuthStore();

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getFilterOptions } from '../api/fitnessApi.js';
-import { useAsyncRequest } from '../composables/useAsyncRequest.js';
+import { getFilterOptions } from '@/api/fitnessApi.js';
+import { useAsyncRequest } from '@/composables/useAsyncRequest.js';
 
 export const useFilterStore = defineStore('filter', () => {
   const dateRange = ref([null, null]); // [startDate, endDate]

@@ -89,8 +89,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CopyDocument, Lock, SuccessFilled } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../stores/localeStore.js';
-import { useAuthStore } from '../stores/authStore.js';
+import { useLocaleStore } from '@/stores/localeStore.js';
+import { useAuthStore } from '@/stores/authStore.js';
 
 const localeStore = useLocaleStore();
 const auth = useAuthStore();

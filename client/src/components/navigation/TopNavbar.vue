@@ -58,8 +58,8 @@ import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
-import { useLocaleStore } from '../../stores/localeStore';
-import { useAuthStore } from '../../stores/authStore.js';
+import { useLocaleStore } from '@/stores/localeStore';
+import { useAuthStore } from '@/stores/authStore.js';
 
 const localeStore = useLocaleStore();
 
