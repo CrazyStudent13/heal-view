@@ -55,6 +55,7 @@ const menuItems = [
 
 .profile-layout {
   display: flex;
+  flex: 1;
   width: 100%;
   gap: 16px;
   height: 100%;

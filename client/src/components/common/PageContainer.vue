@@ -95,6 +95,11 @@ const containerStyle = computed(() => ({
   min-height: 0;
 }
 
+.page-container--full-height .page-container__shell {
+  flex: 1;
+  height: 100%;
+}
+
 .page-container--card .page-container__shell {
   flex: 1;
   overflow: hidden;
