@@ -2,7 +2,8 @@ export default {
   app: { title: 'Daily Fitness Dashboard' },
   common: {
     loading: 'Loading...', empty: 'No data', reset: 'Reset', selectAll: 'Select All', clearAll: 'Clear All', query: 'Query',
-    selectedDays: '{count} days selected', loadFailed: 'Load failed', retry: 'Retry'
+    selectedDays: '{count} days selected', loadFailed: 'Load failed', retry: 'Retry',
+    view: 'View', delete: 'Delete', cancel: 'Cancel', close: 'Close', unknown: 'Unknown'
   },
   nav: {
     dashboard: 'Dashboard', plans: 'Plans', reports: 'Reports', mainNavigation: 'Main navigation',
@@ -16,6 +17,34 @@ export default {
   plans: { title: 'Exercise Plans', comingSoon: 'Exercise plans are coming soon' },
   reports: { title: 'Reports', weekly: 'Weekly', monthly: 'Monthly', weeklyComingSoon: 'Weekly reports are coming soon', monthlyComingSoon: 'Monthly reports are coming soon' },
   filter: { noOptions: 'No filter options available' },
+  import: {
+    historyTitle: 'Import history', historyCount: '({count} records)', confirmClearData: 'Clear all imported data?',
+    clearData: 'Clear imported data', deleteSelected: 'Delete selected', uploadArchive: 'Upload archive',
+    createdAt: 'Imported at', fileName: 'File name', platform: 'Source', fileSize: 'Archive size',
+    overview: 'Data overview', status: 'Status', actions: 'Actions', parse: 'Parse', noHistory: 'No import history',
+    xiaomi: 'Xiaomi Health', huawei: 'Huawei Health', xiaomiShort: 'Xiaomi', huaweiShort: 'Huawei',
+    dropArchive: 'Drop archives here, or click to select', selectPlatformFirst: 'Select a source platform first',
+    uploadTip: 'Upload unencrypted .zip archives exported from your device. Multiple files are supported; each file must be no larger than 200 MB.',
+    checkingArchive: 'Checking whether the archive is encrypted...', startParsing: 'Start parsing', healthData: 'Imported health data',
+    platformValue: 'Source: {value}', archiveSizeValue: 'Archive size: {value}', parseFailed: 'Parsing failed',
+    partialFailure: 'Some data could not be imported', previewTitle: 'Data preview', dateRange: 'Date / range',
+    dataItem: 'Data item', parseSummary: 'Parsing summary', writeTarget: 'Write target', sourceFile: 'Source file',
+    viewDashboard: 'View complete data', commitToDatabase: 'Import to database', statusPending: 'Pending import',
+    statusPartial: 'Partially invalid', statusSuccess: 'Parsed successfully', statusCompleted: 'Imported',
+    statusFailed: 'Failed', rowNumber: 'Row {row}', parsePartialTitle: 'Parsing complete with issues',
+    parseSuccessTitle: 'Parsing successful', parsePartialMessage: 'The archive was read, but some rows have issues. Review them before importing.',
+    parseSuccessMessage: 'The archive was read and converted to the standard health data structure.',
+    dateRangeValue: '{start} ~ {end}', recordCount: '{count} records', dataImportedTitle: 'Data imported',
+    dataImportedMessage: 'The data was written to the local SQLite database.', confirmBeforeImport: 'The archive was read. Review it before importing.',
+    invalidZip: 'File "{name}" is not a ZIP archive', fileTooLarge: 'File "{name}" is too large. Each file must be no larger than 200 MB.',
+    encryptedArchive: 'An encrypted archive was detected. Please upload an unencrypted archive.',
+    encryptedFile: 'File "{name}" is encrypted', selectArchiveFirst: 'Select an archive first', batchParseTitle: 'Batch parsing complete',
+    batchParseMessage: 'The system processed {count} archives and combined the results.', archiveCount: '{count} archives',
+    parseFailedMessage: 'Failed to parse the health data archive', healthDateRange: 'Health data: {start} ~ {end}',
+    importSuccessTitle: 'Import successful', importSuccessMessage: '{count} records imported', importFailed: 'Import failed',
+    historyLoadFailed: 'Failed to load import history', confirmDeleteSelected: 'Delete the selected {count} records?',
+    clearSuccess: 'Imported data cleared', clearFailed: 'Failed to clear imported data'
+  },
   auth: {
     title: 'Access Verification',
     description: 'Enter the access password to view personal health data',

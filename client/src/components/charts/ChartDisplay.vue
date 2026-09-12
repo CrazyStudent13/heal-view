@@ -1,5 +1,10 @@
 <template>
-  <div class="chart-display">
+  <div
+    class="chart-display"
+    role="region"
+    :aria-label="chartAriaLabel"
+    :aria-busy="loading"
+  >
     <el-alert
       v-if="errorMessage"
       class="chart-error"
@@ -10,7 +15,7 @@
     />
 
     <div v-if="refreshing" class="refresh-indicator">
-      <el-icon class="is-loading"><Loading /></el-icon>
+      <el-icon class="is-loading" aria-hidden="true"><Loading /></el-icon>
     </div>
 
     <!-- Single day mode: show different content based on chart type -->
@@ -143,6 +148,19 @@ const hasData = computed(() => props.chartData.length > 0);
 
 const errorMessage = computed(() => {
   return normalizeErrorText(props.error);
+});
+
+const chartAriaLabel = computed(() => {
+  const labels = {
+    personal: 'personal.title',
+    sport: 'chart.dailySportActivities',
+    steps: 'chart.stepsDistanceTrend',
+    calories: 'data.calories',
+    heartrate: 'chart.heartRateTrend',
+    sleep: 'chart.sleepOverview',
+    weight: 'weight.title'
+  };
+  return t(labels[props.chartType] || 'chart.noData');
 });
 
 const hasDetailedSleepData = computed(() => {

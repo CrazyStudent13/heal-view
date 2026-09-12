@@ -3,15 +3,15 @@
     <section class="history-panel">
       <div class="panel-toolbar">
         <div class="panel-title">
-          <h2>导入历史记录</h2>
-          <span>（{{ history.length }}条）</span>
+          <h2>{{ t('import.historyTitle') }}</h2>
+          <span>{{ t('import.historyCount', { count: history.length }) }}</span>
         </div>
 
         <div class="toolbar-actions">
-          <el-popconfirm title="确认清空已导入数据？" @confirm="clearData">
+          <el-popconfirm :title="t('import.confirmClearData')" @confirm="clearData">
             <template #reference>
               <el-button class="toolbar-button danger-soft" type="danger" plain :icon="Delete" :loading="clearing">
-                清空已导入数据
+                {{ t('import.clearData') }}
               </el-button>
             </template>
           </el-popconfirm>
@@ -24,11 +24,11 @@
             :disabled="selectedRows.length === 0"
             @click="deleteSelected"
           >
-            删除选中
+            {{ t('import.deleteSelected') }}
           </el-button>
 
           <el-button class="toolbar-button primary-action" type="primary" :icon="Upload" @click="openUploadDialog">
-            上传压缩包
+            {{ t('import.uploadArchive') }}
           </el-button>
         </div>
       </div>
@@ -42,33 +42,33 @@
         @selection-change="selectedRows = $event"
       >
         <el-table-column type="selection" width="48" />
-        <el-table-column prop="createdAt" label="导入时间" width="210">
+        <el-table-column prop="createdAt" :label="t('import.createdAt')" width="210">
           <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column prop="fileName" label="文件名" min-width="360" show-overflow-tooltip />
-        <el-table-column prop="platformLabel" label="来源" width="170">
+        <el-table-column prop="fileName" :label="t('import.fileName')" min-width="360" show-overflow-tooltip />
+        <el-table-column prop="platformLabel" :label="t('import.platform')" width="170">
           <template #default="{ row }">
             <el-tag effect="light" type="primary">{{ row.platformLabel || platformLabel(row.platform) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="fileSize" label="包大小" width="130">
+        <el-table-column prop="fileSize" :label="t('import.fileSize')" width="130">
           <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
         </el-table-column>
-        <el-table-column prop="overview" label="数据概况" min-width="300" show-overflow-tooltip>
+        <el-table-column prop="overview" :label="t('import.overview')" min-width="300" show-overflow-tooltip>
           <template #default="{ row }">{{ row.overview || overviewFromResult(row) }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="130">
+        <el-table-column prop="status" :label="t('import.status')" width="130">
           <template #default="{ row }">
             <el-tag :type="statusMeta(row.status).type" effect="light">
               {{ statusMeta(row.status).label }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column :label="t('import.actions')" width="260" fixed="right">
           <template #default="{ row }">
             <div class="row-actions">
-              <el-button class="action-link view-link" type="primary" link :icon="View" @click="showRecord(row)">查看</el-button>
-              <el-button class="action-link delete-link" type="danger" link :icon="Delete" @click="removeHistory(row.importId || row.id)">删除</el-button>
+              <el-button class="action-link view-link" type="primary" link :icon="View" @click="showRecord(row)">{{ t('common.view') }}</el-button>
+              <el-button class="action-link delete-link" type="danger" link :icon="Delete" @click="removeHistory(row.importId || row.id)">{{ t('common.delete') }}</el-button>
               <el-button
                 v-if="canImport(row)"
                 type="success"
@@ -78,13 +78,13 @@
                 :loading="activeImportId === row.importId"
                 @click="commitHistoryImport(row.importId)"
               >
-                解析
+                {{ t('import.parse') }}
               </el-button>
             </div>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="暂无导入记录" :image-size="120" />
+          <el-empty :description="t('import.noHistory')" :image-size="120" />
         </template>
       </el-table>
       <AsyncState
@@ -99,17 +99,17 @@
 
     <el-dialog
       v-model="uploadDialogVisible"
-      title="上传压缩包"
+      :title="t('import.uploadArchive')"
       width="720px"
       class="import-upload-dialog"
       :close-on-click-modal="!parsing"
       @closed="resetUpload"
     >
       <div class="platform-selector">
-        <span>数据来源</span>
+        <span>{{ t('import.platform') }}</span>
         <el-radio-group v-model="platform" :disabled="parsing">
-          <el-radio-button value="xiaomi">小米运动健康</el-radio-button>
-          <el-radio-button value="huawei">华为运动健康</el-radio-button>
+          <el-radio-button value="xiaomi">{{ t('import.xiaomi') }}</el-radio-button>
+          <el-radio-button value="huawei">{{ t('import.huawei') }}</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -127,17 +127,17 @@
       >
         <el-icon class="upload-icon"><UploadFilled /></el-icon>
         <div class="upload-title">
-          {{ platform ? '拖拽压缩包到此处，或点击选择文件' : '请先选择数据来源平台' }}
+          {{ platform ? t('import.dropArchive') : t('import.selectPlatformFirst') }}
         </div>
         <template #tip>
-          <div class="upload-tip">请上传包含设备导出数据的未加密 .zip 压缩包，支持同时选择多个文件；单个文件不超过 200 MB。</div>
+          <div class="upload-tip">{{ t('import.uploadTip') }}</div>
         </template>
       </el-upload>
 
       <el-alert
         v-if="checkingArchive"
         class="upload-alert"
-        title="正在检查压缩包是否加密，请稍候"
+        :title="t('import.checkingArchive')"
         type="info"
         show-icon
         :closable="false"
@@ -152,21 +152,21 @@
       />
 
       <template #footer>
-        <el-button :disabled="parsing" @click="uploadDialogVisible = false">取消</el-button>
+        <el-button :disabled="parsing" @click="uploadDialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="parsing"
           :disabled="!platform || fileList.length === 0 || checkingArchive"
           @click="parseArchives"
         >
-          开始解析
+          {{ t('import.startParsing') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="resultDialogVisible"
-      title="导入健康数据"
+      :title="t('import.healthData')"
       width="70vw"
       top="4vh"
       class="import-result-dialog"
@@ -185,15 +185,15 @@
         </div>
 
         <div class="result-meta">
-          <span>数据来源：{{ shortPlatformLabel(currentResult.platformLabel || currentResult.platform) }}</span>
+          <span>{{ t('import.platformValue', { value: shortPlatformLabel(currentResult.platformLabel || currentResult.platform) }) }}</span>
           <span>{{ currentResult.fileName || '--' }}</span>
-          <span>压缩包大小：{{ currentResult.fileSizeText || formatSize(currentResult.fileSize) }}</span>
+          <span>{{ t('import.archiveSizeValue', { value: currentResult.fileSizeText || formatSize(currentResult.fileSize) }) }}</span>
         </div>
 
         <el-alert
           v-if="currentResult.reasons?.length"
           class="result-alert"
-          :title="currentResult.status === 'failed' ? '解析失败' : '部分数据未能导入'"
+          :title="currentResult.status === 'failed' ? t('import.parseFailed') : t('import.partialFailure')"
           type="warning"
           show-icon
           :closable="false"
@@ -204,25 +204,25 @@
         </el-alert>
 
         <div v-if="currentResult.previewItems?.length" class="preview-block">
-          <div class="block-title">数据预览列表</div>
+          <div class="block-title">{{ t('import.previewTitle') }}</div>
           <el-table :data="currentResult.previewItems" size="small" height="100%">
-            <el-table-column prop="date" label="日期/范围" width="190" show-overflow-tooltip />
-            <el-table-column prop="category" label="数据项" width="130" show-overflow-tooltip />
-            <el-table-column prop="value" label="解析摘要" min-width="320" show-overflow-tooltip />
-            <el-table-column prop="target" label="写入位置" width="190" show-overflow-tooltip />
-            <el-table-column prop="source" label="来源文件" min-width="320" show-overflow-tooltip />
+            <el-table-column prop="date" :label="t('import.dateRange')" width="190" show-overflow-tooltip />
+            <el-table-column prop="category" :label="t('import.dataItem')" width="130" show-overflow-tooltip />
+            <el-table-column prop="value" :label="t('import.parseSummary')" min-width="320" show-overflow-tooltip />
+            <el-table-column prop="target" :label="t('import.writeTarget')" width="190" show-overflow-tooltip />
+            <el-table-column prop="source" :label="t('import.sourceFile')" min-width="320" show-overflow-tooltip />
           </el-table>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="resultDialogVisible = false">关闭</el-button>
+        <el-button @click="resultDialogVisible = false">{{ t('common.close') }}</el-button>
         <el-button
           v-if="currentResult?.status === 'completed'"
           type="primary"
           @click="viewDashboard"
         >
-          查看完整数据
+          {{ t('import.viewDashboard') }}
         </el-button>
         <el-button
           v-else-if="currentResult?.importId && currentResult?.status !== 'failed'"
@@ -230,7 +230,7 @@
           :loading="activeImportId === currentResult.importId"
           @click="commitHistoryImport(currentResult.importId)"
         >
-          导入数据库
+          {{ t('import.commitToDatabase') }}
         </el-button>
       </template>
     </el-dialog>
@@ -273,8 +273,10 @@ import {
 } from '../../api/fitnessApi.js';
 import { normalizeRequestError } from '../../utils/requestState.js';
 import AsyncState from '../common/AsyncState.vue';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
 const emit = defineEmits(['imported', 'view-dashboard']);
+const { t } = useLocaleStore();
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
@@ -294,24 +296,24 @@ const activeImportId = ref('');
 const clearing = ref(false);
 
 function platformLabel(value) {
-  return value === 'huawei' ? '华为运动健康' : '小米运动健康';
+  return value === 'huawei' ? t('import.huawei') : t('import.xiaomi');
 }
 
 function shortPlatformLabel(value) {
-  if (value === 'huawei' || value === '华为运动健康') return '华为';
-  if (value === 'xiaomi' || value === '小米运动健康') return '小米';
+  if (value === 'huawei' || value === t('import.huawei')) return t('import.huaweiShort');
+  if (value === 'xiaomi' || value === t('import.xiaomi')) return t('import.xiaomiShort');
   return value || '--';
 }
 
 function statusMeta(status) {
   return {
-    pending: { label: '待入库', type: 'warning' },
-    queued: { label: '待入库', type: 'warning' },
-    partial: { label: '部分异常', type: 'warning' },
-    success: { label: '解析成功', type: 'success' },
-    completed: { label: '已入库', type: 'success' },
-    failed: { label: '失败', type: 'danger' }
-  }[status] || { label: status || '未知', type: 'info' };
+    pending: { label: t('import.statusPending'), type: 'warning' },
+    queued: { label: t('import.statusPending'), type: 'warning' },
+    partial: { label: t('import.statusPartial'), type: 'warning' },
+    success: { label: t('import.statusSuccess'), type: 'success' },
+    completed: { label: t('import.statusCompleted'), type: 'success' },
+    failed: { label: t('import.statusFailed'), type: 'danger' }
+  }[status] || { label: status || t('common.unknown'), type: 'info' };
 }
 
 function canImport(row) {
@@ -343,7 +345,7 @@ function normalizeIssue(issue) {
   if (typeof issue === 'string') return issue;
   return [
     issue?.source,
-    issue?.rowNumber ? `第 ${issue.rowNumber} 行` : '',
+    issue?.rowNumber ? t('import.rowNumber', { row: issue.rowNumber }) : '',
     issue?.message || issue?.code
   ].filter(Boolean).join('：');
 }
@@ -361,11 +363,13 @@ function normalizeResult(response, file) {
   return {
     importId: response.importId,
     status,
-    title: status === 'partial' ? '解析完成，部分数据存在异常' : '解析成功',
+    title: status === 'partial' ? t('import.parsePartialTitle') : t('import.parseSuccessTitle'),
     message: status === 'partial'
-      ? '系统已读取压缩包内容，部分行存在异常，请确认后再导入。'
-      : '系统已读取压缩包内容，并转换为标准健康数据结构。',
-    overview: dateRange ? `${dateRange.start} ~ ${dateRange.end}` : `共 ${recordCount} 条记录`,
+      ? t('import.parsePartialMessage')
+      : t('import.parseSuccessMessage'),
+    overview: dateRange
+      ? t('import.dateRangeValue', { start: dateRange.start, end: dateRange.end })
+      : t('import.recordCount', { count: recordCount }),
     platform: response.platform,
     platformLabel: response.platformLabel || platformLabel(platform.value),
     fileName: response.fileName || file.name,
@@ -381,8 +385,8 @@ function resultFromHistory(row) {
   return {
     importId: row.importId,
     status: result.status || row.status,
-    title: row.status === 'completed' ? '数据已入库' : statusMeta(row.status).label,
-    message: row.status === 'completed' ? '数据已经写入本地 SQLite 数据库。' : '系统已读取压缩包内容，请确认后再导入。',
+    title: row.status === 'completed' ? t('import.dataImportedTitle') : statusMeta(row.status).label,
+    message: row.status === 'completed' ? t('import.dataImportedMessage') : t('import.confirmBeforeImport'),
     platform: row.platform,
     platformLabel: row.platformLabel || platformLabel(row.platform),
     fileName: row.fileName,
@@ -423,13 +427,13 @@ async function handleFileChange(file) {
 
   if (!/\.zip$/i.test(raw.name)) {
     fileList.value = fileList.value.filter((item) => item.uid !== file.uid);
-    ElMessage.error(`文件“${raw.name}”不是 ZIP 压缩包`);
+    ElMessage.error(t('import.invalidZip', { name: raw.name }));
     return;
   }
 
   if (raw.size > MAX_FILE_SIZE) {
     fileList.value = fileList.value.filter((item) => item.uid !== file.uid);
-    ElMessage.error(`文件“${raw.name}”过大，单个文件不能超过 200 MB`);
+    ElMessage.error(t('import.fileTooLarge', { name: raw.name }));
     return;
   }
 
@@ -437,8 +441,8 @@ async function handleFileChange(file) {
   try {
     if (await isEncryptedZip(raw)) {
       fileList.value = fileList.value.filter((item) => item.uid !== file.uid);
-      archiveError.value = '检测到这是加密压缩包，请上传未加密的压缩包。';
-      ElMessage.error(`文件“${raw.name}”已加密`);
+      archiveError.value = t('import.encryptedArchive');
+      ElMessage.error(t('import.encryptedFile', { name: raw.name }));
     }
   } catch (error) {
     console.warn('Unable to inspect archive:', error);
@@ -460,7 +464,7 @@ function resetUpload() {
 async function parseArchives() {
   const files = fileList.value.map((file) => file.raw).filter(Boolean);
   if (files.length === 0) {
-    ElMessage.warning('请先选择压缩包');
+    ElMessage.warning(t('import.selectArchiveFirst'));
     return;
   }
 
@@ -477,10 +481,10 @@ async function parseArchives() {
       : {
           importId: null,
           status: parsedResults.some((item) => item.status === 'partial') ? 'partial' : 'success',
-          title: '批量解析完成',
-          message: `系统已处理 ${parsedResults.length} 个压缩包，并汇总展示解析结果。`,
+          title: t('import.batchParseTitle'),
+          message: t('import.batchParseMessage', { count: parsedResults.length }),
           platformLabel: platformLabel(platform.value),
-          fileName: `${parsedResults.length} 个压缩包`,
+          fileName: t('import.archiveCount', { count: parsedResults.length }),
           fileSizeText: formatSize(files.reduce((sum, file) => sum + file.size, 0)),
           reasons: parsedResults.flatMap((item) => item.reasons.map((reason) => `${item.fileName}：${reason}`)),
           previewItems: parsedResults.flatMap((item) => item.previewItems).slice(0, 50)
@@ -490,7 +494,7 @@ async function parseArchives() {
     resultDialogVisible.value = true;
     await loadHistory();
   } catch (error) {
-    ElMessage.error(error.message || '解析健康数据压缩包失败');
+    ElMessage.error(error.message || t('import.parseFailedMessage'));
   } finally {
     parsing.value = false;
   }
@@ -512,24 +516,24 @@ async function commitHistoryImport(importId) {
       + Number(importedRows.aggregateRows || 0)
       + Number(importedRows.bloodPressureRows || 0);
     const dateRangeText = response.dateRange
-      ? `健康指标：${response.dateRange.start} ~ ${response.dateRange.end}`
+      ? t('import.healthDateRange', { start: response.dateRange.start, end: response.dateRange.end })
       : '';
 
     currentResult.value = {
       ...previousResult,
       importId,
       status: 'completed',
-      title: '数据入库成功',
-      message: [`数据已入库，共 ${totalRows} 条记录`, dateRangeText].filter(Boolean).join('，'),
+      title: t('import.importSuccessTitle'),
+      message: [t('import.importSuccessMessage', { count: totalRows }), dateRangeText].filter(Boolean).join('，'),
       reasons: [],
       importedRows
     };
     resultDialogVisible.value = true;
-    ElMessage.success('数据入库成功');
+    ElMessage.success(t('import.importSuccessTitle'));
     emit('imported');
     await loadHistory();
   } catch (error) {
-    ElMessage.error(error.message || '导入失败');
+    ElMessage.error(error.message || t('import.importFailed'));
   } finally {
     activeImportId.value = '';
   }
@@ -547,7 +551,7 @@ async function loadHistory() {
     const response = await getImportHistory();
     history.value = response.records || [];
   } catch (error) {
-    historyError.value = normalizeRequestError(error) || '加载导入记录失败';
+    historyError.value = normalizeRequestError(error) || t('import.historyLoadFailed');
     console.error('Failed to load import history:', error);
   } finally {
     loadingHistory.value = false;
@@ -561,10 +565,10 @@ async function removeHistory(importId) {
 
 async function deleteSelected() {
   if (selectedRows.value.length === 0) return;
-  await ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条记录？`, '删除选中', {
+  await ElMessageBox.confirm(t('import.confirmDeleteSelected', { count: selectedRows.value.length }), t('import.deleteSelected'), {
     type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消'
+    confirmButtonText: t('common.delete'),
+    cancelButtonText: t('common.cancel')
   });
   for (const row of selectedRows.value) {
     await deleteImportHistory(row.importId || row.id);
@@ -577,11 +581,11 @@ async function clearData() {
   clearing.value = true;
   try {
     await clearImportedData();
-    ElMessage.success('已清空导入数据');
+    ElMessage.success(t('import.clearSuccess'));
     emit('imported');
     await loadHistory();
   } catch (error) {
-    ElMessage.error(error.message || '清空失败');
+    ElMessage.error(error.message || t('import.clearFailed'));
   } finally {
     clearing.value = false;
   }
