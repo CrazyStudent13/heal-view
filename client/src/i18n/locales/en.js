@@ -68,6 +68,7 @@ export default {
     loggedOut: 'Access protection session ended',
     settingsLoadFailed: 'Failed to load access protection settings',
     invalidPassword: 'The access password is incorrect',
+    logout: 'Log out',
     logoutFailed: 'Failed to end the access protection session',
     settingsSaveFailed: 'Failed to save access protection settings'
   },

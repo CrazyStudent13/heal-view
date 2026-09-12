@@ -28,6 +28,17 @@
       />
     </el-tooltip>
 
+    <el-button
+      v-if="auth.enabled && auth.authenticated"
+      :icon="SwitchButton"
+      class="logout-button"
+      :loading="auth.loading"
+      :aria-label="t('auth.logout')"
+      @click="handleLogout"
+    >
+      {{ t('auth.logout') }}
+    </el-button>
+
     <el-button 
       :icon="Setting" 
       circle 
@@ -41,8 +52,10 @@
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router';
-import { DataLine, Setting, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import { useAuthStore } from '../../stores/authStore.js';
 
 const localeStore = useLocaleStore();
 
@@ -54,6 +67,7 @@ function t(key) {
 defineEmits(['open-settings']);
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 
 const navItems = [
   { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },
@@ -74,6 +88,20 @@ function isActive(item) {
 
 function navigate(path) {
   router.push(path);
+}
+
+async function handleLogout() {
+  if (auth.loading) return;
+
+  try {
+    await auth.logout();
+    await router.replace({
+      name: 'login',
+      query: { redirect: route.fullPath }
+    });
+  } catch {
+    ElMessage.error(auth.error || t('auth.logoutFailed'));
+  }
 }
 
 </script>
@@ -139,6 +167,18 @@ function navigate(path) {
   color: #409eff;
 }
 
+.logout-button {
+  min-height: 44px;
+  border-color: #ebeef5;
+  color: #606266;
+}
+
+.logout-button:hover {
+  border-color: #fbc4c4;
+  background: #fef0f0;
+  color: #f56c6c;
+}
+
 @media (max-width: 600px) {
   .top-navbar {
     gap: 10px;
@@ -150,6 +190,9 @@ function navigate(path) {
     width: 100%;
   }
 
+  .logout-button {
+    margin-left: auto;
+  }
 }
 </style>
 

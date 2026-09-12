@@ -91,6 +91,7 @@ export default {
     loggedOut: '已退出访问保护',
     settingsLoadFailed: '读取访问保护设置失败',
     invalidPassword: '访问密码不正确',
+    logout: '退出登录',
     logoutFailed: '退出访问保护失败',
     settingsSaveFailed: '保存访问保护设置失败'
   },
