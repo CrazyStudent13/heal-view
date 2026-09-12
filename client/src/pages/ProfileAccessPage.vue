@@ -20,7 +20,11 @@
           </div>
           <p>{{ t('auth.accessProtectionDescription') }}</p>
         </div>
-        <el-switch v-model="enabled" :disabled="auth.loading" />
+        <el-switch
+          v-model="enabled"
+          :disabled="auth.loading"
+          @change="syncProtectionPreview"
+        />
       </section>
 
       <el-divider />
@@ -107,12 +111,22 @@ onMounted(loadSettings);
 
 onUnmounted(() => {
   pageActive = false;
+  auth.fetchStatus().catch(() => {
+    // Restore from the server when leaving if the switch was previewed but not saved.
+  });
 });
+
+function syncProtectionPreview(value) {
+  auth.enabled = Boolean(value);
+  if (!auth.enabled) auth.authenticated = true;
+}
 
 async function save() {
   auth.error = '';
   if (enabled.value && !auth.configured && !password.value) {
     auth.error = t('auth.passwordRequiredToEnable');
+    syncProtectionPreview(false);
+    enabled.value = false;
     return;
   }
   if (password.value !== confirmPassword.value) {
@@ -126,6 +140,7 @@ async function save() {
     confirmPassword.value = '';
     ElMessage.success(t('auth.saved'));
   } catch {
+    await loadSettings();
     // The store exposes the normalized error for the page-level alert.
   }
 }

@@ -37,7 +37,7 @@
       @click="$emit('open-settings')"
     />
 
-    <template v-if="auth.canLogout">
+    <span v-show="auth.canLogout" class="logout-action">
       <el-tooltip :content="t('auth.logout')" placement="bottom">
         <el-button
           :icon="SwitchButton"
@@ -49,7 +49,7 @@
           @click="handleLogout"
         />
       </el-tooltip>
-    </template>
+    </span>
   </div>
 </template>
 
@@ -179,6 +179,11 @@ onMounted(() => {
   border-color: var(--primary-color);
   background: var(--primary-light);
   color: var(--primary-color);
+}
+
+.logout-action {
+  display: inline-flex;
+  align-items: center;
 }
 
 .logout-button {
