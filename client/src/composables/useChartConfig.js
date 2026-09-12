@@ -1,5 +1,5 @@
 import echarts from '../lib/echarts';
-import { translate as t } from '../i18n';
+import { formatNumber, translate as t } from '../i18n/index.js';
 import { resolveEchartsThemeColors } from './useEchartsInstance.js';
 
 /**
@@ -22,7 +22,7 @@ export function useStepsChartConfig() {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>${t('chart.steps')}: ${data.value.toLocaleString()} ${t('chart.unitSteps')}`;
+        return `${data.name}<br/>${t('chart.steps')}: ${formatNumber(data.value)} ${t('settings.units.steps')}`;
       }
     },
     grid: {
@@ -103,7 +103,7 @@ export function useCaloriesChartConfig() {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>${t('data.calories')}: ${data.value.toLocaleString()} kcal`;
+        return `${data.name}<br/>${t('data.calories')}: ${formatNumber(data.value)} ${t('settings.units.kcal')}`;
       }
     },
     grid: {
@@ -129,12 +129,12 @@ export function useCaloriesChartConfig() {
     },
     yAxis: {
       type: 'value',
-      name: `${t('data.calories')} (kcal)`,
+      name: `${t('data.calories')} (${t('settings.units.kcal')})`,
       nameTextStyle: {
         color: colors.textColor
       },
       axisLabel: {
-        formatter: (value) => `${value} kcal`,
+        formatter: (value) => `${value} ${t('settings.units.kcal')}`,
         color: colors.textColor
       },
       axisLine: {
@@ -180,7 +180,7 @@ export function useHeartRateChartConfig() {
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
         params.forEach(param => {
-          result += `${param.marker}${param.seriesName}: ${param.value} bpm<br/>`;
+          result += `${param.marker}${param.seriesName}: ${param.value} ${t('settings.units.bpm')}<br/>`;
         });
         return result;
       }
@@ -216,7 +216,7 @@ export function useHeartRateChartConfig() {
     },
     yAxis: {
       type: 'value',
-      name: `${t('data.heartRate')} (bpm)`,
+      name: `${t('data.heartRate')} (${t('settings.units.bpm')})`,
       min: 50,
       max: 180,
       nameTextStyle: {

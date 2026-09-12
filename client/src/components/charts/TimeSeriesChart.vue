@@ -12,6 +12,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import echarts from '../../lib/echarts';
 import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatNumber } from '../../i18n/index.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
@@ -89,9 +90,9 @@ const updateChart = () => {
         let result = `${params[0].name}<br/>`;
         params.forEach(param => {
           if (param.seriesName === t('chart.steps')) {
-            result += `${param.marker}${t('chart.steps')}: ${param.value.toLocaleString()} ${t('chart.unitSteps')}<br/>`;
+            result += `${param.marker}${t('chart.steps')}: ${formatNumber(param.value)} ${t('chart.unitSteps')}<br/>`;
           } else if (param.seriesName === t('data.heartRate')) {
-            result += `${param.marker}${t('data.heartRate')}: ${param.value} bpm<br/>`;
+            result += `${param.marker}${t('data.heartRate')}: ${param.value} ${t('settings.units.bpm')}<br/>`;
           }
         });
         return result;
@@ -155,7 +156,7 @@ const updateChart = () => {
       },
       {
         type: 'value',
-        name: t('data.heartRate') + ' (bpm)',
+        name: `${t('data.heartRate')} (${t('settings.units.bpm')})`,
         position: 'right',
         nameTextStyle: {
           color: '#ff4d4f',

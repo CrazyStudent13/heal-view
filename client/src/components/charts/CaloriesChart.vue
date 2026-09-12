@@ -17,6 +17,7 @@ import echarts from '../../lib/echarts';
 import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { calculateCalorieEfficiency } from '../../domain/healthRules.js';
+import { formatDate } from '../../i18n/index.js';
 import ChartPanel from '../common/ChartPanel.vue';
 import DateSelectionControls from '../common/DateSelectionControls.vue';
 
@@ -62,7 +63,7 @@ const avgCaloriesValue = computed(() => {
 
 function buildOption() {
   const colors = themeColors.value;
-  const dates = chartData.value.map(item => item.date);
+  const dates = chartData.value.map(item => formatDate(item.date));
   const calories = chartData.value.map(item => item.calories);
   const efficiencies = chartData.value.map(item => item.efficiency);
   const avgCalories = avgCaloriesValue.value;
@@ -95,16 +96,16 @@ function buildOption() {
 
         const lines = [`<strong>${day}</strong>`];
         if (caloriesItem && Number.isFinite(Number(caloriesItem.value))) {
-          lines.push(`${caloriesItem.marker}${t('chart.caloriesBurned')}：${Math.round(Number(caloriesItem.value))} kcal`);
+          lines.push(`${caloriesItem.marker}${t('chart.caloriesBurned')}${t('common.labelSeparator')}${Math.round(Number(caloriesItem.value))} ${t('settings.units.kcal')}`);
         }
         if (avgCaloriesItem && Number.isFinite(Number(avgCaloriesItem.value))) {
-          lines.push(`${avgCaloriesItem.marker}${t('chart.avgCaloriesLine')}：${Math.round(Number(avgCaloriesItem.value))} kcal`);
+          lines.push(`${avgCaloriesItem.marker}${t('chart.avgCaloriesLine')}${t('common.labelSeparator')}${Math.round(Number(avgCaloriesItem.value))} ${t('settings.units.kcal')}`);
         }
         if (efficiencyItem && Number.isFinite(Number(efficiencyItem.value))) {
-          lines.push(`${efficiencyItem.marker}${t('chart.caloriesEfficiency')}：${Number(efficiencyItem.value).toFixed(2)} ${t('chart.caloriesEfficiencyUnit')}`);
+          lines.push(`${efficiencyItem.marker}${t('chart.caloriesEfficiency')}${t('common.labelSeparator')}${Number(efficiencyItem.value).toFixed(2)} ${t('chart.caloriesEfficiencyUnit')}`);
         }
         if (Number(item.duration) > 0) {
-          lines.push(`${t('chart.totalExerciseDuration')}：${Math.round(item.duration)} ${t('chart.minutes')}`);
+          lines.push(`${t('chart.totalExerciseDuration')}${t('common.labelSeparator')}${Math.round(item.duration)} ${t('chart.minutes')}`);
         }
         return lines.join('<br/>');
       }
@@ -141,14 +142,14 @@ function buildOption() {
     yAxis: [
       {
         type: 'value',
-        name: `${t('chart.caloriesBurned')} (kcal)`,
+        name: `${t('chart.caloriesBurned')} (${t('settings.units.kcal')})`,
         min: calorieValues.length > 0 ? Math.max(0, Math.floor((calorieMin - caloriePadding) / 50) * 50) : 0,
         max: calorieValues.length > 0 ? Math.ceil((calorieMax + caloriePadding) / 50) * 50 : 1200,
         nameTextStyle: {
           color: colors.textColor
         },
         axisLabel: {
-          formatter: (value) => `${value} kcal`,
+          formatter: (value) => `${value} ${t('settings.units.kcal')}`,
           color: colors.textColor
         },
         axisLine: {

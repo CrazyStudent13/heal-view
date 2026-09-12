@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
       authenticated.value = true;
       return true;
     } catch (requestError) {
-      error.value = normalizeRequestError(requestError) || translate('auth.invalidPassword');
+      error.value = normalizeRequestError(requestError, translate) || translate('auth.invalidPassword');
       return false;
     } finally {
       loading.value = false;
@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
       await logoutRequest();
       authenticated.value = false;
     } catch (requestError) {
-      error.value = normalizeRequestError(requestError) || translate('auth.logoutFailed');
+      error.value = normalizeRequestError(requestError, translate) || translate('auth.logoutFailed');
       throw requestError;
     } finally {
       loading.value = false;
@@ -73,7 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
       authenticated.value = !enabled.value || authenticated.value;
       return response;
     } catch (requestError) {
-      error.value = normalizeRequestError(requestError) || translate('auth.settingsSaveFailed');
+      error.value = normalizeRequestError(requestError, translate) || translate('auth.settingsSaveFailed');
       throw requestError;
     } finally {
       loading.value = false;

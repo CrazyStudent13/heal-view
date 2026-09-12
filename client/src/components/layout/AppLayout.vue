@@ -22,7 +22,7 @@
             <el-option
               v-for="locale in localeStore.availableLocales"
               :key="locale.code"
-              :label="locale.label"
+              :label="t(locale.labelKey)"
               :value="locale.code"
             />
           </el-select>

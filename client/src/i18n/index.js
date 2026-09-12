@@ -1,17 +1,17 @@
 import { createI18n } from 'vue-i18n';
 import zhCnElement from 'element-plus/es/locale/lang/zh-cn';
 import enElement from 'element-plus/es/locale/lang/en';
-import zhCN from './locales/zh-CN';
-import en from './locales/en';
+import zhCN from './locales/zh-CN.js';
+import en from './locales/en.js';
 
 export const DEFAULT_LOCALE = 'zh-CN';
 
 const localeRegistry = [
-  { code: 'zh-CN', label: '简体中文', messages: zhCN, elementLocale: zhCnElement },
-  { code: 'en', label: 'English', messages: en, elementLocale: enElement }
+  { code: 'zh-CN', labelKey: 'settings.localeZh', messages: zhCN, elementLocale: zhCnElement },
+  { code: 'en', labelKey: 'settings.localeEn', messages: en, elementLocale: enElement }
 ];
 
-export const localeOptions = localeRegistry.map(({ code, label }) => ({ code, label }));
+export const localeOptions = localeRegistry.map(({ code, labelKey }) => ({ code, labelKey }));
 export const supportedLocales = localeRegistry.map(locale => locale.code);
 
 export function normalizeLocale(locale) {
@@ -27,7 +27,9 @@ export function getElementPlusLocale(locale) {
   return localeRegistry.find(item => item.code === normalized)?.elementLocale || zhCnElement;
 }
 
-const initialLocale = normalizeLocale(localStorage.getItem('locale') || navigator.language);
+const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : '';
+const browserLocale = typeof navigator !== 'undefined' ? navigator.language : '';
+const initialLocale = normalizeLocale(storedLocale || browserLocale);
 
 export const i18n = createI18n({
   legacy: false,
@@ -35,10 +37,49 @@ export const i18n = createI18n({
   locale: initialLocale,
   fallbackLocale: DEFAULT_LOCALE,
   messages: Object.fromEntries(localeRegistry.map(item => [item.code, item.messages])),
-  missingWarn: import.meta.env.DEV,
+  missingWarn: Boolean(import.meta.env?.DEV),
   fallbackWarn: false
 });
 
 export function translate(key, params) {
   return i18n.global.t(key, params);
+}
+
+function toDate(value) {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00`);
+  }
+  return new Date(value);
+}
+
+export function formatNumber(value, options = {}) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '';
+  return new Intl.NumberFormat(i18n.global.locale.value, options).format(number);
+}
+
+export function formatDate(value, options = {}) {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return String(value ?? '');
+  return new Intl.DateTimeFormat(i18n.global.locale.value, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    ...options
+  }).format(date);
+}
+
+export function formatDateTime(value) {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return String(value ?? '').replace('T', ' ').slice(0, 19);
+  return new Intl.DateTimeFormat(i18n.global.locale.value, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(date);
 }

@@ -184,7 +184,7 @@ const updateChart = () => {
         if (param.value === null || param.value === undefined) {
           return `${param.name}<br/>${param.marker}${t('common.empty')}`;
         }
-        return `${param.name}<br/>${param.marker}${t('data.heartRate')}: ${param.value} bpm`;
+        return `${param.name}<br/>${param.marker}${t('data.heartRate')}: ${param.value} ${t('settings.units.bpm')}`;
       }
     },
     grid: {
@@ -213,7 +213,7 @@ const updateChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: t('data.heartRate') + ' (bpm)',
+      name: `${t('data.heartRate')} (${t('settings.units.bpm')})`,
       nameTextStyle: {
         color: '#ff4d4f',
         fontSize: 12

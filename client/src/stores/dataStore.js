@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { getDailySummary, getTimeSeries, getSportRecords, getSleepTimeline, getWeightData, getUserProfile } from '../api/fitnessApi.js';
 import { isAbortError, normalizeRequestError } from '../utils/requestState.js';
+import { translate } from '../i18n/index.js';
 
 export const useDataStore = defineStore('data', () => {
   const dailySummaries = ref({});
@@ -23,7 +24,7 @@ export const useDataStore = defineStore('data', () => {
       return await request();
     } catch (err) {
       if (!isAbortError(err)) {
-        error.value = normalizeRequestError(err);
+        error.value = normalizeRequestError(err, translate);
         console.error('Data request failed:', err);
       }
       return fallback;

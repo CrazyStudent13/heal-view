@@ -12,8 +12,8 @@
         class="view-mode-switch"
         @update:model-value="$emit('update:view-mode', $event)"
       >
-        <el-radio-button value="single">{{ t('nav.singleDay') }}</el-radio-button>
-        <el-radio-button value="compare">{{ t('nav.multiDay') }}</el-radio-button>
+        <el-radio-button value="single">{{ t('nav.singleDayShort') }}</el-radio-button>
+        <el-radio-button value="compare">{{ t('nav.multiDayShort') }}</el-radio-button>
       </el-radio-group>
     </div>
     
@@ -55,7 +55,7 @@
           <span class="card-icon personal">👤</span>
         </template>
         <template #label>{{ t('data.personalInfo') }}</template>
-        <template #value>{{ userProfile && userProfile.weight ? `${userProfile.weight} kg` : t('data.viewDetails') }}</template>
+        <template #value>{{ userProfile && userProfile.weight ? `${userProfile.weight} ${t('settings.units.kg')}` : t('data.viewDetails') }}</template>
       </MetricCard>
       
       <MetricCard 
@@ -75,7 +75,7 @@
           <span class="card-icon weight">⚖️</span>
         </template>
         <template #label>{{ t('data.avgWeight') }}</template>
-        <template #value>{{ displayData.avgWeight }} kg</template>
+        <template #value>{{ displayData.avgWeight }} {{ t('settings.units.kg') }}</template>
       </MetricCard>
       
       <MetricCard 
@@ -113,7 +113,7 @@
           <span class="card-icon heartrate">❤️</span>
         </template>
         <template #label>{{ t('data.heartRate') }}</template>
-        <template #value>{{ displayData.avgHeartRate }} bpm</template>
+        <template #value>{{ displayData.avgHeartRate }} {{ t('settings.units.bpm') }}</template>
       </MetricCard>
 
       <MetricCard 
@@ -132,7 +132,7 @@
           <span class="card-icon sleep">🌙</span>
         </template>
         <template #label>{{ isCompareMode ? t('data.avgSleep') : t('data.sleep') }}</template>
-        <template #value>{{ displayData.avgSleepHours }} h</template>
+        <template #value>{{ displayData.avgSleepHours }} {{ t('settings.units.hours') }}</template>
       </MetricCard>
 
       <MetricCard 
@@ -152,7 +152,7 @@
           <span class="card-icon calories">🔥</span>
         </template>
         <template #label>{{ t('data.avgCalories') }}</template>
-        <template #value>{{ formatNumber(displayData.avgCalories) }} kcal</template>
+        <template #value>{{ formatNumber(displayData.avgCalories) }} {{ t('settings.units.kcal') }}</template>
       </MetricCard>
     </div>
 
@@ -171,6 +171,7 @@ import { DataLine } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
 import MetricCard from '../common/MetricCard.vue';
 import AsyncState from '../common/AsyncState.vue';
+import { formatNumber as formatLocalizedNumber } from '../../i18n/index.js';
 
 const localeStore = useLocaleStore();
 
@@ -254,7 +255,7 @@ const displayData = computed(() => {
 
 function formatNumber(num) {
   if (num === '--') return num;
-  return (Number(num) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return formatLocalizedNumber(Number(num) || 0);
 }
 
 function formatSteps(num) {

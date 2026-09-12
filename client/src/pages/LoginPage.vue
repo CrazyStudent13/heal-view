@@ -12,7 +12,7 @@
           :key="locale.code"
           :value="locale.code"
         >
-          {{ locale.code === 'zh-CN' ? '中' : 'EN' }}
+          {{ locale.code === 'zh-CN' ? 'ZH' : 'EN' }}
         </el-radio-button>
       </el-radio-group>
 

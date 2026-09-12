@@ -12,6 +12,7 @@ import { ref, onMounted, watch } from 'vue';
 import echarts from '../../lib/echarts';
 import { useEchartsInstance, useEchartsThemeColors } from '../../composables/useEchartsInstance.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatDate, formatNumber } from '../../i18n/index.js';
 import ChartPanel from '../common/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
@@ -40,7 +41,7 @@ const updateChart = () => {
     return;
   }
 
-  const dates = props.data.map(item => item.date);
+  const dates = props.data.map(item => formatDate(item.date));
   const steps = props.data.map(item => item.steps);
 
   const { textColor, axisLineColor, splitLineColor } = themeColors.value;
@@ -50,7 +51,7 @@ const updateChart = () => {
       trigger: 'axis',
       formatter: (params) => {
         const data = params[0];
-        return `${data.name}<br/>${t('chart.steps')}: ${data.value.toLocaleString()} ${t('chart.unitSteps')}`;
+        return `${data.name}<br/>${t('chart.steps')}: ${formatNumber(data.value)} ${t('chart.unitSteps')}`;
       }
     },
     grid: {

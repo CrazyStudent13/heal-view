@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { isAbortError, normalizeRequestError } from '../utils/requestState.js';
+import { translate } from '../i18n/index.js';
 
 export function useAsyncRequest(options = {}) {
   const fallbackError = options.fallbackError || 'Request failed';
@@ -23,7 +24,9 @@ export function useAsyncRequest(options = {}) {
       return await request();
     } catch (requestError) {
       if (!isAbortError(requestError)) {
-        error.value = normalizeError(requestError) || fallbackError;
+        error.value = normalizeError === normalizeRequestError
+          ? normalizeError(requestError, translate) || fallbackError
+          : normalizeError(requestError) || fallbackError;
       }
       if (rethrow) throw requestError;
       return fallback;

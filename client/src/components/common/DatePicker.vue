@@ -4,7 +4,7 @@
     class="dashboard-date-picker"
     type="date"
     :placeholder="t('nav.selectDate')"
-    format="YYYY-MM-DD (dddd)"
+    :format="dateFormat"
     value-format="YYYY-MM-DD"
     :disabled-date="disabledDate"
     :aria-label="t('nav.selectDate')"
@@ -25,6 +25,7 @@ const selectedDate = computed({
 });
 
 const { t } = localeStore;
+const dateFormat = computed(() => localeStore.currentLocale === 'en' ? 'MM/DD/YYYY (ddd)' : 'YYYY-MM-DD (dddd)');
 
 function disabledDate(time) {
   return time.getTime() > Date.now();

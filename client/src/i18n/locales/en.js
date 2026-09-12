@@ -3,17 +3,32 @@ export default {
   common: {
     loading: 'Loading...', empty: 'No data', reset: 'Reset', selectAll: 'Select All', clearAll: 'Clear All', query: 'Query',
     selectedDays: '{count} days selected', loadFailed: 'Load failed', retry: 'Retry',
-    view: 'View', delete: 'Delete', cancel: 'Cancel', close: 'Close', unknown: 'Unknown'
+    view: 'View', delete: 'Delete', cancel: 'Cancel', close: 'Close', unknown: 'Unknown',
+    labelSeparator: ': ', listSeparator: ', '
+  },
+  errors: {
+    timeout: 'The request timed out. Please try again later.',
+    network: 'Unable to connect to the service. Check that it is running.',
+    requestFailed: 'The request failed. Please try again later.'
   },
   nav: {
     dashboard: 'Dashboard', plans: 'Plans', reports: 'Reports', mainNavigation: 'Main navigation',
-    singleDay: 'Single Day', multiDay: 'Multi-Day', selectDate: 'Select Date',
+    singleDay: 'Single Day', multiDay: 'Multi-Day', singleDayShort: 'Single', multiDayShort: 'Multi', selectDate: 'Select Date',
     selectDatesToCompare: 'Please select dates to compare on the left', selectDateToView: 'Please select a date to view data',
     import: 'Import Data',
     startDate: 'Start Date', endDate: 'End Date', sportType: 'Sport Type', selectSport: 'Select Sport Type',
     lastWeek: 'Last 7 days', lastMonth: 'Last month', lastThreeMonths: 'Last 3 months', lastHalfYear: 'Last 6 months', lastYear: 'Last year'
   },
-  settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
+  settings: {
+    title: 'Settings',
+    language: 'Language',
+    localeZh: 'Simplified Chinese',
+    localeEn: 'English',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    units: { steps: 'steps', kcal: 'kcal', kg: 'kg', km: 'km', kmh: 'km/h', bpm: 'bpm', perMinute: '/min', cadence: 'steps/min', cm: 'cm', m: 'm', hours: 'h', minutes: 'min' }
+  },
   plans: { title: 'Exercise Plans', comingSoon: 'Exercise plans are coming soon' },
   reports: { title: 'Reports', weekly: 'Weekly', monthly: 'Monthly', weeklyComingSoon: 'Weekly reports are coming soon', monthlyComingSoon: 'Monthly reports are coming soon' },
   filter: { noOptions: 'No filter options available' },
@@ -87,7 +102,7 @@ export default {
     githubDescription: 'View the source code, commit history, and project documentation'
   },
   data: {
-    overview: 'Data Overview', weight: 'Weight', avgWeight: 'Avg Weight', steps: 'Steps', avgSteps: 'Avg Steps', maxSteps: 'Max Steps',
+    overview: 'Overview', weight: 'Weight', avgWeight: 'Avg Weight', steps: 'Steps', avgSteps: 'Avg Steps', maxSteps: 'Max Steps',
     calories: 'Calories', avgCalories: 'Avg Calories', heartRate: 'Avg Heart Rate', avgBloodPressure: 'Avg Blood Pressure', stress: 'Stress Level', avgStress: 'Avg Stress',
     sleep: 'Sleep Duration', avgSleep: 'Avg Sleep', personalInfo: 'Basic Information', viewDetails: 'View Details'
   },
@@ -137,19 +152,19 @@ export default {
   },
   sport: {
     totalCalories: 'Total calories', totalDuration: 'Total duration', totalSteps: 'Exercise steps', detailTitle: 'Exercise details - {name}',
-    viewDetails: 'View details', distanceValue: '{value} km', avgSpeedValue: 'Avg speed: {value} km/h', avgPaceValue: 'Avg pace: {value}',
-    stepsValue: 'Steps: {value}', avgCadenceValue: 'Avg cadence: {value} steps/min', maxCadenceValue: 'Max cadence: {value} steps/min',
-    strokesValue: 'Strokes: {value}', setsValue: 'Sets: {value}', avgStrokeRateValue: 'Avg stroke rate: {value}/min',
-    maxStrokeRateValue: 'Max stroke rate: {value}/min', cadenceValue: '{value} steps/min', strokeRateValue: '{value}/min',
+    viewDetails: 'View details', distanceValue: '{value} {unit}', avgSpeedValue: 'Avg speed: {value} {unit}', avgPaceValue: 'Avg pace: {value}',
+    stepsValue: 'Steps: {value}', avgCadenceValue: 'Avg cadence: {value} {unit}', maxCadenceValue: 'Max cadence: {value} {unit}',
+    strokesValue: 'Strokes: {value}', setsValue: 'Sets: {value}', avgStrokeRateValue: 'Avg stroke rate: {value} {unit}',
+    maxStrokeRateValue: 'Max stroke rate: {value} {unit}', cadenceValue: '{value} {unit}', strokeRateValue: '{value} {unit}',
     strokes: 'Strokes', setsAndDuration: 'Sets and average duration',
     avgStrokeRate: 'Avg stroke rate', maxStrokeRate: 'Max stroke rate', restDuration: 'Rest between sets', segmentDetails: 'Segment details',
     type: 'Type', training: 'Training', rest: 'Rest', strokeCount: 'Strokes', avgPace: 'Avg pace', fastestPace: 'Fastest pace',
     avgCadence: 'Avg cadence', maxCadence: 'Max cadence', avgStride: 'Avg stride', maxStride: 'Max stride', elevationGain: 'Elevation gain',
     perKmPace: 'Pace per kilometer', exerciseDistance: 'Exercise distance', exerciseSteps: 'Exercise steps', exerciseHeartRate: 'Exercise heart rate (BPM)',
-    avgHeartRateLine: 'Average line: {value} BPM',
-    avgHeartRateTooltip: 'Average heart rate: {value} BPM',
-    heartRateAboveAvg: 'Above average by {value} BPM',
-    heartRateBelowAvg: 'Below average by {value} BPM',
+    avgHeartRateLine: 'Average line: {value} {unit}',
+    avgHeartRateTooltip: 'Average heart rate: {value} {unit}',
+    heartRateAboveAvg: 'Above average by {value} {unit}',
+    heartRateBelowAvg: 'Below average by {value} {unit}',
     heartRateEqualAvg: 'Equal to average',
     time: 'Time', heartRate: 'Heart rate', zeroMinutes: '0 min', durationHoursMinutes: '{hours}h {minutes}min', durationMinutes: '{minutes}min',
     zone: { warmup: 'Warm-up', fatBurn: 'Fat burn', aerobic: 'Aerobic', anaerobic: 'Anaerobic', extreme: 'Maximum' },

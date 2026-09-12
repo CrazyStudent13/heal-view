@@ -9,6 +9,7 @@ export class ApiRequestError extends Error {
     super(message);
     this.name = 'ApiRequestError';
     this.code = options.code || 'REQUEST_FAILED';
+    this.messageKey = options.messageKey || null;
     this.status = options.status ?? null;
     this.details = options.details ?? null;
     this.isNetworkError = Boolean(options.isNetworkError);
@@ -31,12 +32,23 @@ export function createApiRequestError(error) {
   const isNetworkError = !error?.response && !isTimeout;
 
   let message = responseMessage || responseError || responseText;
-  if (!message && isTimeout) message = '请求超时，请稍后重试';
-  if (!message && isNetworkError) message = '无法连接服务，请检查服务是否已启动';
-  if (!message) message = '请求失败，请稍后重试';
+  let messageKey = null;
+  if (!message && isTimeout) {
+    message = '请求超时，请稍后重试';
+    messageKey = 'errors.timeout';
+  }
+  if (!message && isNetworkError) {
+    message = '无法连接服务，请检查服务是否已启动';
+    messageKey = 'errors.network';
+  }
+  if (!message) {
+    message = '请求失败，请稍后重试';
+    messageKey = 'errors.requestFailed';
+  }
 
   return new ApiRequestError(message, {
     code: responseData?.code || error?.code || 'REQUEST_FAILED',
+    messageKey,
     status,
     details: responseData?.details ?? null,
     isNetworkError,
@@ -80,9 +92,13 @@ export function createLatestRequest() {
   };
 }
 
-export function normalizeRequestError(error) {
+export function normalizeRequestError(error, translate) {
   if (isAbortError(error)) return null;
-  if (error?.isApiError) return error.message;
+  if (error?.isApiError) {
+    return error.messageKey && typeof translate === 'function'
+      ? translate(error.messageKey)
+      : error.message;
+  }
   const responseData = error?.response?.data;
   const responseError = normalizeErrorText(responseData?.error);
   const responseMessage = normalizeErrorText(responseData?.message);

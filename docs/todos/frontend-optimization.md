@@ -141,3 +141,21 @@
 | 实现方式 | 新增 `--card-shadow`、`--control-border`、`--control-hover-bg`、`--success-light`、`--danger-light` 等视觉 token；顶部导航、视图切换、日期侧栏和看板侧栏迁移到 token/公共卡片样式；`ChartDisplay` 错误与空态、导入历史空态复用 `AsyncState` |
 | 验证方式 | `pnpm test`、`pnpm --filter heal-view-client check:i18n`、`pnpm --filter heal-view-client build`；启动 Vite 后用浏览器打开本地页面 |
 | 结果 | 测试、i18n 检查和构建通过；本地浏览器可打开登录页，但看板真实窄屏检查受访问验证阻挡，仍需测试密码或临时关闭访问保护后继续 |
+
+## 2026-09-13 第八阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 继续清理国际化残留，让语言切换覆盖语言选项、日期/数字格式、图表单位和通用网络错误 |
+| 实现方式 | locale 增加按当前语言工作的日期、时间和数字格式化工具；语言选项名称改为翻译 key；日期选择器、日期侧栏和导入历史使用本地化格式；图表与指标卡统一从单位字典取值；请求错误增加 `messageKey`，超时、网络和通用失败可按当前语言显示；导入结果的连接符也纳入 locale |
+| 验证方式 | `pnpm test`、`pnpm test:client`、`pnpm --filter heal-view-client check:i18n`、`pnpm build:client`、`git diff --check` |
+| 结果 | 全量测试 21 项、客户端测试 20 项、i18n key 校验 443 个和生产构建均通过；`git diff --check` 无错误 |
+
+## 2026-09-13 第九阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 继续收敛复杂图表和运动详情中的国际化显示，避免英文界面混入中文连接符、固定单位和 ISO 日期 |
+| 实现方式 | 运动详情的距离、速度、步频、划频、身高、步幅和海拔单位改为 locale 参数；睡眠阶段图的 REM、小时单位和 tooltip 使用翻译；多日图表横轴统一使用本地化日期；个人数据、卡路里和心率 tooltip 统一使用 locale 单位与连接符 |
+| 验证方式 | `pnpm test`、`pnpm --filter heal-view-client check:i18n`、`pnpm build:client`、`git diff --check` |
+| 结果 | 全量测试 21 项、i18n key 校验 447 个和生产构建均通过；`git diff --check` 无错误 |

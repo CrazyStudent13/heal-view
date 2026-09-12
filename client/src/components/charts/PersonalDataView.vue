@@ -19,7 +19,7 @@
         <el-descriptions :column="2" border size="large">
           <el-descriptions-item>
             <template #label>{{ t('personal.height') }} / {{ t('personal.weight') }}</template>
-            {{ profileData.height || '--' }} cm / {{ profileData.weight || '--' }} kg
+            {{ profileData.height || '--' }} {{ t('settings.units.cm') }} / {{ profileData.weight || '--' }} {{ t('settings.units.kg') }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('personal.sex')">
             {{ profileData.sex === 'male' ? t('personal.male') : t('personal.female') }}
@@ -113,7 +113,7 @@
             {{ (profileData.initialWeight - profileData.targetWeight).toFixed(1) }} kg
           </el-descriptions-item>
           <el-descriptions-item :label="t('personal.dailyCalGoal')">
-            {{ profileData.dailyCalGoal ? profileData.dailyCalGoal + ' kcal' : t('personal.notSet') }}
+            {{ profileData.dailyCalGoal ? `${profileData.dailyCalGoal} ${t('settings.units.kcal')}` : t('personal.notSet') }}
           </el-descriptions-item>
           <el-descriptions-item v-if="profileData.vo2Max" :label="t('personal.vo2Max')">
             {{ profileData.vo2Max }} ml/kg/min

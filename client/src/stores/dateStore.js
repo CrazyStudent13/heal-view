@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { getDates, getDailySummary } from '../api/fitnessApi.js';
 import { createLatestRequest, normalizeRequestError } from '../utils/requestState.js';
+import { translate } from '../i18n/index.js';
 
 const DATE_LIST_CACHE_TTL = 30_000;
 const DATE_PREFERENCE_KEY = 'heal-view-date-preferences';
@@ -118,7 +119,7 @@ export const useDateStore = defineStore('date', () => {
         return dateList.value;
       } catch (err) {
         if (request.isCurrent()) {
-          error.value = normalizeRequestError(err);
+          error.value = normalizeRequestError(err, translate);
           console.error('Failed to fetch dates:', err);
         }
         return dateList.value;

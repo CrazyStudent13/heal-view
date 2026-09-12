@@ -26,7 +26,7 @@
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
-          <template #value>{{ stats.avgExerciseDistance }} km</template>
+          <template #value>{{ stats.avgExerciseDistance }} {{ t('settings.units.km') }}</template>
         </MetricCard>
         <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--orange">
           <template #icon>🔥</template>
@@ -36,7 +36,7 @@
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
-          <template #value>{{ stats.avgDailyCalories }} kcal</template>
+          <template #value>{{ stats.avgDailyCalories }} {{ t('settings.units.kcal') }}</template>
         </MetricCard>
         <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--purple">
           <template #icon>🕐</template>
@@ -56,7 +56,7 @@
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
-          <template #value>{{ stats.totalExerciseDistance }} km</template>
+          <template #value>{{ stats.totalExerciseDistance }} {{ t('settings.units.km') }}</template>
         </MetricCard>
         <MetricCard compact layout="row" class="steps-stat-card steps-stat-card--teal">
           <template #icon>📅</template>
@@ -90,6 +90,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatDate, formatNumber } from '../../i18n/index.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 import ChartLoadingSkeleton from '../common/ChartLoadingSkeleton.vue';
@@ -176,7 +177,7 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || props.data.length === 0) return;
 
-  const dates = props.data.map(item => item.date);
+  const dates = props.data.map(item => formatDate(item.date));
   const steps = props.data.map(item => item.steps || 0);
   const distance = props.data.map(item => (item.distance || 0) / 1000); // Convert meters to km
   const exerciseDuration = props.data.map(item => item.totalDurationMinutes || 0);
@@ -198,11 +199,11 @@ const updateChart = () => {
         let result = `${params[0].name}<br/>`;
         params.forEach(param => {
           if (param.seriesName === t('chart.steps')) {
-            result += `${param.marker}${t('chart.steps')}: ${param.value.toLocaleString()} ${t('chart.unitSteps')}<br/>`;
+            result += `${param.marker}${t('chart.steps')}: ${formatNumber(param.value)} ${t('chart.unitSteps')}<br/>`;
           } else if (param.seriesName === t('chart.distance')) {
-            result += `${param.marker}${t('chart.distance')}: ${param.value.toFixed(2)} km<br/>`;
+            result += `${param.marker}${t('chart.distance')}: ${param.value.toFixed(2)} ${t('settings.units.km')}<br/>`;
           } else if (param.seriesName === t('chart.sportCalories')) {
-            result += `${param.marker}${t('chart.sportCalories')}: ${param.value} kcal<br/>`;
+            result += `${param.marker}${t('chart.sportCalories')}: ${param.value} ${t('settings.units.kcal')}<br/>`;
           }
         });
         // Add exercise duration from the data point
@@ -213,7 +214,7 @@ const updateChart = () => {
           result += `🏃‍♂️ ${t('chart.totalExerciseDuration')}: ${duration} ${t('chart.minutes')}<br/>`;
         }
         if (calories > 0) {
-          result += `🔥 ${t('chart.sportCalories')}: ${calories} kcal<br/>`;
+          result += `🔥 ${t('chart.sportCalories')}: ${calories} ${t('settings.units.kcal')}<br/>`;
         }
         return result;
       }
@@ -281,7 +282,7 @@ const updateChart = () => {
         },
         axisLabel: {
           color: '#52c41a',
-          formatter: '{value} km'
+          formatter: `{value} ${t('settings.units.km')}`
         },
         axisLine: {
           lineStyle: {

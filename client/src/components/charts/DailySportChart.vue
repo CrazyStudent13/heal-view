@@ -12,7 +12,7 @@
           <span class="card-icon calories">🔥</span>
         </template>
         <template #label>{{ t('sport.totalCalories') }}</template>
-        <template #value>{{ totalCalories }} kcal</template>
+        <template #value>{{ totalCalories }} {{ t('settings.units.kcal') }}</template>
       </MetricCard>
 
       <MetricCard class="summary-card" layout="row">
@@ -28,7 +28,7 @@
           <span class="card-icon steps">&#128099;</span>
         </template>
         <template #label>{{ t('sport.totalSteps') }}</template>
-        <template #value>{{ totalSteps.toLocaleString() }}</template>
+        <template #value>{{ formatNumber(totalSteps) }}</template>
       </MetricCard>
     </div>
     
@@ -94,7 +94,7 @@
         align="center"
       >
         <template #default="{ row }">
-          <span class="highlight-text">🔥 {{ row.calories }} kcal</span>
+          <span class="highlight-text">🔥 {{ row.calories }} {{ t('settings.units.kcal') }}</span>
         </template>
       </el-table-column>
 
@@ -106,7 +106,7 @@
         align="center"
       >
         <template #default="{ row }">
-          <span v-if="row.avgHrm" class="hr-text">❤️ {{ row.avgHrm }} bpm</span>
+          <span v-if="row.avgHrm" class="hr-text">❤️ {{ row.avgHrm }} {{ t('settings.units.bpm') }}</span>
           <span v-else>--</span>
         </template>
       </el-table-column>
@@ -119,7 +119,7 @@
         align="center"
       >
         <template #default="{ row }">
-          <span v-if="row.maxHrm" class="hr-text"> {{ row.maxHrm }} bpm</span>
+          <span v-if="row.maxHrm" class="hr-text"> {{ row.maxHrm }} {{ t('settings.units.bpm') }}</span>
           <span v-else>--</span>
         </template>
       </el-table-column>
@@ -135,23 +135,23 @@
             <template #content>
               <div class="detail-tooltip">
                 <!-- Walking data -->
-                <div v-if="isWalkingRecord(row) && row.distanceKm">📍 {{ t('sport.distanceValue', { value: row.distanceKm }) }}</div>
-                <div v-if="isWalkingRecord(row) && row.avgSpeed">{{ t('sport.avgSpeedValue', { value: row.avgSpeed }) }}</div>
+                <div v-if="isWalkingRecord(row) && row.distanceKm">📍 {{ t('sport.distanceValue', { value: row.distanceKm, unit: t('settings.units.km') }) }}</div>
+                <div v-if="isWalkingRecord(row) && row.avgSpeed">{{ t('sport.avgSpeedValue', { value: row.avgSpeed, unit: t('settings.units.kmh') }) }}</div>
                 <div v-if="isWalkingRecord(row) && row.avgPace">{{ t('sport.avgPaceValue', { value: formatPace(row.avgPace) }) }}</div>
                 
                 <!-- Elliptical data -->
                 <div v-if="isEllipticalRecord(row)">
-                  <div v-if="row.steps">{{ t('sport.stepsValue', { value: row.steps.toLocaleString() }) }}</div>
-                  <div v-if="row.avgCadence">{{ t('sport.avgCadenceValue', { value: row.avgCadence }) }}</div>
-                  <div v-if="row.maxCadence">{{ t('sport.maxCadenceValue', { value: row.maxCadence }) }}</div>
+                  <div v-if="row.steps">{{ t('sport.stepsValue', { value: formatNumber(row.steps) }) }}</div>
+                  <div v-if="row.avgCadence">{{ t('sport.avgCadenceValue', { value: row.avgCadence, unit: t('settings.units.cadence') }) }}</div>
+                  <div v-if="row.maxCadence">{{ t('sport.maxCadenceValue', { value: row.maxCadence, unit: t('settings.units.cadence') }) }}</div>
                 </div>
                 
                 <!-- Rowing machine data -->
                 <div v-if="isRowingRecord(row)">
-                  <div v-if="row.strokes">{{ t('sport.strokesValue', { value: row.strokes.toLocaleString() }) }}</div>
+                  <div v-if="row.strokes">{{ t('sport.strokesValue', { value: formatNumber(row.strokes) }) }}</div>
                   <div v-if="row.segmentCount > 0">{{ t('sport.setsValue', { value: row.segmentCount }) }}</div>
-                  <div v-if="row.avgStrokeRate">{{ t('sport.avgStrokeRateValue', { value: row.avgStrokeRate }) }}</div>
-                  <div v-if="row.maxStrokeRate">{{ t('sport.maxStrokeRateValue', { value: row.maxStrokeRate }) }}</div>
+                  <div v-if="row.avgStrokeRate">{{ t('sport.avgStrokeRateValue', { value: row.avgStrokeRate, unit: t('settings.units.perMinute') }) }}</div>
+                  <div v-if="row.maxStrokeRate">{{ t('sport.maxStrokeRateValue', { value: row.maxStrokeRate, unit: t('settings.units.perMinute') }) }}</div>
                 </div>
               </div>
             </template>
@@ -183,11 +183,11 @@
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgStrokeRate') }}</span>
-              <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }}/min</span>
+              <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.maxStrokeRate') }}</span>
-              <span class="metric-value">{{ selectedRecord.maxStrokeRate || '--' }}/min</span>
+              <span class="metric-value">{{ selectedRecord.maxStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.restDuration') }}</span>
@@ -242,15 +242,15 @@
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgStride') }}</span>
-              <span class="metric-value">{{ selectedRecord.avgStride || '--' }} cm</span>
+              <span class="metric-value">{{ selectedRecord.avgStride || '--' }} {{ t('settings.units.cm') }}</span>
             </div>
             <div v-if="selectedRecord.maxStride" class="metric-item">
               <span class="metric-label">{{ t('sport.maxStride') }}</span>
-              <span class="metric-value">{{ selectedRecord.maxStride }} cm</span>
+              <span class="metric-value">{{ selectedRecord.maxStride }} {{ t('settings.units.cm') }}</span>
             </div>
             <div v-if="selectedRecord.elevationGain" class="metric-item">
               <span class="metric-label">{{ t('sport.elevationGain') }}</span>
-              <span class="metric-value">{{ selectedRecord.elevationGain }} m</span>
+              <span class="metric-value">{{ selectedRecord.elevationGain }} {{ t('settings.units.m') }}</span>
             </div>
           </div>
 
@@ -259,7 +259,7 @@
             <SectionTitle>{{ t('sport.perKmPace') }}</SectionTitle>
             <div class="km-paces-list">
               <div v-for="(pace, index) in selectedRecord.kmPaces" :key="index" class="km-pace-item">
-                <span class="km-label">{{ index + 1 }} km</span>
+                <span class="km-label">{{ index + 1 }} {{ t('settings.units.km') }}</span>
                 <div class="pace-bar-container">
                   <div class="pace-bar" :style="{ width: getPaceBarWidth(pace.pace) + '%' }"></div>
                   <span class="pace-value">{{ formatPace(pace.pace) }}</span>
@@ -274,7 +274,7 @@
           <div class="metrics-grid">
             <div class="metric-item" v-if="selectedRecord.distanceKm && selectedRecord.distanceKm !== '0.00'">
               <span class="metric-label">{{ t('sport.exerciseDistance') }}</span>
-              <span class="metric-value">{{ selectedRecord.distanceKm }} km</span>
+                <span class="metric-value">{{ selectedRecord.distanceKm }} {{ t('settings.units.km') }}</span>
             </div>
             <div class="metric-item" v-else-if="selectedRecord.steps">
               <span class="metric-label">{{ t('sport.exerciseSteps') }}</span>
@@ -317,6 +317,7 @@ import echarts from '../../lib/echarts';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useDataStore } from '../../stores/dataStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatNumber } from '../../i18n/index.js';
 import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '../../utils/sportRecordParser.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
@@ -392,7 +393,7 @@ function formatPace(paceSeconds) {
   if (!paceSeconds || paceSeconds === 0) return '--';
   // Convert seconds per km to km/h: speed = 3600 / paceSeconds
   const speedKmh = 3600 / paceSeconds;
-  return `${speedKmh.toFixed(1)} km/h`;
+  return `${speedKmh.toFixed(1)} ${t('settings.units.kmh')}`;
 }
 
 function getCategoryName(record) {
@@ -543,7 +544,7 @@ function initHeartRateChart() {
   const hrRange = maxHR - minHR;
   const padding = Math.max(hrRange * 0.15, 10); // At least 10 BPM padding
   const avgHR = selectedRecord.value?.avgHrm || 0;
-  const avgHRLabel = t('sport.avgHeartRateTooltip', { value: avgHR });
+  const avgHRLabel = t('sport.avgHeartRateTooltip', { value: avgHR, unit: t('settings.units.bpm') });
   
   const option = {
     tooltip: {
@@ -557,14 +558,14 @@ function initHeartRateChart() {
         const deltaText = diff === 0
           ? t('sport.heartRateEqualAvg')
           : isAboveAvg
-            ? t('sport.heartRateAboveAvg', { value: Math.abs(diff) })
-            : t('sport.heartRateBelowAvg', { value: Math.abs(diff) });
+            ? t('sport.heartRateAboveAvg', { value: Math.abs(diff), unit: t('settings.units.bpm') })
+            : t('sport.heartRateBelowAvg', { value: Math.abs(diff), unit: t('settings.units.bpm') });
         const hrColor = isAboveAvg ? '#ff4d4f' : isBelowAvg ? '#52c41a' : '#666666';
         const deltaColor = isAboveAvg ? '#ff4d4f' : isBelowAvg ? '#52c41a' : '#666666';
 
         return [
           `${time}`,
-          `<span style="color:${hrColor}">${t('sport.heartRate')}：${hr} BPM</span>`,
+          `<span style="color:${hrColor}">${t('sport.heartRate')}${t('common.labelSeparator')}${hr} ${t('settings.units.bpm')}</span>`,
           `<span style="color:#ff6b6b">${avgHRLabel}</span>`,
           `<span style="color:${deltaColor}">${deltaText}</span>`
         ].join('<br/>');
@@ -598,7 +599,7 @@ function initHeartRateChart() {
     },
     yAxis: {
       type: 'value',
-      name: 'BPM',
+      name: t('settings.units.bpm'),
       nameLocation: 'end',
       nameTextStyle: {
         fontSize: 12

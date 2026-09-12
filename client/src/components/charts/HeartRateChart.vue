@@ -367,16 +367,16 @@ function buildChartOption() {
 
         let html = `<strong>${day}</strong><br/>`;
         if (avgHr && isValidNumber(avgHr.value)) {
-          html += `${avgHr.marker}${t('chart.avgHeartRate')}：${avgHr.value} ${t('chart.unitBpm')}<br/>`;
+          html += `${avgHr.marker}${t('chart.avgHeartRate')}${t('common.labelSeparator')}${avgHr.value} ${t('chart.unitBpm')}<br/>`;
         }
         if (maxHr && isValidNumber(maxHr.value)) {
-          html += `${maxHr.marker}${t('chart.maxHeartRate')}：${maxHr.value} ${t('chart.unitBpm')}<br/>`;
+          html += `${maxHr.marker}${t('chart.maxHeartRate')}${t('common.labelSeparator')}${maxHr.value} ${t('chart.unitBpm')}<br/>`;
         }
         if (systolic && isValidNumber(systolic.value)) {
-          html += `${systolic.marker}${t('chart.systolic')}：${systolic.value} mmHg<br/>`;
+          html += `${systolic.marker}${t('chart.systolic')}${t('common.labelSeparator')}${systolic.value} mmHg<br/>`;
         }
         if (diastolic && isValidNumber(diastolic.value)) {
-          html += `${diastolic.marker}${t('chart.diastolic')}：${diastolic.value} mmHg<br/>`;
+          html += `${diastolic.marker}${t('chart.diastolic')}${t('common.labelSeparator')}${diastolic.value} mmHg<br/>`;
         }
         return html;
       }

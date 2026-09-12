@@ -87,7 +87,7 @@ function isValidHeartRate(value) {
   return Number.isFinite(number) && number > 0;
 }
 const avgHeartRateDisplay = computed(() =>
-  isValidHeartRate(props.avgHeartRate) ? `${props.avgHeartRate} bpm` : '-- bpm'
+  isValidHeartRate(props.avgHeartRate) ? `${props.avgHeartRate} ${t('settings.units.bpm')}` : `-- ${t('settings.units.bpm')}`
 );
 
 // ---- 阶段配置：4 层堆叠，各占 0.25 高度 ----
@@ -322,7 +322,7 @@ function buildChart() {
         if (foundHR != null) {
           const int2 = foundHR > 85 ? '#ff6b6b' : foundHR > 70 ? '#ffa94d' : '#ccc';
           html += html ? '&nbsp;|&nbsp;' : '';
-          html += `<span style="color:${int2};font-weight:700;">♥ ${foundHR} bpm</span>`;
+          html += `<span style="color:${int2};font-weight:700;">♥ ${foundHR} ${t('settings.units.bpm')}</span>`;
         }
         return `<strong>${timeLabel}</strong><br/>${html || t('common.empty')}`;
       }

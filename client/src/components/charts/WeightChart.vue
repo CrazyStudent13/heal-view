@@ -11,7 +11,7 @@
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--purple">
           <template #icon><span class="weight-stat-icon">⚖️</span></template>
           <template #label>{{ t('weight.heightWeight') }}</template>
-          <template #value>{{ userHeight }}cm / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</template>
+          <template #value>{{ userHeight }}{{ t('settings.units.cm') }} / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</template>
         </MetricCard>
 
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--violet">
@@ -50,7 +50,7 @@
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--blue">
           <template #icon><span class="weight-stat-icon">📈</span></template>
           <template #label>{{ t('weight.highestWeight') }}</template>
-          <template #value>{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">（{{ highestWeightDate }}）</span></template>
+          <template #value>{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">({{ highestWeightDate }})</span></template>
         </MetricCard>
 
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--green">
@@ -84,6 +84,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatDate } from '../../i18n/index.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
 import ChartLoadingSkeleton from '../common/ChartLoadingSkeleton.vue';
@@ -174,7 +175,7 @@ const bmiTooltipContent = computed(() => {
   if (!ref) return t('weight.bmiFormula') + '<br/>' + t('weight.bmiDesc');
 
   return `<div style="line-height:1.8">
-    ${t('weight.bmiFormula')} &nbsp; ${t('weight.bmiDesc')}（${ref.userHeight}cm）
+    ${t('weight.bmiFormula')} &nbsp; ${t('weight.bmiDesc')} (${ref.userHeight}${t('settings.units.cm')})
     <table style="margin-top:6px;border-collapse:collapse;width:100%;text-align:center">
       <tr>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t('weight.bmiUnderweight')}</td>
@@ -206,10 +207,10 @@ const caloriesTooltipContent = computed(() => {
   const lines = [
     t('weight.caloriesFormula'),
     '',
-    t('weight.bmrLabel') + '：' + formatNumber(bmr) + ' ' + t('weight.kcal'),
-    t('weight.sportCalLabel') + '：' + formatNumber(sport) + ' ' + t('weight.kcal'),
+    t('weight.bmrLabel') + t('common.labelSeparator') + formatNumber(bmr) + ' ' + t('weight.kcal'),
+    t('weight.sportCalLabel') + t('common.labelSeparator') + formatNumber(sport) + ' ' + t('weight.kcal'),
     '━━━━━━━━━━━━',
-    t('weight.totalCalLabel') + '：' + formatNumber(total) + ' ' + t('weight.kcal')
+    t('weight.totalCalLabel') + t('common.labelSeparator') + formatNumber(total) + ' ' + t('weight.kcal')
   ];
   return lines.join('<br/>');
 });
@@ -243,7 +244,7 @@ const weightChangeText = computed(() => {
   if (!metrics.value) return '0 kg';
   const change = metrics.value.weightChange;
   const prefix = change >= 0 ? '+' : '';
-  return `${prefix}${change} kg`;
+  return `${prefix}${change} ${t('settings.units.kg')}`;
 });
 
 function formatNumber(num) {
@@ -259,7 +260,7 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || dailyData.value.length === 0) return;
 
-  const dates = dailyData.value.map(item => item.date);
+  const dates = dailyData.value.map(item => formatDate(item.date));
   const weights = dailyData.value.map(item => item.avgWeight);
 
   const isDark = document.documentElement.classList.contains('dark-theme');

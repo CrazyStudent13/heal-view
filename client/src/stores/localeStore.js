@@ -9,7 +9,9 @@ import {
 } from '../i18n';
 
 export const useLocaleStore = defineStore('locale', () => {
-  const currentLocale = ref(normalizeLocale(localStorage.getItem('locale') || navigator.language || DEFAULT_LOCALE));
+  const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : '';
+  const browserLocale = typeof navigator !== 'undefined' ? navigator.language : '';
+  const currentLocale = ref(normalizeLocale(storedLocale || browserLocale || DEFAULT_LOCALE));
   const availableLocales = localeOptions;
   const elementPlusLocale = computed(() => getElementPlusLocale(currentLocale.value));
 
@@ -17,9 +19,9 @@ export const useLocaleStore = defineStore('locale', () => {
     const normalized = normalizeLocale(locale);
     currentLocale.value = normalized;
     i18n.global.locale.value = normalized;
-    localStorage.setItem('locale', normalized);
-    document.documentElement.lang = normalized;
-    document.title = i18n.global.t('app.title');
+    if (typeof localStorage !== 'undefined') localStorage.setItem('locale', normalized);
+    if (typeof document !== 'undefined') document.documentElement.lang = normalized;
+    if (typeof document !== 'undefined') document.title = i18n.global.t('app.title');
   }
 
   function t(key, params) {

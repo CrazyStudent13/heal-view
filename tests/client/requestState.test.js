@@ -60,6 +60,13 @@ test('provides stable messages for timeout and network failures', () => {
   assert.equal(network.isNetworkError, true);
 });
 
+test('allows fallback request errors to be translated by the active locale', () => {
+  const timeout = createApiRequestError({ code: 'ETIMEDOUT' });
+  const translate = (key) => ({ 'errors.timeout': 'The request timed out.' })[key];
+
+  assert.equal(normalizeRequestError(timeout, translate), 'The request timed out.');
+});
+
 test('supports plain-text API error responses', () => {
   const error = createApiRequestError({
     response: {

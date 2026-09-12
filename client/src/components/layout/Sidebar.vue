@@ -55,6 +55,7 @@
 import { onMounted, computed } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatDate as formatLocalizedDate } from '../../i18n/index.js';
 import AsyncState from '../common/AsyncState.vue';
 
 const props = defineProps({
@@ -81,14 +82,7 @@ const displayDates = computed(() => {
 
 // Format date for display
 function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  const weekday = new Intl.DateTimeFormat(localeStore.currentLocale, { weekday: 'short' }).format(date);
-
-  return `${year}-${month}-${day} (${weekday})`;
+  return formatLocalizedDate(dateStr, { weekday: 'short' });
 }
 
 // Handle date click

@@ -68,6 +68,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, watch, ref } from 'vue'
 import echarts from '../../lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../../stores/localeStore';
+import { formatDate } from '../../i18n/index.js';
 import { assessSleepRegularity } from '../../domain/healthRules.js';
 import MetricCard from '../common/MetricCard.vue';
 import ChartPanel from '../common/ChartPanel.vue';
@@ -171,7 +172,7 @@ const updateChart = () => {
     return;
   }
 
-  const dates = filteredData.map(item => item.date);
+  const dates = filteredData.map(item => formatDate(item.date));
   const deepSleep = filteredData.map(item => item.deepSleepHours || 0);
   const lightSleep = filteredData.map(item => item.lightSleepHours || 0);
   const remSleep = filteredData.map(item => item.remSleepHours || 0);
@@ -192,16 +193,16 @@ const updateChart = () => {
         let result = `${params[0].name}<br/>`;
         params.forEach(param => {
           if (param.value > 0) {
-            result += `${param.marker}${param.seriesName}: ${param.value} h<br/>`;
+            result += `${param.marker}${param.seriesName}: ${param.value} ${t('settings.units.hours')}<br/>`;
           }
         });
         const total = params.reduce((sum, param) => sum + param.value, 0);
-        result += `<strong>${t('chart.totalSleep')}: ${total.toFixed(1)} h</strong>`;
+        result += `<strong>${t('chart.totalSleep')}: ${total.toFixed(1)} ${t('settings.units.hours')}</strong>`;
         return result;
       }
     },
     legend: {
-      data: [t('chart.deepSleep'), t('chart.lightSleep'), 'REM', t('chart.awakeSleep')],
+      data: [t('chart.deepSleep'), t('chart.lightSleep'), t('chart.rem'), t('chart.awakeSleep')],
       right: 10,
       top: 0,
       textStyle: {
@@ -239,7 +240,7 @@ const updateChart = () => {
       },
       axisLabel: {
         color: textColor,
-        formatter: '{value} h'
+        formatter: `{value} ${t('settings.units.hours')}`
       },
       axisLine: {
         lineStyle: {
@@ -290,7 +291,7 @@ const updateChart = () => {
         data: lightSleep
       },
       {
-        name: 'REM',
+        name: t('chart.rem'),
         type: 'line',
         stack: 'sleep',
         smooth: true,

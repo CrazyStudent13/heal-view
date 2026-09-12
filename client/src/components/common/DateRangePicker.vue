@@ -5,7 +5,7 @@
     type="daterange"
     :start-placeholder="t('nav.startDate')"
     :end-placeholder="t('nav.endDate')"
-    format="YYYY-MM-DD"
+    :format="dateFormat"
     value-format="YYYY-MM-DD"
     :shortcuts="dateShortcuts"
     :aria-label="`${t('nav.startDate')} - ${t('nav.endDate')}`"
@@ -20,6 +20,7 @@ import { useLocaleStore } from '../../stores/localeStore.js';
 const dateStore = useDateStore();
 const localeStore = useLocaleStore();
 const { t } = localeStore;
+const dateFormat = computed(() => localeStore.currentLocale === 'en' ? 'MM/DD/YYYY' : 'YYYY-MM-DD');
 
 const selectedRange = computed({
   get: () => dateStore.selectedDateRange,

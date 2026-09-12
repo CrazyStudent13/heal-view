@@ -276,6 +276,7 @@ import { normalizeRequestError } from '../../utils/requestState.js';
 import AsyncState from '../common/AsyncState.vue';
 import PageContainer from '../common/PageContainer.vue';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { formatDateTime as formatLocalizedDateTime, formatNumber } from '../../i18n/index.js';
 
 const emit = defineEmits(['imported', 'view-dashboard']);
 const { t } = useLocaleStore();
@@ -324,18 +325,15 @@ function canImport(row) {
 
 function formatDateTime(value) {
   if (!value) return '--';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 19);
-  const pad = (number) => String(number).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return formatLocalizedDateTime(value);
 }
 
 function formatSize(size) {
   const value = Number(size);
   if (!Number.isFinite(value)) return '--';
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value < 1024) return `${formatNumber(value)} B`;
+  if (value < 1024 * 1024) return `${formatNumber(value / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} KB`;
+  return `${formatNumber(value / 1024 / 1024, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MB`;
 }
 
 function overviewFromResult(row) {
@@ -349,7 +347,7 @@ function normalizeIssue(issue) {
     issue?.source,
     issue?.rowNumber ? t('import.rowNumber', { row: issue.rowNumber }) : '',
     issue?.message || issue?.code
-  ].filter(Boolean).join('：');
+  ].filter(Boolean).join(t('common.labelSeparator'));
 }
 
 function normalizeResult(response, file) {
@@ -488,7 +486,7 @@ async function parseArchives() {
           platformLabel: platformLabel(platform.value),
           fileName: t('import.archiveCount', { count: parsedResults.length }),
           fileSizeText: formatSize(files.reduce((sum, file) => sum + file.size, 0)),
-          reasons: parsedResults.flatMap((item) => item.reasons.map((reason) => `${item.fileName}：${reason}`)),
+          reasons: parsedResults.flatMap((item) => item.reasons.map((reason) => `${item.fileName}${t('common.labelSeparator')}${reason}`)),
           previewItems: parsedResults.flatMap((item) => item.previewItems).slice(0, 50)
         };
 
@@ -526,7 +524,7 @@ async function commitHistoryImport(importId) {
       importId,
       status: 'completed',
       title: t('import.importSuccessTitle'),
-      message: [t('import.importSuccessMessage', { count: totalRows }), dateRangeText].filter(Boolean).join('，'),
+      message: [t('import.importSuccessMessage', { count: totalRows }), dateRangeText].filter(Boolean).join(t('common.listSeparator')),
       reasons: [],
       importedRows
     };
@@ -553,7 +551,7 @@ async function loadHistory() {
     const response = await getImportHistory();
     history.value = response.records || [];
   } catch (error) {
-    historyError.value = normalizeRequestError(error) || t('import.historyLoadFailed');
+    historyError.value = normalizeRequestError(error, t) || t('import.historyLoadFailed');
     console.error('Failed to load import history:', error);
   } finally {
     loadingHistory.value = false;

@@ -7,7 +7,7 @@
       @click="$emit('update:modelValue', 'single')"
     >
       <span class="tab-icon">📅</span>
-      <span class="tab-label">{{ t('nav.singleDay') }}</span>
+      <span class="tab-label">{{ t('nav.singleDayShort') }}</span>
     </button>
     <button
       type="button"
@@ -16,7 +16,7 @@
       @click="$emit('update:modelValue', 'compare')"
     >
       <span class="tab-icon">📊</span>
-      <span class="tab-label">{{ t('nav.multiDay') }}</span>
+      <span class="tab-label">{{ t('nav.multiDayShort') }}</span>
     </button>
   </div>
 </template>
