@@ -5,6 +5,7 @@ export default {
     selectedDays: '{count} days selected', loadFailed: 'Load failed', retry: 'Retry'
   },
   nav: {
+    dashboard: 'Dashboard', plans: 'Plans', reports: 'Reports', mainNavigation: 'Main navigation',
     singleDay: 'Single Day', multiDay: 'Multi-Day', selectDate: 'Select Date',
     selectDatesToCompare: 'Please select dates to compare on the left', selectDateToView: 'Please select a date to view data',
     import: 'Import Data',
@@ -12,6 +13,8 @@ export default {
     lastWeek: 'Last 7 days', lastMonth: 'Last month', lastThreeMonths: 'Last 3 months', lastHalfYear: 'Last 6 months', lastYear: 'Last year'
   },
   settings: { title: 'Settings', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark' },
+  plans: { title: 'Exercise Plans', comingSoon: 'Exercise plans are coming soon' },
+  reports: { title: 'Reports', weekly: 'Weekly', monthly: 'Monthly', weeklyComingSoon: 'Weekly reports are coming soon', monthlyComingSoon: 'Monthly reports are coming soon' },
   auth: {
     title: 'Access Verification',
     description: 'Enter the access password to view personal health data',

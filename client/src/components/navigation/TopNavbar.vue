@@ -1,15 +1,16 @@
 <template>
   <div class="top-navbar">
-    <nav class="primary-nav">
+    <nav class="primary-nav" :aria-label="t('nav.mainNavigation')">
       <button
         v-for="item in navItems"
         :key="item.path"
         :class="['nav-button', { active: isActive(item) }]"
         type="button"
+        :aria-current="isActive(item) ? 'page' : undefined"
         @click="navigate(item.path)"
       >
         <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.label }}</span>
+        <span>{{ t(item.labelKey) }}</span>
       </button>
     </nav>
 
@@ -55,10 +56,10 @@ const route = useRoute();
 const router = useRouter();
 
 const navItems = [
-  { path: '/dashboard', label: '健康看板', icon: DataLine },
-  { path: '/plans', label: '运动计划', icon: Calendar },
-  { path: '/reports/weekly', label: '周报月报', icon: Document },
-  { path: '/profile', label: '个人配置', icon: UserFilled }
+  { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },
+  { path: '/plans', labelKey: 'nav.plans', icon: Calendar },
+  { path: '/reports/weekly', labelKey: 'nav.reports', icon: Document },
+  { path: '/profile', labelKey: 'profile.title', icon: UserFilled }
 ];
 
 const props = defineProps({

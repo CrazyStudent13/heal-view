@@ -12,6 +12,7 @@ export default {
     selectedDays: '已选 {count} 天'
   },
   nav: {
+    dashboard: '健康看板', plans: '运动计划', reports: '周报月报', mainNavigation: '主导航',
     singleDay: '单日视图',
     multiDay: '多日对比',
     selectDate: '选择日期',
@@ -35,6 +36,8 @@ export default {
     light: '亮',
     dark: '暗'
   },
+  plans: { title: '运动计划', comingSoon: '运动计划模块待接入' },
+  reports: { title: '周报月报', weekly: '周报', monthly: '月报', weeklyComingSoon: '周报模块待接入', monthlyComingSoon: '月报模块待接入' },
   auth: {
     title: '访问验证',
     description: '请输入访问密码查看个人健康数据',

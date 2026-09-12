@@ -41,10 +41,15 @@
       <MetricCard 
         v-if="!isCompareMode"
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'personal'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'personal' }"
         @click="$emit('chart-change', 'personal')"
+        @keydown.enter.prevent="$emit('chart-change', 'personal')"
+        @keydown.space.prevent="$emit('chart-change', 'personal')"
       >
         <template #icon>
           <span class="card-icon personal">👤</span>
@@ -56,10 +61,15 @@
       <MetricCard 
         v-if="isCompareMode"
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'weight'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'weight' }"
         @click="$emit('chart-change', 'weight')"
+        @keydown.enter.prevent="$emit('chart-change', 'weight')"
+        @keydown.space.prevent="$emit('chart-change', 'weight')"
       >
         <template #icon>
           <span class="card-icon weight">⚖️</span>
@@ -70,10 +80,15 @@
       
       <MetricCard 
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'steps'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'steps' }"
         @click="$emit('chart-change', 'steps')"
+        @keydown.enter.prevent="$emit('chart-change', 'steps')"
+        @keydown.space.prevent="$emit('chart-change', 'steps')"
       >
         <template #icon>
           <span class="card-icon steps">👟</span>
@@ -84,10 +99,15 @@
 
       <MetricCard 
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'heartrate'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'heartrate' }"
         @click="$emit('chart-change', 'heartrate')"
+        @keydown.enter.prevent="$emit('chart-change', 'heartrate')"
+        @keydown.space.prevent="$emit('chart-change', 'heartrate')"
       >
         <template #icon>
           <span class="card-icon heartrate">❤️</span>
@@ -98,10 +118,15 @@
 
       <MetricCard 
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'sleep'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'sleep' }"
         @click="$emit('chart-change', 'sleep')"
+        @keydown.enter.prevent="$emit('chart-change', 'sleep')"
+        @keydown.space.prevent="$emit('chart-change', 'sleep')"
       >
         <template #icon>
           <span class="card-icon sleep">🌙</span>
@@ -113,10 +138,15 @@
       <MetricCard 
         v-if="isCompareMode"
         class="card-item clickable"
+        role="button"
+        tabindex="0"
+        :aria-pressed="currentChartType === 'calories'"
         compact
         layout="row"
         :class="{ active: currentChartType === 'calories' }"
         @click="$emit('chart-change', 'calories')"
+        @keydown.enter.prevent="$emit('chart-change', 'calories')"
+        @keydown.space.prevent="$emit('chart-change', 'calories')"
       >
         <template #icon>
           <span class="card-icon calories">🔥</span>
@@ -277,6 +307,11 @@ function formatSteps(num) {
   transform: translateY(-2px);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
   border-color: var(--primary-color);
+}
+
+.card-item:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .card-item.active {

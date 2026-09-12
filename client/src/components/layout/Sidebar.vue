@@ -2,12 +2,12 @@
   <div class="sidebar">
     <!-- Selection controls for compare mode -->
     <div v-if="viewMode === 'compare'" class="selection-controls">
-      <button @click="handleSelectAll" class="control-btn">{{ t('common.selectAll') }}</button>
-      <button @click="handleClearAll" class="control-btn">{{ t('common.clearAll') }}</button>
+      <button type="button" @click="handleSelectAll" class="control-btn">{{ t('common.selectAll') }}</button>
+      <button type="button" @click="handleClearAll" class="control-btn">{{ t('common.clearAll') }}</button>
       <span class="selected-count">{{ t('common.selectedDays', { count: store.selectedDates.length }) }}</span>
     </div>
 
-    <div class="date-list" v-if="!store.loading">
+    <div class="date-list" v-if="!store.loading && !store.error && displayDates.length > 0">
       <div
         v-for="date in displayDates"
         :key="date"
@@ -16,12 +16,19 @@
           active: viewMode === 'single' && date === store.selectedDate,
           selected: viewMode === 'compare' && store.selectedDates.includes(date)
         }"
+        role="button"
+        tabindex="0"
+        :aria-current="viewMode === 'single' && date === store.selectedDate ? 'date' : undefined"
+        :aria-pressed="viewMode === 'compare' ? store.selectedDates.includes(date) : undefined"
         @click="handleDateClick(date)"
+        @keydown.enter.prevent="handleDateClick(date)"
+        @keydown.space.prevent="handleDateClick(date)"
       >
         <input
           v-if="viewMode === 'compare'"
           type="checkbox"
           :checked="store.selectedDates.includes(date)"
+          :aria-label="formatDate(date)"
           @click.stop
           class="date-checkbox"
         />
@@ -32,13 +39,15 @@
       </div>
     </div>
 
-    <div v-else class="loading">
-      <p>{{ t('common.loading') }}</p>
-    </div>
-
-    <div v-if="store.error" class="error">
-      <p>{{ store.error }}</p>
-    </div>
+    <AsyncState
+      v-if="store.loading || store.error || displayDates.length === 0"
+      :loading="store.loading"
+      :error="store.error"
+      :empty="!store.loading && !store.error && displayDates.length === 0"
+      :empty-description="t('chart.selectDate')"
+      :show-retry="Boolean(store.error)"
+      @retry="reloadDates"
+    />
   </div>
 </template>
 
@@ -46,6 +55,7 @@
 import { onMounted, computed } from 'vue';
 import { useDateStore } from '../../stores/dateStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import AsyncState from '../common/AsyncState.vue';
 
 const props = defineProps({
   viewMode: {
@@ -98,6 +108,10 @@ function handleSelectAll() {
 // Clear all selections
 function handleClearAll() {
   store.clearSelectedDates();
+}
+
+function reloadDates() {
+  store.fetchDateList({ force: true });
 }
 
 // Fetch dates on mount
@@ -165,6 +179,12 @@ onMounted(() => {
   background: #f5f5f5;
 }
 
+.date-item:focus-visible,
+.control-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
 .date-item.active {
   background: #e6f7ff;
   border-left-color: #1890ff;
@@ -199,14 +219,5 @@ onMounted(() => {
   color: #999;
 }
 
-.loading, .error {
-  padding: 20px;
-  text-align: center;
-  color: #999;
-}
-
-.error {
-  color: #ff4d4f;
-}
 </style>
 

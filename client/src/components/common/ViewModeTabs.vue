@@ -1,14 +1,18 @@
 <template>
   <div class="view-mode-tabs">
     <button
+      type="button"
       :class="['tab-btn', { active: modelValue === 'single' }]"
+      :aria-pressed="modelValue === 'single'"
       @click="$emit('update:modelValue', 'single')"
     >
       <span class="tab-icon">📅</span>
       <span class="tab-label">{{ t('nav.singleDay') }}</span>
     </button>
     <button
+      type="button"
       :class="['tab-btn', { active: modelValue === 'compare' }]"
+      :aria-pressed="modelValue === 'compare'"
       @click="$emit('update:modelValue', 'compare')"
     >
       <span class="tab-icon">📊</span>

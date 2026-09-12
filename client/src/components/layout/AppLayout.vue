@@ -88,7 +88,9 @@ const isDarkMode = computed({
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
-const { userProfile, error } = storeToRefs(dataStore);
+const { userProfile, error: dataError } = storeToRefs(dataStore);
+const { error: dateError } = storeToRefs(dateStore);
+const dashboardError = computed(() => dataError.value || dateError.value);
 const dashboard = useDashboardData(dateStore, dataStore);
 const {
   viewMode,
@@ -107,7 +109,7 @@ const {
 provide(dashboardContextKey, {
   ...dashboard,
   userProfile,
-  error
+  error: dashboardError
 });
 </script>
 

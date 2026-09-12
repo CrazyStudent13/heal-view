@@ -1,7 +1,8 @@
 <template>
-  <div class="about-page">
-    <h2>{{ title }}</h2>
-    <p>{{ description }}</p>
+  <PageContainer>
+    <div class="about-page">
+      <h2>{{ title }}</h2>
+      <p>{{ description }}</p>
 
     <div class="about-items">
       <div v-for="item in aboutItems" :key="item.key" class="about-item">
@@ -21,7 +22,8 @@
         </a>
       </div>
     </div>
-  </div>
+    </div>
+  </PageContainer>
 </template>
 
 <script setup>
@@ -29,6 +31,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { Link } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../stores/localeStore.js';
+import PageContainer from '../components/common/PageContainer.vue';
 
 const route = useRoute();
 const localeStore = useLocaleStore();

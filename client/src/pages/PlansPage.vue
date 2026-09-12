@@ -1,14 +1,12 @@
 <template>
-  <div class="module-page">
-    <SectionTitle>运动计划</SectionTitle>
-    <el-empty description="运动计划模块待接入" :image-size="120" />
-  </div>
+  <PageContainer :title="t('plans.title')">
+    <el-empty :description="t('plans.comingSoon')" :image-size="120" />
+  </PageContainer>
 </template>
 
-<style scoped lang="scss">
-.module-page {
-  padding: 20px;
-  min-height: calc(100vh - 80px);
-  background: var(--app-bg);
-}
-</style>
+<script setup>
+import { useLocaleStore } from '../stores/localeStore.js';
+import PageContainer from '../components/common/PageContainer.vue';
+
+const { t } = useLocaleStore();
+</script>
