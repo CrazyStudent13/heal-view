@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
 
 .login-form :deep(.el-input__wrapper) {
   min-height: 44px;
-  padding: 1px 14px;
+  padding: 1px 20px;
 }
 
 .login-form :deep(.el-input__inner) {
@@ -250,6 +250,18 @@ onBeforeUnmount(() => {
 
 .forgot-password-tip__command :deep(.el-button) {
   flex: none;
+}
+
+.login-form :deep(.el-input__prefix) {
+  margin-right: 8px;
+}
+
+.login-form :deep(.el-input__prefix .el-icon) {
+  font-size: 18px;
+}
+
+.login-form :deep(.el-input__suffix) {
+  margin-left: 8px;
 }
 
 @media (max-width: 640px) {
