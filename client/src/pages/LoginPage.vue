@@ -217,11 +217,12 @@ onBeforeUnmount(() => {
 
 .login-form :deep(.el-input__wrapper) {
   min-height: 44px;
-  padding: 0;
+  padding: 1px 16px;
 }
 
 .login-form :deep(.el-input__inner) {
   font-size: 15px;
+  padding-left: 0;
 }
 
 .login-button {
@@ -271,18 +272,18 @@ onBeforeUnmount(() => {
 }
 
 .login-form :deep(.el-input__prefix) {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-right: 0;
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  margin-right: 10px;
 }
 
 .login-form :deep(.el-input__prefix-inner) {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: auto;
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
@@ -290,25 +291,24 @@ onBeforeUnmount(() => {
 }
 
 .login-form :deep(.el-input__suffix) {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-left: 0;
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  margin-left: 10px;
 }
 
 .login-form :deep(.el-input__suffix-inner) {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: auto;
 }
 
 .login-form :deep(.el-input__suffix-inner > *) {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 640px) {
