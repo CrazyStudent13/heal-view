@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { translate } from '../i18n/index.js';
 
 const loadDashboardPage = () => import('../pages/DashboardPage.vue');
 const loadImportPage = () => import('../pages/ImportPage.vue');
@@ -15,26 +16,26 @@ const routes = [
     path: '/login',
     name: 'login',
     component: loadLoginPage,
-    meta: { title: '访问验证', public: true }
+    meta: { titleKey: 'auth.title', public: true }
   },
   { path: '/', redirect: '/dashboard' },
   {
     path: '/dashboard',
     name: 'dashboard',
     component: loadDashboardPage,
-    meta: { title: '健康看板' }
+    meta: { titleKey: 'nav.dashboard' }
   },
   {
     path: '/import',
     name: 'import',
     component: loadImportPage,
-    meta: { title: '数据导入' }
+    meta: { titleKey: 'nav.import' }
   },
   {
     path: '/plans',
     name: 'plans',
     component: loadPlansPage,
-    meta: { title: '运动计划' }
+    meta: { titleKey: 'plans.title' }
   },
   {
     path: '/reports',
@@ -45,21 +46,20 @@ const routes = [
     name: 'reports',
     component: loadReportsPage,
     props: true,
-    meta: { title: '周报月报' }
+    meta: { titleKey: 'reports.title' }
   },
   {
     path: '/profile',
     name: 'profile',
     component: loadProfilePage,
     redirect: '/profile/access',
-    meta: { title: '个人配置' },
+    meta: { titleKey: 'profile.title' },
     children: [
       {
         path: 'access',
         name: 'profile-access',
         component: loadProfileAccessPage,
         meta: {
-          title: '访问保护',
           titleKey: 'profile.access',
           descriptionKey: 'auth.accessProtectionDescription'
         }
@@ -69,7 +69,6 @@ const routes = [
         name: 'profile-about',
         component: loadProfilePlaceholderPage,
         meta: {
-          title: '关于与运行信息',
           titleKey: 'profile.about',
           descriptionKey: 'profile.aboutDescription'
         }
@@ -146,5 +145,6 @@ router.beforeEach(async (to) => {
 });
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} · Heal View` : 'Heal View';
+  const title = to.meta.titleKey ? translate(to.meta.titleKey) : 'Heal View';
+  document.title = title ? `${title} · Heal View` : 'Heal View';
 });

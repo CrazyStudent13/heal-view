@@ -87,7 +87,10 @@ export default {
     passwordRequiredToEnable: '开启访问保护时请输入密码',
     saved: '访问保护设置已保存',
     loggedOut: '已退出访问保护',
-    settingsLoadFailed: '读取访问保护设置失败'
+    settingsLoadFailed: '读取访问保护设置失败',
+    invalidPassword: '访问密码不正确',
+    logoutFailed: '退出访问保护失败',
+    settingsSaveFailed: '保存访问保护设置失败'
   },
   profile: {
     title: '个人配置',

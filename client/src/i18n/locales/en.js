@@ -64,7 +64,10 @@ export default {
     passwordRequiredToEnable: 'Enter a password before enabling access protection',
     saved: 'Access protection settings saved',
     loggedOut: 'Access protection session ended',
-    settingsLoadFailed: 'Failed to load access protection settings'
+    settingsLoadFailed: 'Failed to load access protection settings',
+    invalidPassword: 'The access password is incorrect',
+    logoutFailed: 'Failed to end the access protection session',
+    settingsSaveFailed: 'Failed to save access protection settings'
   },
   profile: {
     title: 'Personal Settings',
