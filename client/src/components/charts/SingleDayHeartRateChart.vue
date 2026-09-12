@@ -60,6 +60,9 @@ const dataStore = useDataStore();
 
 const chartRef = ref(null);
 let chartInstance = null;
+let initTimer = null;
+let updateTimer = null;
+let isUnmounted = false;
 const heartRateData = ref([]);
 const loading = ref(false);
 
@@ -123,7 +126,7 @@ function formatTime(timestamp) {
 }
 
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value || chartInstance || isUnmounted) return;
   chartInstance = echarts.init(chartRef.value);
   updateChart();
 };
@@ -279,10 +282,12 @@ watch(() => dateStore.selectedDate, async (newDate) => {
     heartRateData.value = [];
   } finally {
     loading.value = false;
+    if (isUnmounted) return;
     
     // Update chart after data is loaded
-    setTimeout(() => {
-      updateChart();
+    updateTimer = setTimeout(() => {
+      updateTimer = null;
+      if (!isUnmounted) updateChart();
     }, 100);
   }
 }, { immediate: true });
@@ -292,15 +297,26 @@ watch(() => localeStore.currentLocale, () => {
 });
 
 onMounted(() => {
-  setTimeout(() => {
+  initTimer = setTimeout(() => {
+    initTimer = null;
     initChart();
   }, 100);
   window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
+  isUnmounted = true;
   if (chartInstance) {
     chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (initTimer) {
+    clearTimeout(initTimer);
+    initTimer = null;
+  }
+  if (updateTimer) {
+    clearTimeout(updateTimer);
+    updateTimer = null;
   }
   window.removeEventListener('resize', handleResize);
 });

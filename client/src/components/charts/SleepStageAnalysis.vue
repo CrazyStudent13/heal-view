@@ -40,6 +40,7 @@ const pieChartRef = ref(null);
 let barChart = null;
 let pieChart = null;
 let resizeObserver = null;
+let isUnmounted = false;
 
 const stageMeta = computed(() => ({
   deep: { name: t('chart.deep'), color: '#2A35C0' },
@@ -113,7 +114,7 @@ function tooltipFormatter(params) {
 }
 
 function updateCharts() {
-  if (!barChart || !pieChart) return;
+  if (isUnmounted || !barChart || !pieChart) return;
   const colors = themeColors();
   const data = stageData.value;
 
@@ -195,7 +196,7 @@ function updateCharts() {
 
 async function initCharts() {
   await nextTick();
-  if (!barChartRef.value || !pieChartRef.value) return;
+  if (isUnmounted || !barChartRef.value || !pieChartRef.value) return;
   barChart = echarts.init(barChartRef.value);
   pieChart = echarts.init(pieChartRef.value);
   updateCharts();
@@ -217,9 +218,13 @@ watch(
 onMounted(initCharts);
 
 onBeforeUnmount(() => {
+  isUnmounted = true;
   resizeObserver?.disconnect();
+  resizeObserver = null;
   barChart?.dispose();
   pieChart?.dispose();
+  barChart = null;
+  pieChart = null;
 });
 </script>
 

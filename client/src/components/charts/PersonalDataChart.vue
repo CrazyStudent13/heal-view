@@ -22,9 +22,10 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let initTimer = null;
 
 const initChart = () => {
-  if (!chartRef.value || !props.profileData) return;
+  if (!chartRef.value || !props.profileData || chartInstance) return;
   
   chartInstance = echarts.init(chartRef.value);
   updateChart();
@@ -149,7 +150,8 @@ watch(() => props.profileData, () => {
 }, { deep: true });
 
 onMounted(() => {
-  setTimeout(() => {
+  initTimer = setTimeout(() => {
+    initTimer = null;
     initChart();
   }, 100);
   window.addEventListener('resize', handleResize);
@@ -158,6 +160,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (chartInstance) {
     chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (initTimer) {
+    clearTimeout(initTimer);
+    initTimer = null;
   }
   window.removeEventListener('resize', handleResize);
 });

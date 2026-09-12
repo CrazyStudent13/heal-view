@@ -11,18 +11,27 @@
     <div class="chart-panel__body">
       <slot />
 
-      <div v-if="loading" class="chart-panel__state chart-panel__state--loading">
-        <p>{{ loadingText }}</p>
-      </div>
-
-      <div v-else-if="empty" class="chart-panel__state chart-panel__state--empty">
-        <el-empty :description="emptyDescription" :image-size="emptyImageSize" />
-      </div>
+      <AsyncState
+        v-if="loading || error || empty"
+        :loading="loading"
+        :error="error"
+        :empty="empty"
+        :loading-text="loadingText"
+        :empty-description="emptyDescription"
+        :empty-image-size="emptyImageSize"
+        :show-retry="showRetry"
+        :retry-text="retryText"
+        @retry="$emit('retry')"
+      >
+        <slot />
+      </AsyncState>
     </div>
   </div>
 </template>
 
 <script setup>
+import AsyncState from './AsyncState.vue';
+
 defineProps({
   loading: {
     type: Boolean,
@@ -31,6 +40,10 @@ defineProps({
   empty: {
     type: Boolean,
     default: false
+  },
+  error: {
+    type: [String, Object, Error],
+    default: null
   },
   emptyDescription: {
     type: String,
@@ -44,11 +57,21 @@ defineProps({
     type: String,
     default: ''
   },
+  retryText: {
+    type: String,
+    default: ''
+  },
+  showRetry: {
+    type: Boolean,
+    default: false
+  },
   panelClass: {
     type: [String, Array, Object],
     default: ''
   }
 });
+
+defineEmits(['retry']);
 </script>
 
 <style scoped lang="scss">
@@ -79,8 +102,10 @@ defineProps({
   height: 100%;
 }
 
-.chart-panel__state {
-  flex: 1;
-  min-height: 0;
+.chart-panel__body :deep(.async-state) {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--card-bg, #ffffff);
 }
 </style>

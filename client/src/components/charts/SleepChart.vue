@@ -150,7 +150,7 @@ const hasValidData = computed(() => {
 });
 
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value || chartInstance) return;
   chartInstance = echarts.init(chartRef.value);
   updateChart();
 };
@@ -356,6 +356,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (chartInstance) {
     chartInstance.dispose();
+    chartInstance = null;
   }
   window.removeEventListener('resize', handleResize);
 });

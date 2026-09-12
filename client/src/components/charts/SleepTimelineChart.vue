@@ -69,6 +69,11 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let initTimer = null;
+let dataTimer = null;
+let resolveInitTimer = null;
+let resolveDataTimer = null;
+let isUnmounted = false;
 const timelineData = ref(props.data);
 const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
@@ -139,19 +144,24 @@ const interruptTagType = computed(() => {
 });
 
 // ---- 图表核心 ----
-function buildChart() {
-  if (!hasData.value) return;
+function disposeChart() {
+  if (!chartInstance) return;
+  chartInstance.clear();
+  chartInstance.dispose();
+  chartInstance = null;
+}
 
-  // Dispose old chart instance and create new one to avoid artifacts
-  if (chartInstance) {
-    chartInstance.clear(); // Clear all elements first
-    chartInstance.dispose();
-    chartInstance = null;
+function buildChart() {
+  if (isUnmounted) return;
+  if (!hasData.value) {
+    disposeChart();
+    return;
   }
   
-  if (chartRef.value) {
+  if (!chartInstance && chartRef.value) {
     chartInstance = echarts.init(chartRef.value);
-  } else {
+  }
+  if (!chartInstance) {
     return;
   }
 
@@ -433,13 +443,7 @@ function buildChart() {
 }
 
 const initChart = () => { 
-  if (chartRef.value && hasData.value && !chartInstance) { 
-    chartInstance = echarts.init(chartRef.value); 
-    buildChart(); 
-  } else if (chartInstance && hasData.value) {
-    // Chart already exists, just rebuild
-    buildChart();
-  }
+  if (!isUnmounted && chartRef.value && hasData.value) buildChart();
 };
 
 watch(() => props.data, async nd => {
@@ -447,6 +451,7 @@ watch(() => props.data, async nd => {
   heartRateTS.value = null;
   if (nd?.date) {
     const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
+    if (isUnmounted) return;
     if (hr?.data?.length) {
       heartRateTS.value = {
         ...hr,
@@ -455,20 +460,35 @@ watch(() => props.data, async nd => {
     }
   }
   // Wait for DOM to update before building chart
-  await new Promise(resolve => setTimeout(resolve, 50));
-  if (chartInstance) {
-    // Chart already initialized, just rebuild with new data
-    buildChart();
-  }
+  await new Promise(resolve => {
+    dataTimer = setTimeout(() => {
+      dataTimer = null;
+      resolveDataTimer = null;
+      resolve();
+    }, 50);
+    resolveDataTimer = resolve;
+  });
+  if (!isUnmounted) buildChart();
   // If chart not initialized yet, it will be handled by watch(hasData)
 }, { deep: true, immediate: true });
 
 // Watch hasData changes to re-init chart when data becomes available
 watch(hasData, async (newVal) => {
+  if (!newVal) {
+    disposeChart();
+    return;
+  }
   if (newVal && !chartInstance && chartRef.value) {
     // Chart instance doesn't exist but we have data, initialize it
-    await new Promise(resolve => setTimeout(resolve, 100));
-    initChart();
+    await new Promise(resolve => {
+      initTimer = setTimeout(() => {
+        initTimer = null;
+        resolveInitTimer = null;
+        resolve();
+      }, 100);
+      resolveInitTimer = resolve;
+    });
+    if (!isUnmounted) initChart();
   }
 });
 
@@ -478,8 +498,26 @@ watch(() => localeStore.currentLocale, () => {
 
 const handleResize = () => chartInstance?.resize();
 
-onMounted(() => { setTimeout(initChart, 100); window.addEventListener('resize', handleResize); });
-onBeforeUnmount(() => { chartInstance?.dispose(); window.removeEventListener('resize', handleResize); });
+onMounted(() => {
+  initTimer = setTimeout(() => {
+    initTimer = null;
+    initChart();
+  }, 100);
+  window.addEventListener('resize', handleResize);
+});
+onBeforeUnmount(() => {
+  isUnmounted = true;
+  if (initTimer) clearTimeout(initTimer);
+  if (dataTimer) clearTimeout(dataTimer);
+  resolveInitTimer?.();
+  resolveDataTimer?.();
+  resolveInitTimer = null;
+  resolveDataTimer = null;
+  initTimer = null;
+  dataTimer = null;
+  disposeChart();
+  window.removeEventListener('resize', handleResize);
+});
 </script>
 
 <style scoped lang="scss">

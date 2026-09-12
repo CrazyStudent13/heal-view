@@ -286,6 +286,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   chartInstance?.dispose();
+  chartInstance = null;
   window.removeEventListener('resize', handleResize);
 });
 </script>

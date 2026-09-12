@@ -105,6 +105,8 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let initTimer = null;
+let isUnmounted = false;
 
 // Metrics from weight data
 const metrics = computed(() => {
@@ -249,7 +251,7 @@ function formatNumber(num) {
 }
 
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value || chartInstance || isUnmounted) return;
   chartInstance = echarts.init(chartRef.value);
   updateChart();
 };
@@ -438,24 +440,33 @@ watch(() => localeStore.currentLocale, () => {
 watch(() => props.loading, async (newLoading) => {
   if (!newLoading && props.weightData && dailyData.value.length > 0) {
     await nextTick();
-    setTimeout(() => {
-      initChart();
+    if (isUnmounted) return;
+    initTimer = setTimeout(() => {
+      initTimer = null;
+      if (!isUnmounted) initChart();
     }, 100);
   }
 });
 
 onMounted(() => {
   if (!props.loading && props.weightData && dailyData.value.length > 0) {
-    setTimeout(() => {
-      initChart();
+    initTimer = setTimeout(() => {
+      initTimer = null;
+      if (!isUnmounted) initChart();
     }, 100);
   }
   window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
+  isUnmounted = true;
   if (chartInstance) {
     chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (initTimer) {
+    clearTimeout(initTimer);
+    initTimer = null;
   }
   window.removeEventListener('resize', handleResize);
 });

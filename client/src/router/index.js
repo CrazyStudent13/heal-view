@@ -1,38 +1,39 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import DashboardPage from '../pages/DashboardPage.vue';
-import ImportPage from '../pages/ImportPage.vue';
-import PlansPage from '../pages/PlansPage.vue';
-import ReportsPage from '../pages/ReportsPage.vue';
-import ProfilePage from '../pages/ProfilePage.vue';
-import ProfileAccessPage from '../pages/ProfileAccessPage.vue';
-import ProfilePlaceholderPage from '../pages/ProfilePlaceholderPage.vue';
-import LoginPage from '../pages/LoginPage.vue';
 import { useAuthStore } from '../stores/authStore.js';
+
+const loadDashboardPage = () => import('../pages/DashboardPage.vue');
+const loadImportPage = () => import('../pages/ImportPage.vue');
+const loadPlansPage = () => import('../pages/PlansPage.vue');
+const loadReportsPage = () => import('../pages/ReportsPage.vue');
+const loadProfilePage = () => import('../pages/ProfilePage.vue');
+const loadProfileAccessPage = () => import('../pages/ProfileAccessPage.vue');
+const loadProfilePlaceholderPage = () => import('../pages/ProfilePlaceholderPage.vue');
+const loadLoginPage = () => import('../pages/LoginPage.vue');
 
 const routes = [
   {
     path: '/login',
     name: 'login',
-    component: LoginPage,
+    component: loadLoginPage,
     meta: { title: '访问验证', public: true }
   },
   { path: '/', redirect: '/dashboard' },
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: DashboardPage,
+    component: loadDashboardPage,
     meta: { title: '健康看板' }
   },
   {
     path: '/import',
     name: 'import',
-    component: ImportPage,
+    component: loadImportPage,
     meta: { title: '数据导入' }
   },
   {
     path: '/plans',
     name: 'plans',
-    component: PlansPage,
+    component: loadPlansPage,
     meta: { title: '运动计划' }
   },
   {
@@ -42,21 +43,21 @@ const routes = [
   {
     path: '/reports/:period(weekly|monthly)',
     name: 'reports',
-    component: ReportsPage,
+    component: loadReportsPage,
     props: true,
     meta: { title: '周报月报' }
   },
   {
     path: '/profile',
     name: 'profile',
-    component: ProfilePage,
+    component: loadProfilePage,
     redirect: '/profile/access',
     meta: { title: '个人配置' },
     children: [
       {
         path: 'access',
         name: 'profile-access',
-        component: ProfileAccessPage,
+        component: loadProfileAccessPage,
         meta: {
           title: '访问保护',
           titleKey: 'profile.access',
@@ -66,7 +67,7 @@ const routes = [
       {
         path: 'about',
         name: 'profile-about',
-        component: ProfilePlaceholderPage,
+        component: loadProfilePlaceholderPage,
         meta: {
           title: '关于与运行信息',
           titleKey: 'profile.about',
@@ -85,12 +86,49 @@ export const router = createRouter({
   }
 });
 
+const AUTH_STATUS_TTL = 30_000;
+let authStatusPromise = null;
+let authStatusCache = null;
+
+function authStatusChangedSinceLastCheck(auth) {
+  return !authStatusCache
+    || auth.authenticated !== authStatusCache.authenticated
+    || auth.enabled !== authStatusCache.enabled;
+}
+
+async function ensureAuthStatus(auth) {
+  const cacheIsFresh = authStatusCache
+    && Date.now() - authStatusCache.checkedAt < AUTH_STATUS_TTL;
+
+  if (cacheIsFresh && !authStatusChangedSinceLastCheck(auth)) {
+    return authStatusCache.response;
+  }
+
+  if (!authStatusPromise) {
+    authStatusPromise = auth.fetchStatus()
+      .then((response) => {
+        authStatusCache = {
+          authenticated: auth.authenticated,
+          enabled: auth.enabled,
+          checkedAt: Date.now(),
+          response
+        };
+        return response;
+      })
+      .finally(() => {
+        authStatusPromise = null;
+      });
+  }
+
+  return authStatusPromise;
+}
+
 router.beforeEach(async (to) => {
   if (to.meta.public) return true;
 
   const auth = useAuthStore();
   try {
-    const status = await auth.fetchStatus();
+    const status = await ensureAuthStatus(auth);
     if (status.enabled && !status.authenticated) {
       return {
         name: 'login',

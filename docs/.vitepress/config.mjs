@@ -12,6 +12,7 @@ export default defineConfig({
       { text: '使用指南', link: '/guide/features' },
       { text: '项目资料', link: '/project/overview' },
       { text: '版本记录', link: '/releases/current' },
+      { text: '优化待办', link: '/todos/frontend-optimization' },
       { text: 'GitHub', link: 'https://github.com/CrazyStudent13/heal-view' }
     ],
     sidebar: {
@@ -45,6 +46,14 @@ export default defineConfig({
           ]
         }
       ],
+      '/todos/': [
+        {
+          text: '优化待办',
+          items: [
+            { text: '前端优化方向', link: '/todos/frontend-optimization' }
+          ]
+        }
+      ],
       '/': [
         {
           text: '项目资料',
@@ -62,7 +71,8 @@ export default defineConfig({
             { text: '数据导入', link: '/guide/data-import' }
           ]
         },
-        { text: '未来计划', link: '/roadmap' }
+        { text: '未来计划', link: '/roadmap' },
+        { text: '优化待办', link: '/todos/frontend-optimization' }
       ]
     },
     socialLinks: [{ icon: 'github', link: 'https://github.com/CrazyStudent13/heal-view' }],

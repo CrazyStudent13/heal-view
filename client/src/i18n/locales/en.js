@@ -2,7 +2,7 @@ export default {
   app: { title: 'Daily Fitness Dashboard' },
   common: {
     loading: 'Loading...', empty: 'No data', reset: 'Reset', selectAll: 'Select All', clearAll: 'Clear All', query: 'Query',
-    selectedDays: '{count} days selected'
+    selectedDays: '{count} days selected', loadFailed: 'Load failed', retry: 'Retry'
   },
   nav: {
     singleDay: 'Single Day', multiDay: 'Multi-Day', selectDate: 'Select Date',

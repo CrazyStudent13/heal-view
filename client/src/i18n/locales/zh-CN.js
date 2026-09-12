@@ -2,6 +2,8 @@ export default {
   app: { title: '日运动数据分析' },
   common: {
     loading: '加载中...',
+    loadFailed: '加载失败',
+    retry: '重试',
     empty: '暂无数据',
     reset: '重置',
     selectAll: '全选',

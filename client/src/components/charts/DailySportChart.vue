@@ -311,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted, computed } from 'vue';
+import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue';
 import { ElTable, ElTableColumn, ElTag } from 'element-plus';
 import echarts from '../../lib/echarts';
 import { useDateStore } from '../../stores/dateStore.js';
@@ -331,6 +331,7 @@ const sportRecords = ref([]);
 const selectedRecord = ref(null);
 const heartRateChartRef = ref(null);
 let heartRateChart = null;
+let isUnmounted = false;
 
 const heartRateZones = ref(createHeartRateZones());
 
@@ -513,10 +514,11 @@ function handleRowSelect(row) {
 
 // Initialize heart rate chart
 function initHeartRateChart() {
-  if (!heartRateChartRef.value) return;
+  if (isUnmounted || !heartRateChartRef.value) return;
   
   if (heartRateChart) {
     heartRateChart.dispose();
+    heartRateChart = null;
   }
   
   heartRateChart = echarts.init(heartRateChartRef.value);
@@ -711,6 +713,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
       startDate: newDate,
       endDate: newDate
     });
+    if (isUnmounted) return;
     const parsedRecords = records
       .map(record => parseSportRecordRow(record, {
         formatTime,
@@ -737,6 +740,7 @@ watch(() => dateStore.selectedDate, async (newDate) => {
       }
     }
   } catch (error) {
+    if (isUnmounted) return;
     console.error('Failed to fetch sport records:', error);
     sportRecords.value = [];
     selectedRecord.value = null;
@@ -751,6 +755,21 @@ watch(() => localeStore.currentLocale, () => {
   if (!selectedRecord.value) return;
   updateHeartRateZones(selectedRecord.value);
   nextTick(initHeartRateChart);
+});
+
+const handleResize = () => {
+  heartRateChart?.resize();
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+});
+
+onBeforeUnmount(() => {
+  isUnmounted = true;
+  heartRateChart?.dispose();
+  heartRateChart = null;
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 

@@ -29,6 +29,7 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let initTimer = null;
 
 // Convert timestamp to time string (HH:mm)
 function formatTime(timestamp) {
@@ -51,7 +52,7 @@ function filterNightData(data) {
 }
 
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value || chartInstance) return;
   chartInstance = echarts.init(chartRef.value);
   updateChart();
 };
@@ -239,7 +240,8 @@ watch(() => localeStore.currentLocale, () => {
 });
 
 onMounted(() => {
-  setTimeout(() => {
+  initTimer = setTimeout(() => {
+    initTimer = null;
     initChart();
   }, 100);
   window.addEventListener('resize', handleResize);
@@ -248,6 +250,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (chartInstance) {
     chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (initTimer) {
+    clearTimeout(initTimer);
+    initTimer = null;
   }
   window.removeEventListener('resize', handleResize);
 });

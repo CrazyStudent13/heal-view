@@ -41,18 +41,24 @@ export const useDateStore = defineStore('date', () => {
       const data = await getDates();
       dateList.value = data.dates || [];
 
-      // Check which dates have useful comparison data (steps > 0, sportCount > 0, or blood pressure records)
-      const trainingSet = new Set();
-      for (const date of dateList.value) {
-        try {
-          const summary = await getDailySummary(date);
-          if (summary && (summary.steps > 0 || summary.sportCount > 0 || summary.bloodPressureCount > 0)) {
-            trainingSet.add(date);
-          }
-        } catch (err) {
-          console.warn(`Failed to check date ${date}:`, err);
-        }
+      // Fetch summaries in small batches to reduce the serial wait without flooding the API.
+      const summaries = [];
+      const batchSize = 8;
+      for (let index = 0; index < dateList.value.length; index += batchSize) {
+        const batch = dateList.value.slice(index, index + batchSize);
+        summaries.push(...await Promise.allSettled(batch.map(date => getDailySummary(date))));
       }
+      const trainingSet = new Set();
+      summaries.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const summary = result.value;
+          if (summary && (summary.steps > 0 || summary.sportCount > 0 || summary.bloodPressureCount > 0)) {
+            trainingSet.add(dateList.value[index]);
+          }
+        } else {
+          console.warn(`Failed to check date ${dateList.value[index]}:`, result.reason);
+        }
+      });
       datesWithTraining.value = trainingSet;
 
       // Auto-select today when available, otherwise use the latest date with data.

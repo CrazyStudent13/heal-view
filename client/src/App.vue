@@ -1,12 +1,14 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue'
 import { ElConfigProvider } from 'element-plus'
+import { RouterView, useRoute } from 'vue-router'
 import { useLocaleStore } from './stores/localeStore'
 import { useThemeStore } from './stores/themeStore'
 import AppLayout from './components/layout/AppLayout.vue'
 
 const localeStore = useLocaleStore()
 const themeStore = useThemeStore()
+const route = useRoute()
 
 const currentLocale = computed(() => localeStore.elementPlusLocale)
 
@@ -27,7 +29,8 @@ onMounted(() => {
 
 <template>
   <el-config-provider :locale="currentLocale">
-    <AppLayout />
+    <AppLayout v-if="route.name !== 'login'" />
+    <RouterView v-else />
   </el-config-provider>
 </template>
 
