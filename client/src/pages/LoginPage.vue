@@ -61,7 +61,21 @@
         :title="t('auth.forgotPassword')"
       >
         <template #default>
-          <span class="forgot-password-tip__command">{{ t('auth.resetCommand') }}</span>
+          <div class="forgot-password-tip__command">
+            <code>{{ resetCommandText }}</code>
+            <el-tooltip :content="t('auth.copyCommand')" placement="top">
+              <el-button
+                circle
+                text
+                size="small"
+                :icon="copied ? SuccessFilled : CopyDocument"
+                :type="copied ? 'success' : 'info'"
+                :aria-label="t('auth.copyCommand')"
+                :aria-pressed="copied"
+                @click="copyResetCommand"
+              />
+            </el-tooltip>
+          </div>
         </template>
       </el-alert>
     </el-card>
@@ -69,9 +83,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Lock } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { CopyDocument, Lock, SuccessFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '../stores/localeStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 
@@ -81,7 +96,11 @@ const route = useRoute();
 const router = useRouter();
 const password = ref('');
 const passwordInput = ref(null);
+const copied = ref(false);
+let copiedResetTimer = null;
 const { t } = localeStore;
+
+const resetCommandText = computed(() => 'pnpm reset-access-password');
 
 const currentLanguage = computed({
   get: () => localeStore.currentLocale,
@@ -104,8 +123,40 @@ async function handleLogin() {
   }
 }
 
+async function copyResetCommand() {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(resetCommandText.value);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = resetCommandText.value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copiedSuccessfully = document.execCommand('copy');
+      textarea.remove();
+      if (!copiedSuccessfully) throw new Error('Clipboard fallback failed');
+    }
+    copied.value = true;
+    ElMessage.success(t('auth.commandCopied'));
+    clearTimeout(copiedResetTimer);
+    copiedResetTimer = setTimeout(() => {
+      copied.value = false;
+    }, 1800);
+  } catch {
+    copied.value = false;
+    ElMessage.error(t('auth.commandCopyFailed'));
+  }
+}
+
 onMounted(() => {
   passwordInput.value?.focus?.();
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(copiedResetTimer);
 });
 </script>
 
@@ -182,8 +233,23 @@ onMounted(() => {
 }
 
 .forgot-password-tip__command {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   line-height: 1.5;
+}
+
+.forgot-password-tip__command code {
+  padding: 2px 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.forgot-password-tip__command :deep(.el-button) {
+  flex: none;
 }
 
 @media (max-width: 640px) {
