@@ -38,7 +38,7 @@ import './styles/index.scss'
 import App from './App.vue'
 import { router } from './router'
 import SectionTitle from './components/common/SectionTitle.vue'
-import { getElementPlusLocale, i18n, normalizeLocale } from './i18n'
+import { i18n } from './i18n'
 import { useAuthStore } from './stores/authStore'
 
 const app = createApp(App)
@@ -49,7 +49,8 @@ app.component('SectionTitle', SectionTitle)
 app.use(pinia)
 app.use(i18n)
 app.use(router)
-[
+
+const elementComponents = [
   ElAlert,
   ElButton,
   ElCard,
@@ -80,7 +81,11 @@ app.use(router)
   ElText,
   ElTooltip,
   ElUpload
-].forEach(component => app.component(component.name, component))
+]
+
+elementComponents
+  .filter(Boolean)
+  .forEach(component => app.component(component.name, component))
 
 window.addEventListener('heal-view-auth-required', () => {
   const auth = useAuthStore(pinia)
@@ -91,12 +96,6 @@ window.addEventListener('heal-view-auth-required', () => {
       query: { redirect: router.currentRoute.value.fullPath }
     })
   }
-})
-
-const defaultLocale = normalizeLocale(localStorage.getItem('locale') || navigator.language)
-
-app.use(ElementPlus, {
-  locale: getElementPlusLocale(defaultLocale)
 })
 
 app.mount('#app')
