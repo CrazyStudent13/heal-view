@@ -63,7 +63,7 @@
           <div class="forgot-password-tip__content">
             <p>{{ t('auth.resetCommandHint') }}</p>
             <div class="forgot-password-tip__command">
-              <code>{{ resetCommandText }}</code>
+              <code>{{ RESET_COMMAND }}</code>
               <el-tooltip :content="t('auth.copyCommand')" placement="top">
                 <el-button
                   circle
@@ -101,8 +101,7 @@ const passwordInput = ref(null);
 const copied = ref(false);
 let copiedResetTimer = null;
 const { t } = localeStore;
-
-const resetCommandText = computed(() => 'pnpm reset-access-password');
+const RESET_COMMAND = 'pnpm reset-access-password';
 
 const currentLanguage = computed({
   get: () => localeStore.currentLocale,
@@ -128,10 +127,10 @@ async function handleLogin() {
 async function copyResetCommand() {
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(resetCommandText.value);
+      await navigator.clipboard.writeText(RESET_COMMAND);
     } else {
       const textarea = document.createElement('textarea');
-      textarea.value = resetCommandText.value;
+      textarea.value = RESET_COMMAND;
       textarea.setAttribute('readonly', '');
       textarea.style.position = 'fixed';
       textarea.style.opacity = '0';
@@ -167,7 +166,6 @@ onBeforeUnmount(() => {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  position: relative;
   padding: 24px;
   background: var(--app-bg);
 }
@@ -211,13 +209,10 @@ onBeforeUnmount(() => {
   margin-bottom: 18px;
 }
 
-.login-form :deep(.el-input__prefix) {
-  color: var(--text-tertiary);
-}
-
 .login-form :deep(.el-input__wrapper) {
+  position: relative;
   min-height: 44px;
-  padding: 1px 16px;
+  padding: 1px 44px;
 }
 
 .login-form :deep(.el-input__inner) {
@@ -271,19 +266,37 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-.login-form :deep(.el-input__prefix) {
+.login-form :deep(.el-input__prefix),
+.login-form :deep(.el-input__suffix) {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
   display: flex;
   align-items: center;
-  width: auto;
-  height: auto;
-  margin-right: 10px;
+  justify-content: center;
+  margin: 0;
+  transform: translateY(-50%);
+}
+
+.login-form :deep(.el-input__prefix) {
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.login-form :deep(.el-input__prefix-inner),
+.login-form :deep(.el-input__suffix-inner),
+.login-form :deep(.el-input__suffix-inner > *) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-form :deep(.el-input__prefix-inner) {
-  display: flex;
-  align-items: center;
-  width: auto;
-  height: auto;
+  width: 18px;
+  height: 18px;
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
@@ -291,24 +304,15 @@ onBeforeUnmount(() => {
 }
 
 .login-form :deep(.el-input__suffix) {
-  display: flex;
-  align-items: center;
-  width: auto;
-  height: auto;
-  margin-left: 10px;
+  right: 14px;
+  width: 22px;
+  height: 22px;
 }
 
-.login-form :deep(.el-input__suffix-inner) {
-  display: flex;
-  align-items: center;
-  width: auto;
-  height: auto;
-}
-
+.login-form :deep(.el-input__suffix-inner),
 .login-form :deep(.el-input__suffix-inner > *) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: 22px;
+  height: 22px;
 }
 
 @media (max-width: 640px) {
@@ -325,6 +329,5 @@ onBeforeUnmount(() => {
     margin-right: 68px;
     margin-left: 68px;
   }
-
 }
 </style>
