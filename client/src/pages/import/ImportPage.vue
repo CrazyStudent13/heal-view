@@ -8,8 +8,8 @@
 <script setup>
 import { inject } from 'vue';
 import { useRouter } from 'vue-router';
-import DataImportPage from '../components/import/DataImportPage.vue';
-import { dashboardContextKey } from '../composables/dashboardContext.js';
+import DataImportPage from '@/pages/import/DataImportPage.vue';
+import { dashboardContextKey } from '@/composables/dashboardContext.js';
 
 const dashboard = inject(dashboardContextKey);
 const router = useRouter();

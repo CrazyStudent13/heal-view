@@ -1,15 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '../stores/authStore.js';
-import { translate } from '../i18n/index.js';
+import { useAuthStore } from '@/stores/authStore.js';
+import { translate } from '@/i18n/index.js';
 
-const loadDashboardPage = () => import('../pages/DashboardPage.vue');
-const loadImportPage = () => import('../pages/ImportPage.vue');
-const loadPlansPage = () => import('../pages/PlansPage.vue');
-const loadReportsPage = () => import('../pages/ReportsPage.vue');
-const loadProfilePage = () => import('../pages/ProfilePage.vue');
-const loadProfileAccessPage = () => import('../pages/ProfileAccessPage.vue');
-const loadProfilePlaceholderPage = () => import('../pages/ProfilePlaceholderPage.vue');
-const loadLoginPage = () => import('../pages/LoginPage.vue');
+const loadDashboardPage = () => import('@/pages/DashboardPage.vue');
+const loadImportPage = () => import('@/pages/import/ImportPage.vue');
+const loadPlansPage = () => import('@/pages/PlansPage.vue');
+const loadReportsPage = () => import('@/pages/ReportsPage.vue');
+const loadProfilePage = () => import('@/pages/ProfilePage.vue');
+const loadProfileAccessPage = () => import('@/pages/ProfileAccessPage.vue');
+const loadProfilePlaceholderPage = () => import('@/pages/ProfilePlaceholderPage.vue');
+const loadLoginPage = () => import('@/pages/LoginPage.vue');
 
 const routes = [
   {
