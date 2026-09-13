@@ -167,6 +167,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { DataLine } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import MetricCard from '@/components/ui/MetricCard.vue';
