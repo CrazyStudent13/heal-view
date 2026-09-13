@@ -12,6 +12,7 @@ export function useProfileAccess() {
   const enabled = ref(false);
   const password = ref('');
   const confirmPassword = ref('');
+  const validationField = ref('');
   const settingsState = useAsyncRequest({ fallbackError: t('auth.settingsLoadFailed') });
   const { loading: settingsLoading, error: settingsError } = settingsState;
   let pageActive = true;
@@ -32,14 +33,17 @@ export function useProfileAccess() {
 
   async function save() {
     auth.error = '';
+    validationField.value = '';
     if (enabled.value && !auth.configured && !password.value) {
       auth.error = t('auth.passwordRequiredToEnable');
+      validationField.value = 'password';
       syncProtectionPreview(false);
       enabled.value = false;
       return;
     }
     if (password.value !== confirmPassword.value) {
       auth.error = t('auth.passwordMismatch');
+      validationField.value = 'confirmPassword';
       return;
     }
     try {
@@ -68,5 +72,5 @@ export function useProfileAccess() {
     auth.fetchStatus().catch(() => {});
   });
 
-  return { auth, enabled, password, confirmPassword, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut };
+  return { auth, enabled, password, confirmPassword, validationField, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut };
 }

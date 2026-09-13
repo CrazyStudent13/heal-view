@@ -147,15 +147,15 @@ function overviewFromResult(row) {
 }
 
 .view-link {
-  color: #409eff;
+  color: var(--primary-color);
 }
 
 .delete-link {
-  color: #f56c6c;
+  color: var(--danger-color);
 }
 
 .import-link {
-  color: #67c23a;
+  color: var(--success-color);
 }
 
 .history-table {

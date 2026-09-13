@@ -9,7 +9,7 @@
         :aria-current="isActive(item) ? 'page' : undefined"
         @click="navigate(item.path)"
       >
-        <el-icon><component :is="item.icon" /></el-icon>
+        <el-icon aria-hidden="true"><component :is="item.icon" /></el-icon>
         <span>{{ t(item.labelKey) }}</span>
       </button>
     </nav>

@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CopyDocument, Lock, SuccessFilled } from '@element-plus/icons-vue';
@@ -126,6 +126,9 @@ async function handleLogin() {
     auth.error = '';
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard';
     router.replace(redirect);
+  } else {
+    await nextTick();
+    passwordInput.value?.focus?.();
   }
 }
 

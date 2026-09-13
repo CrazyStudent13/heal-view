@@ -16,14 +16,14 @@
         <el-divider />
         <section class="password-section">
           <div class="section-heading"><h3>{{ t('auth.newPassword') }}</h3></div>
-          <el-form label-position="top" class="password-form">
-            <el-form-item :label="t('auth.newPassword')"><el-input v-model="password" type="password" show-password autocomplete="new-password" :disabled="auth.loading" /></el-form-item>
-            <el-form-item :label="t('auth.confirmPassword')"><el-input v-model="confirmPassword" type="password" show-password autocomplete="new-password" :disabled="auth.loading" /></el-form-item>
+          <el-form id="access-protection-form" label-position="top" class="password-form" @submit.prevent="handleSave">
+            <el-form-item :label="t('auth.newPassword')" :error="validationField === 'password' ? auth.error : ''"><el-input ref="passwordInput" v-model="password" type="password" show-password autocomplete="new-password" :disabled="auth.loading" :aria-invalid="validationField === 'password'" /></el-form-item>
+            <el-form-item :label="t('auth.confirmPassword')" :error="validationField === 'confirmPassword' ? auth.error : ''"><el-input ref="confirmPasswordInput" v-model="confirmPassword" type="password" show-password autocomplete="new-password" :disabled="auth.loading" :aria-invalid="validationField === 'confirmPassword'" /></el-form-item>
           </el-form>
         </section>
         <el-alert v-if="auth.error" class="settings-error" type="error" :title="auth.error" :closable="false" show-icon />
         <div class="settings-actions">
-          <el-button type="primary" :loading="auth.loading" @click="save">{{ t('auth.save') }}</el-button>
+          <el-button type="primary" native-type="submit" form="access-protection-form" :loading="auth.loading">{{ t('auth.save') }}</el-button>
           <el-button v-if="auth.canLogout" :disabled="auth.loading" @click="signOut">{{ t('auth.loggedOut') }}</el-button>
         </div>
       </template>
@@ -32,12 +32,23 @@
 </template>
 
 <script setup>
+import { nextTick, ref } from 'vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import AsyncState from '@/components/ui/AsyncState.vue';
 import { useProfileAccess } from '@/pages/profile/composables/useProfileAccess.js';
 
 const { t } = useLocaleStore();
-const { auth, enabled, password, confirmPassword, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut } = useProfileAccess();
+const { auth, enabled, password, confirmPassword, validationField, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut } = useProfileAccess();
+const passwordInput = ref(null);
+const confirmPasswordInput = ref(null);
+
+async function handleSave() {
+  await save();
+  const field = validationField.value;
+  if (!field) return;
+  await nextTick();
+  (field === 'password' ? passwordInput.value : confirmPasswordInput.value)?.focus?.();
+}
 </script>
 
 <style scoped lang="scss">

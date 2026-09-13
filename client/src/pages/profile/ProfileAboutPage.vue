@@ -14,7 +14,8 @@
           class="about-item-link"
           :href="item.href"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
+          :aria-label="t('a11y.opensNewWindow', { label: item.value })"
         >
           <span>{{ item.value }}</span>
           <el-icon aria-hidden="true"><Link /></el-icon>

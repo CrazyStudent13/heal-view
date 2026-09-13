@@ -6,6 +6,10 @@ export default {
     view: 'View', delete: 'Delete', cancel: 'Cancel', close: 'Close', unknown: 'Unknown',
     labelSeparator: ': ', listSeparator: ', '
   },
+  a11y: {
+    dataSummary: 'View chart data summary', dataTable: 'Chart data table, horizontally scrollable', date: 'Date',
+    chartScrollable: 'Chart region, horizontally scrollable on small screens', opensNewWindow: '{label} (opens in a new window)'
+  },
   errors: {
     timeout: 'The request timed out. Please try again later.',
     network: 'Unable to connect to the service. Check that it is running.',

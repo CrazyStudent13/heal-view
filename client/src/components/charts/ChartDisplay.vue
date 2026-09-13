@@ -66,6 +66,12 @@
       empty
       :empty-description="t('chart.selectDate')"
     />
+    <ChartDataSummary
+      v-if="viewMode === 'compare' && summaryData.length"
+      :data="summaryData"
+      :chart-type="chartType"
+      :title="chartAriaLabel"
+    />
   </div>
 </template>
 
@@ -75,6 +81,7 @@ import { useLocaleStore } from '@/stores/localeStore';
 import { normalizeErrorText } from '@/utils/requestState.js';
 import AsyncState from '@/components/ui/AsyncState.vue';
 import ChartPanel from '@/components/ui/ChartPanel.vue';
+import ChartDataSummary from '@/components/charts/ChartDataSummary.vue';
 
 function createLazyChart(loader) {
   return defineAsyncComponent({
@@ -158,6 +165,10 @@ const chartAriaLabel = computed(() => {
     weight: 'weight.title'
   };
   return t(labels[props.chartType] || 'chart.noData');
+});
+
+const summaryData = computed(() => {
+  return props.chartType === 'weight' ? (props.weightData?.dailyData || []) : props.chartData;
 });
 
 const hasDetailedSleepData = computed(() => {

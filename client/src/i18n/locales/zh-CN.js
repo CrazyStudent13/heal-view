@@ -13,6 +13,10 @@ export default {
     view: '查看', delete: '删除', cancel: '取消', close: '关闭', unknown: '未知',
     labelSeparator: '：', listSeparator: '，'
   },
+  a11y: {
+    dataSummary: '查看图表数据摘要', dataTable: '图表数据表格，可横向滚动', date: '日期',
+    chartScrollable: '图表区域，在小屏幕上可横向滚动', opensNewWindow: '{label}（在新窗口打开）'
+  },
   errors: {
     timeout: '请求超时，请稍后重试',
     network: '无法连接服务，请检查服务是否已启动',

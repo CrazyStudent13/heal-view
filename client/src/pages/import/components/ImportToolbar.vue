@@ -61,15 +61,15 @@ const { t } = useLocaleStore();
 }
 
 .primary-action {
-  background: #409eff;
-  border-color: #409eff;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
   box-shadow: 0 2px 6px rgba(64, 158, 255, 0.18);
 }
 
 .danger-soft {
   background: #fff5f5;
   border-color: #ffd6d6;
-  color: #f56c6c;
+  color: var(--danger-color);
 }
 
 .danger-soft.is-disabled,

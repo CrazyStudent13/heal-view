@@ -7,7 +7,7 @@
       class="profile-nav-item"
       :class="{ active: route.path === item.path }"
     >
-      <el-icon><component :is="item.icon" /></el-icon>
+      <el-icon aria-hidden="true"><component :is="item.icon" /></el-icon>
       <span>{{ t(item.label) }}</span>
     </RouterLink>
   </nav>

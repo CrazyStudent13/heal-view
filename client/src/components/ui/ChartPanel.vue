@@ -8,7 +8,7 @@
       <slot name="metrics" />
     </div>
 
-    <div class="chart-panel__body">
+    <div class="chart-panel__body" tabindex="0" :aria-label="t('a11y.chartScrollable')">
       <slot />
 
       <AsyncState
@@ -31,6 +31,9 @@
 
 <script setup>
 import AsyncState from '@/components/ui/AsyncState.vue';
+import { useLocaleStore } from '@/stores/localeStore.js';
+
+const { t } = useLocaleStore();
 
 defineProps({
   loading: {
@@ -107,5 +110,12 @@ defineEmits(['retry']);
   inset: 0;
   z-index: 1;
   background: var(--card-bg, #ffffff);
+}
+
+.chart-panel__body:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+
+@media (max-width: 640px) {
+  .chart-panel__body { overflow-x: auto; }
+  .chart-panel__body > :deep(.chart) { min-width: 600px; }
 }
 </style>
