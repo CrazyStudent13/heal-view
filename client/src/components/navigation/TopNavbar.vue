@@ -28,9 +28,9 @@
       />
     </el-tooltip>
 
-    <el-button 
-      :icon="Setting" 
-      circle 
+    <el-button
+      :icon="Setting"
+      circle
       size="large"
       class="nav-circle-button"
       :aria-label="t('settings.title')"
@@ -57,7 +57,7 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';
+import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useAuthStore } from '@/stores/authStore.js';
 
@@ -76,14 +76,10 @@ const auth = useAuthStore();
 const navItems = [
   { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },
   { path: '/plans', labelKey: 'nav.plans', icon: Calendar },
-  { path: '/reports/weekly', labelKey: 'nav.reports', icon: Document },
   { path: '/profile', labelKey: 'profile.title', icon: UserFilled }
 ];
 
 function isActive(item) {
-  if (item.path === '/reports/weekly') {
-    return route.path.startsWith('/reports');
-  }
   if (item.path === '/profile') {
     return route.path.startsWith('/profile');
   }
@@ -113,7 +109,6 @@ onMounted(() => {
     // Route guards handle auth failures; the navbar only needs best-effort visibility sync.
   });
 });
-
 </script>
 
 <style scoped lang="scss">
@@ -213,4 +208,3 @@ onMounted(() => {
   }
 }
 </style>
-

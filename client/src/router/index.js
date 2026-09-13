@@ -5,7 +5,6 @@ import { translate } from '@/i18n/index.js';
 const loadDashboardPage = () => import('@/pages/dashboard/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
 const loadPlansPage = () => import('@/pages/PlansPage.vue');
-const loadReportsPage = () => import('@/pages/ReportsPage.vue');
 const loadProfilePage = () => import('@/pages/profile/ProfilePage.vue');
 const loadProfileAccessPage = () => import('@/pages/profile/ProfileAccessPage.vue');
 const loadProfilePlaceholderPage = () => import('@/pages/profile/ProfileAboutPage.vue');
@@ -36,17 +35,6 @@ const routes = [
     name: 'plans',
     component: loadPlansPage,
     meta: { titleKey: 'plans.title' }
-  },
-  {
-    path: '/reports',
-    redirect: '/reports/weekly'
-  },
-  {
-    path: '/reports/:period(weekly|monthly)',
-    name: 'reports',
-    component: loadReportsPage,
-    props: true,
-    meta: { titleKey: 'reports.title' }
   },
   {
     path: '/profile',
@@ -90,21 +78,21 @@ let authStatusPromise = null;
 let authStatusCache = null;
 
 function authStatusChangedSinceLastCheck(auth) {
-  return !authStatusCache
-    || auth.authenticated !== authStatusCache.authenticated
-    || auth.enabled !== authStatusCache.enabled;
+  return (
+    !authStatusCache || auth.authenticated !== authStatusCache.authenticated || auth.enabled !== authStatusCache.enabled
+  );
 }
 
 async function ensureAuthStatus(auth) {
-  const cacheIsFresh = authStatusCache
-    && Date.now() - authStatusCache.checkedAt < AUTH_STATUS_TTL;
+  const cacheIsFresh = authStatusCache && Date.now() - authStatusCache.checkedAt < AUTH_STATUS_TTL;
 
   if (cacheIsFresh && !authStatusChangedSinceLastCheck(auth)) {
     return authStatusCache.response;
   }
 
   if (!authStatusPromise) {
-    authStatusPromise = auth.fetchStatus()
+    authStatusPromise = auth
+      .fetchStatus()
       .then((response) => {
         authStatusCache = {
           authenticated: auth.authenticated,
