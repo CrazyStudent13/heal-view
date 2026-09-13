@@ -76,7 +76,7 @@ export default {
     batchParseMessage: '系统已处理 {count} 个压缩包，并汇总展示解析结果。', archiveCount: '{count} 个压缩包',
     parseFailedMessage: '解析健康数据压缩包失败', healthDateRange: '健康指标：{start} ~ {end}',
     importSuccessTitle: '数据入库成功', importSuccessMessage: '数据已入库，共 {count} 条记录', importFailed: '导入失败',
-    historyLoadFailed: '加载导入记录失败', confirmDeleteSelected: '确认删除选中的 {count} 条记录？',
+    historyLoadFailed: '加载导入记录失败', confirmDelete: '确认删除这条导入记录？', confirmDeleteSelected: '确认删除选中的 {count} 条记录？',
     clearSuccess: '已清空导入数据', clearFailed: '清空失败'
   },
   auth: {

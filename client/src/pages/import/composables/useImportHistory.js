@@ -55,14 +55,31 @@ export function useImportHistory({ currentResult, resultDialogVisible, emit }) {
     } catch (error) { ElMessage.error(error.message || t('import.importFailed')); }
     finally { activeImportId.value = ''; }
   }
-  async function removeHistory(importId) { try { await deleteImportHistory(importId); await loadHistory(); } catch (error) { ElMessage.error(error.message || t('common.delete')); } }
+  async function confirmDelete(message) {
+    try {
+      await ElMessageBox.confirm(message, t('common.delete'), {
+        type: 'warning',
+        confirmButtonText: t('common.delete'),
+        cancelButtonText: t('common.cancel')
+      });
+      return true;
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') ElMessage.error(error.message || t('common.delete'));
+      return false;
+    }
+  }
+
+  async function removeHistory(importId) {
+    if (!await confirmDelete(t('import.confirmDelete'))) return;
+    try { await deleteImportHistory(importId); await loadHistory(); } catch (error) { ElMessage.error(error.message || t('common.delete')); }
+  }
   async function deleteSelected() {
     if (!selectedRows.value.length) return;
+    if (!await confirmDelete(t('import.confirmDeleteSelected', { count: selectedRows.value.length }))) return;
     try {
-      await ElMessageBox.confirm(t('import.confirmDeleteSelected', { count: selectedRows.value.length }), t('import.deleteSelected'), { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') });
       for (const row of selectedRows.value) await deleteImportHistory(row.importId || row.id);
       selectedRows.value = []; await loadHistory();
-    } catch (error) { if (error !== 'cancel' && error !== 'close') ElMessage.error(error.message || t('common.delete')); }
+    } catch (error) { ElMessage.error(error.message || t('common.delete')); }
   }
   async function clearData() {
     clearing.value = true;

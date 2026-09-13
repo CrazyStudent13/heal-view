@@ -57,7 +57,7 @@ export default {
     batchParseMessage: 'The system processed {count} archives and combined the results.', archiveCount: '{count} archives',
     parseFailedMessage: 'Failed to parse the health data archive', healthDateRange: 'Health data: {start} ~ {end}',
     importSuccessTitle: 'Import successful', importSuccessMessage: '{count} records imported', importFailed: 'Import failed',
-    historyLoadFailed: 'Failed to load import history', confirmDeleteSelected: 'Delete the selected {count} records?',
+    historyLoadFailed: 'Failed to load import history', confirmDelete: 'Delete this import record?', confirmDeleteSelected: 'Delete the selected {count} records?',
     clearSuccess: 'Imported data cleared', clearFailed: 'Failed to clear imported data'
   },
   auth: {
