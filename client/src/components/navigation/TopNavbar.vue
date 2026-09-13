@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, Document, UserFilled } from '@element-plus/icons-vue';

@@ -45,6 +45,7 @@
 </template>
 
 <script setup>
+import { computed, onMounted } from 'vue';
 import { Setting } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useThemeStore } from '@/stores/themeStore';
