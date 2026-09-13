@@ -69,7 +69,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { ElAlert, ElButton, ElDialog, ElIcon, ElMessage, ElRadioButton, ElRadioGroup, ElUpload } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
