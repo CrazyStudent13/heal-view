@@ -50,7 +50,8 @@ export default defineConfig({
         {
           text: '优化待办',
           items: [
-            { text: '前端优化方向', link: '/todos/frontend-optimization' }
+            { text: '前端优化方向', link: '/todos/frontend-optimization' },
+            { text: '后端优化方向', link: '/todos/backend-optimization' }
           ]
         }
       ],
@@ -72,7 +73,13 @@ export default defineConfig({
           ]
         },
         { text: '未来计划', link: '/roadmap' },
-        { text: '优化待办', link: '/todos/frontend-optimization' }
+        {
+          text: '优化待办',
+          items: [
+            { text: '前端优化方向', link: '/todos/frontend-optimization' },
+            { text: '后端优化方向', link: '/todos/backend-optimization' }
+          ]
+        }
       ]
     },
     socialLinks: [{ icon: 'github', link: 'https://github.com/CrazyStudent13/heal-view' }],
