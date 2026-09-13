@@ -6,7 +6,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import ChartPanel from '@/components/ui/ChartPanel.vue';

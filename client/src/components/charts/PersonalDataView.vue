@@ -129,7 +129,6 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { classifyBloodPressureRecord } from '@/domain/healthRules.js';

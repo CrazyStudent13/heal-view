@@ -9,7 +9,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import echarts from '@/lib/echarts';
 import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
