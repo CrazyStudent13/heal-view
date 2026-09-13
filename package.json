@@ -2,6 +2,7 @@
   "name": "heal-view",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "description": "运动健康数据可视化仪表板，支持小米和华为运动面板导入与分析（pnpm workspace）",
   "packageManager": "pnpm@9.15.0",
   "engines": {
@@ -19,6 +20,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "build": "pnpm build:client && pnpm docs:build",
+    "format": "prettier --write eslint.config.js .prettierrc.json package.json .github/workflows/quality.yml client/src/components/charts/ChartDataSummary.vue",
+    "format:check": "prettier --check eslint.config.js .prettierrc.json package.json .github/workflows/quality.yml client/src/components/charts/ChartDataSummary.vue",
+    "lint": "eslint client/src",
     "build:client": "pnpm --filter heal-view-client build",
     "check:i18n": "pnpm --filter heal-view-client check:i18n",
     "start:server": "pnpm --filter heal-view-server start",
@@ -30,6 +34,10 @@
     "test:smoke": "node --test tests/server/apiSmoke.test.js"
   },
   "devDependencies": {
+    "eslint": "9.0.0",
+    "eslint-plugin-vue": "10.0.0",
+    "globals": "16.0.0",
+    "prettier": "3.0.0",
     "vitepress": "^1.6.4"
   }
 }
