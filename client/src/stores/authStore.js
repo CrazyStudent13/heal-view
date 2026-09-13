@@ -26,11 +26,11 @@ export const useAuthStore = defineStore('auth', () => {
     return response;
   }
 
-  async function login(password) {
+  async function login(password, remember = true) {
     loading.value = true;
     error.value = '';
     try {
-      await loginWithPassword(password);
+      await loginWithPassword(password, remember);
       authenticated.value = true;
       return true;
     } catch (requestError) {

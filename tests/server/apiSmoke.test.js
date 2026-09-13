@@ -35,8 +35,16 @@ test('API smoke: protected dashboard flow works with configured password', { ski
   assert.ok(Array.isArray(dates));
 
   if (dates.length > 0) {
-    const summaryResponse = await request(`/api/dates/${dates[0]}/summary`, { headers: { cookie: cookieHeader } });
+  const summaryResponse = await request(`/api/dates/${dates[0]}/summary`, { headers: { cookie: cookieHeader } });
     assert.equal(summaryResponse.status, 200);
     assert.equal((await summaryResponse.json()).date, dates[0]);
   }
+
+  const sessionLoginResponse = await request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password, remember: false })
+  });
+  assert.equal(sessionLoginResponse.status, 200);
+  assert.doesNotMatch(sessionLoginResponse.headers.get('set-cookie') || '', /Max-Age=/i);
 });

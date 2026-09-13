@@ -127,14 +127,14 @@ export function getSessionToken(req) {
   return readCookies(req.headers.cookie || '')[config.auth.cookieName] || '';
 }
 
-export function sessionCookie(token) {
+export function sessionCookie(token, { persistent = true } = {}) {
   const parts = [
     `${config.auth.cookieName}=${encodeURIComponent(token)}`,
     'HttpOnly',
     'Path=/',
-    `Max-Age=${config.auth.sessionTtl}`,
     'SameSite=Lax'
   ];
+  if (persistent) parts.splice(3, 0, `Max-Age=${config.auth.sessionTtl}`);
   if (config.auth.cookieSecure) parts.push('Secure');
   return parts.join('; ');
 }

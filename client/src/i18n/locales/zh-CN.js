@@ -86,6 +86,7 @@ export default {
     passwordLabel: '访问密码',
     passwordPlaceholder: '请输入访问密码',
     passwordRequired: '请输入访问密码',
+    rememberLogin: '记住登录状态',
     enter: '进入看板',
     forgotPassword: '忘记密码？',
     resetCommand: '请在服务器控制台执行：pnpm reset-access-password',

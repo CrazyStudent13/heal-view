@@ -28,7 +28,8 @@ export function login(req, res) {
     });
   }
 
-  res.setHeader('Set-Cookie', sessionCookie(createSession()));
+  const remember = req.body?.remember !== false;
+  res.setHeader('Set-Cookie', sessionCookie(createSession(), { persistent: remember }));
   return res.json({ authenticated: true });
 }
 

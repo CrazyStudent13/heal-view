@@ -98,8 +98,8 @@ export function getAuthStatus() {
   return apiClient.get('/auth/status');
 }
 
-export function loginWithPassword(password) {
-  return apiClient.post('/auth/login', { password });
+export function loginWithPassword(password, remember = true) {
+  return apiClient.post('/auth/login', { password, remember });
 }
 
 export function logout() {

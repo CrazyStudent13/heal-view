@@ -41,6 +41,9 @@
             </template>
           </el-input>
         </el-form-item>
+        <el-checkbox v-model="rememberLogin" class="remember-login">
+          {{ t('auth.rememberLogin') }}
+        </el-checkbox>
         <el-button
           type="primary"
           native-type="submit"
@@ -97,6 +100,7 @@ const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const password = ref('');
+const rememberLogin = ref(true);
 const passwordInput = ref(null);
 const copied = ref(false);
 let copiedResetTimer = null;
@@ -118,7 +122,7 @@ async function handleLogin() {
     auth.error = t('auth.passwordRequired');
     return;
   }
-  if (await auth.login(password.value)) {
+  if (await auth.login(password.value, rememberLogin.value)) {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard';
     router.replace(redirect);
   }
@@ -224,6 +228,10 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 44px;
   font-size: 15px;
+}
+
+.remember-login {
+  margin: -4px 0 16px;
 }
 
 .forgot-password-tip {

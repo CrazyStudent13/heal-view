@@ -67,6 +67,7 @@ export default {
     passwordLabel: 'Access password',
     passwordPlaceholder: 'Enter access password',
     passwordRequired: 'Please enter the access password',
+    rememberLogin: 'Remember me',
     enter: 'Enter Dashboard',
     forgotPassword: 'Forgot your password?',
     resetCommand: 'Run this in the server console: pnpm reset-access-password',
