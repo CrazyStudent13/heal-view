@@ -52,11 +52,11 @@
 <script setup>
 import PageContainer from '@/components/common/PageContainer.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import ArchiveUploadDialog from '@/pages/import/ArchiveUploadDialog.vue';
-import ImportHistoryTable from '@/pages/import/ImportHistoryTable.vue';
-import ImportResultDialog from '@/pages/import/ImportResultDialog.vue';
-import ImportToolbar from '@/pages/import/ImportToolbar.vue';
-import { useImportWorkflow } from '@/pages/import/useImportWorkflow.js';
+import ArchiveUploadDialog from '@/pages/import/components/ArchiveUploadDialog.vue';
+import ImportHistoryTable from '@/pages/import/components/ImportHistoryTable.vue';
+import ImportResultDialog from '@/pages/import/components/ImportResultDialog.vue';
+import ImportToolbar from '@/pages/import/components/ImportToolbar.vue';
+import { useImportWorkflow } from '@/pages/import/composables/useImportWorkflow.js';
 
 const emit = defineEmits(['imported', 'view-dashboard']);
 const { t } = useLocaleStore();
