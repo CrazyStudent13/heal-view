@@ -10,6 +10,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import AsyncState from '@/components/ui/AsyncState.vue';
