@@ -35,6 +35,7 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue';
 import { useFilterStore } from '@/stores/filterStore.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import AsyncState from '@/components/ui/AsyncState.vue';
