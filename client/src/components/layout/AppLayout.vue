@@ -51,6 +51,7 @@
 </template>
 
 <script setup>
+import { computed, provide, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { RouterView, useRoute } from 'vue-router';
 import { useDateStore } from '@/stores/dateStore.js';

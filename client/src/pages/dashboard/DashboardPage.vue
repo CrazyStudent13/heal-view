@@ -30,6 +30,7 @@
 </template>
 
 <script setup>
+import { computed, inject, unref } from 'vue';
 import DashboardSidebar from '@/pages/dashboard/components/DashboardSidebar.vue';
 import DashboardChartArea from '@/pages/dashboard/components/DashboardChartArea.vue';
 import { dashboardContextKey } from '@/composables/dashboardContext.js';

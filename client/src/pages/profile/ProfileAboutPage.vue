@@ -25,6 +25,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { Link } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';

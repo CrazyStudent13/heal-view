@@ -87,6 +87,7 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import echarts from '@/lib/echarts';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';

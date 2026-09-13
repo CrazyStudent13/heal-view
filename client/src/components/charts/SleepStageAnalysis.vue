@@ -20,6 +20,7 @@
 </template>
 
 <script setup>
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import echarts from '@/lib/echarts';
 import { PieChart } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';

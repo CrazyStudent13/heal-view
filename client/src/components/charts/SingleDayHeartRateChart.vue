@@ -45,6 +45,7 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import echarts from '@/lib/echarts';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { useDateStore } from '@/stores/dateStore.js';

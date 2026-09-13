@@ -312,6 +312,7 @@
 </template>
 
 <script setup>
+import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue';
 import { ElTable, ElTableColumn, ElTag } from 'element-plus';
 import echarts from '@/lib/echarts';
 import { useDateStore } from '@/stores/dateStore.js';
