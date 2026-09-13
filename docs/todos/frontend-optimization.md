@@ -174,6 +174,6 @@
 | 项目 | 内容 |
 | --- | --- |
 | 优化目标 | 建立前端格式化和静态检查入口，并让 CI 在合并前执行基础质量门禁 |
-| 实现方式 | 增加 ESLint flat config、Prettier 配置和根目录 `format`/`format:check`/`lint` 脚本；新增 GitHub Actions workflow，串联格式、静态检查、i18n、测试和客户端构建 |
+| 实现方式 | 增加 ESLint flat config、Prettier 配置和根目录 `format`/`format:check`/`lint` 脚本；通过 Husky + lint-staged 在提交前只格式化暂存文件；新增 GitHub Actions workflow，串联格式、静态检查、i18n、测试和客户端构建 |
 | 验证方式 | `pnpm format:check`、`pnpm lint`、`pnpm check:i18n`、`pnpm test`、`pnpm build:client` |
 | 结果 | 本地质量检查全部通过；现有遗留代码的非阻断风格告警已关闭或降为不影响退出码的规则，后续新增代码可逐步收紧规则 |
