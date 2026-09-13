@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore.js';
 import { translate } from '@/i18n/index.js';
 
-const loadDashboardPage = () => import('@/pages/DashboardPage.vue');
+const loadDashboardPage = () => import('@/pages/dashboard/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
 const loadPlansPage = () => import('@/pages/PlansPage.vue');
 const loadReportsPage = () => import('@/pages/ReportsPage.vue');

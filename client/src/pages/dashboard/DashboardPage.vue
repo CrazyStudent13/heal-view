@@ -1,20 +1,18 @@
 <template>
   <section class="dashboard-page">
     <div class="dashboard-grid">
-      <aside class="sidebar-wrapper page-surface-card">
-        <DataCardsSidebar
-          :chart-data="chartData"
-          :current-chart-type="currentChartType"
-          :view-mode="viewMode"
-          :loading="initialLoading"
-          :user-profile="userProfile"
-          @chart-change="dashboard.handleChartChange"
-          @update:view-mode="setViewMode"
-        />
-      </aside>
+      <DashboardSidebar
+        :chart-data="chartData"
+        :current-chart-type="currentChartType"
+        :view-mode="viewMode"
+        :loading="initialLoading"
+        :user-profile="userProfile"
+        @chart-change="dashboard.handleChartChange"
+        @update:view-mode="setViewMode"
+      />
 
       <main class="chart-area">
-        <ChartDisplay
+        <DashboardChartArea
           :chart-data="chartData"
           :chart-type="currentChartType"
           :view-mode="viewMode"
@@ -33,8 +31,8 @@
 
 <script setup>
 import { computed, inject, unref } from 'vue';
-import DataCardsSidebar from '@/components/charts/DataCardsSidebar.vue';
-import ChartDisplay from '@/components/charts/ChartDisplay.vue';
+import DashboardSidebar from '@/pages/dashboard/components/DashboardSidebar.vue';
+import DashboardChartArea from '@/pages/dashboard/components/DashboardChartArea.vue';
 import { dashboardContextKey } from '@/composables/dashboardContext.js';
 import { normalizeErrorText } from '@/utils/requestState.js';
 
@@ -83,15 +81,6 @@ function setViewMode(value) {
   align-items: stretch;
 }
 
-.sidebar-wrapper {
-  width: 320px;
-  flex-shrink: 0;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
 .chart-area {
   flex: 1;
   height: 100%;
@@ -137,12 +126,6 @@ function setViewMode(value) {
     gap: 8px;
     padding: 8px;
     height: auto;
-  }
-
-  .sidebar-wrapper {
-    width: 100%;
-    height: auto;
-    overflow: visible;
   }
 
   .chart-area {
