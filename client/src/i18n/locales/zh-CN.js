@@ -53,7 +53,7 @@ export default {
   filter: { noOptions: '暂无可用筛选项' },
   import: {
     historyTitle: '导入历史记录', historyCount: '（{count}条）', confirmClearData: '确认清空已导入数据？',
-    clearData: '清空已导入数据', deleteSelected: '删除选中', uploadArchive: '上传压缩包',
+    clearData: '清空已导入数据', deleteSelected: '删除选中', deleteSelectedCount: '删除选中（{count}）', uploadArchive: '上传压缩包',
     createdAt: '导入时间', fileName: '文件名', platform: '来源', fileSize: '包大小',
     overview: '数据概况', status: '状态', actions: '操作', parse: '解析', noHistory: '暂无导入记录',
     xiaomi: '小米运动健康', huawei: '华为运动健康', xiaomiShort: '小米', huaweiShort: '华为',

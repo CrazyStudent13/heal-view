@@ -16,7 +16,7 @@
       :disabled="selectedCount === 0"
       @click="$emit('delete-selected')"
     >
-      {{ t('import.deleteSelected') }}
+      {{ t('import.deleteSelectedCount', { count: selectedCount }) }}
     </el-button>
 
     <el-button class="toolbar-button primary-action" type="primary" :icon="Upload" @click="$emit('upload')">

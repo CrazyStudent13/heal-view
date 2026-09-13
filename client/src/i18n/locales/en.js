@@ -34,7 +34,7 @@ export default {
   filter: { noOptions: 'No filter options available' },
   import: {
     historyTitle: 'Import history', historyCount: '({count} records)', confirmClearData: 'Clear all imported data?',
-    clearData: 'Clear imported data', deleteSelected: 'Delete selected', uploadArchive: 'Upload archive',
+    clearData: 'Clear imported data', deleteSelected: 'Delete selected', deleteSelectedCount: 'Delete selected ({count})', uploadArchive: 'Upload archive',
     createdAt: 'Imported at', fileName: 'File name', platform: 'Source', fileSize: 'Archive size',
     overview: 'Data overview', status: 'Status', actions: 'Actions', parse: 'Parse', noHistory: 'No import history',
     xiaomi: 'Xiaomi Health', huawei: 'Huawei Health', xiaomiShort: 'Xiaomi', huaweiShort: 'Huawei',
