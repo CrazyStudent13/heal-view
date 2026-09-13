@@ -1,4 +1,3 @@
-import { onMounted, onUnmounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { useLocaleStore } from '@/stores/localeStore.js';
