@@ -31,7 +31,7 @@ Heal View 面向希望长期整理个人运动健康数据的用户。文档会�
 
 <div class="tip custom-block">
   <p class="custom-block-title">文档状态</p>
-  <p>当前文档站处于初版建设阶段，内容以 <code>1.0.0</code> 版本的实际实现为准。</p>
+  <p>当前文档以 <code>1.0.0</code> 版本的实际实现为准；前端基础体验、交互可访问性和质量检查已完成阶段性收口。</p>
 </div>
 
 ## 文档导航

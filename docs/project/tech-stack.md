@@ -27,4 +27,7 @@
 
 - pnpm workspace 统一管理 `client`、`server` 和文档工具。
 - Node.js 内置测试框架覆盖前后端核心逻辑。
+- ESLint flat config 对前端源码执行静态检查。
+- Prettier 统一新增和变更文件的格式；Husky + lint-staged 在提交前只处理暂存文件。
+- GitHub Actions 在 push 和 pull request 中执行格式检查、静态检查、i18n 校验、测试和客户端构建。
 - VitePress 用于维护项目文档与版本资料。
