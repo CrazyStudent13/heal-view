@@ -58,6 +58,7 @@ import { useDateStore } from '@/stores/dateStore.js';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDataStore } from '@/stores/dataStore.js';
+import { useAuthStore } from '@/stores/authStore.js';
 import { useDashboardData } from '@/composables/useDashboardData.js';
 import { dashboardContextKey } from '@/composables/dashboardContext.js';
 import TopNavbar from '@/components/navigation/TopNavbar.vue';
@@ -87,10 +88,12 @@ const isDarkMode = computed({
 
 const dateStore = useDateStore();
 const dataStore = useDataStore();
+const authStore = useAuthStore();
 const { userProfile, error: dataError } = storeToRefs(dataStore);
 const { error: dateError } = storeToRefs(dateStore);
 const dashboardError = computed(() => dataError.value || dateError.value);
-const dashboard = useDashboardData(dateStore, dataStore);
+const dashboardActive = computed(() => Boolean(route.name) && route.name !== 'login' && authStore.authenticated);
+const dashboard = useDashboardData(dateStore, dataStore, { active: dashboardActive });
 const {
   currentChartType,
   chartData,

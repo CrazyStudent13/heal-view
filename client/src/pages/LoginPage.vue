@@ -41,9 +41,6 @@
             </template>
           </el-input>
         </el-form-item>
-        <el-checkbox v-model="rememberLogin" class="remember-login">
-          {{ t('auth.rememberLogin') }}
-        </el-checkbox>
         <el-button
           type="primary"
           native-type="submit"
@@ -53,6 +50,9 @@
         >
           {{ t('auth.enter') }}
         </el-button>
+        <el-checkbox v-model="rememberLogin" class="remember-login">
+          {{ t('auth.rememberLogin') }}
+        </el-checkbox>
       </el-form>
 
       <el-alert
@@ -123,6 +123,7 @@ async function handleLogin() {
     return;
   }
   if (await auth.login(password.value, rememberLogin.value)) {
+    auth.error = '';
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard';
     router.replace(redirect);
   }
@@ -231,7 +232,9 @@ onBeforeUnmount(() => {
 }
 
 .remember-login {
-  margin: -4px 0 16px;
+  display: flex;
+  justify-content: flex-start;
+  margin: 10px 0 0;
 }
 
 .forgot-password-tip {

@@ -15,6 +15,13 @@ test('API smoke: health endpoint is available', async () => {
 });
 
 test('API smoke: protected dashboard flow works with configured password', { skip: !password }, async () => {
+  const failedLoginResponse = await request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password: `${password}-incorrect` })
+  });
+  assert.equal(failedLoginResponse.status, 401);
+
   const loginResponse = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

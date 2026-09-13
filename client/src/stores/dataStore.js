@@ -141,6 +141,10 @@ export const useDataStore = defineStore('data', () => {
     error.value = null;
   }
 
+  function clearError() {
+    error.value = null;
+  }
+
   return {
     dailySummaries,
     timeSeriesData,
@@ -157,6 +161,7 @@ export const useDataStore = defineStore('data', () => {
     fetchSleepTimeline,
     fetchWeightData,
     fetchUserProfile,
-    clearCache
+    clearCache,
+    clearError
   };
 });

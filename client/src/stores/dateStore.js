@@ -219,6 +219,10 @@ export const useDateStore = defineStore('date', () => {
     error.value = null;
   }
 
+  function clearError() {
+    error.value = null;
+  }
+
   /**
    * Load more dates (for pagination if needed)
    */
@@ -247,6 +251,7 @@ export const useDateStore = defineStore('date', () => {
     selectAllTrainingDates,
     clearSelectedDates,
     clearCache,
+    clearError,
     loadMoreDates
   };
 });

@@ -2,7 +2,8 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useDashboardSelection } from '@/pages/dashboard/composables/useDashboardSelection.js';
 import { useDashboardRequests } from '@/pages/dashboard/composables/useDashboardRequests.js';
 
-export function useDashboardData(dateStore, dataStore) {
+export function useDashboardData(dateStore, dataStore, options = {}) {
+  const active = options.active || ref(true);
   const {
     viewMode,
     currentChartType,
@@ -17,6 +18,7 @@ export function useDashboardData(dateStore, dataStore) {
   const weightData = ref(null);
   const loading = ref(false);
   const initializing = ref(false);
+  let mounted = false;
 
   const requests = useDashboardRequests({ dateStore, dataStore, viewMode, currentChartType, chartData, sleepTimelineData, compareSleepTimelineData, weightData, loading, datesKey });
 
@@ -24,6 +26,7 @@ export function useDashboardData(dateStore, dataStore) {
   const refreshing = computed(() => loading.value && !initialLoading.value);
 
   async function handleChartChange(type) {
+    if (!active.value) return;
     if (type === 'personal' && !dataStore.userProfile) {
       await dataStore.fetchUserProfile();
     }
@@ -44,6 +47,7 @@ export function useDashboardData(dateStore, dataStore) {
   }
 
   async function initDefaultData() {
+    if (!active.value) return;
     initializing.value = true;
     loading.value = true;
 
@@ -75,7 +79,7 @@ export function useDashboardData(dateStore, dataStore) {
   }
 
   watch(() => dateStore.selectedDate, async (newDate) => {
-    if (initializing.value) return;
+    if (!active.value || initializing.value) return;
 
     if (viewMode.value === 'single') {
         await requests.fetchSingleDayData(newDate);
@@ -86,7 +90,7 @@ export function useDashboardData(dateStore, dataStore) {
   });
 
   watch(() => dateStore.selectedDates, async (newDates) => {
-    if (initializing.value) return;
+    if (!active.value || initializing.value) return;
 
     if (viewMode.value === 'compare') {
       if (!isCompareChartType(currentChartType.value)) {
@@ -107,6 +111,7 @@ export function useDashboardData(dateStore, dataStore) {
   }, { deep: true });
 
   watch(viewMode, async (newMode) => {
+    if (!active.value) return;
     requests.cancelAll();
 
     currentChartType.value = newMode === 'single' ? 'personal' : 'weight';
@@ -132,8 +137,25 @@ export function useDashboardData(dateStore, dataStore) {
     }
   });
 
+  watch(active, isActive => {
+    if (!mounted) return;
+    if (isActive) {
+      dataStore.clearError?.();
+      dateStore.clearError?.();
+      initDefaultData();
+    } else {
+      requests.cancelAll();
+      loading.value = false;
+    }
+  });
+
   onMounted(() => {
-    initDefaultData();
+    mounted = true;
+    if (active.value) {
+      dataStore.clearError?.();
+      dateStore.clearError?.();
+      initDefaultData();
+    }
   });
 
   return {
