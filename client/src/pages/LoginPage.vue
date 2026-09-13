@@ -85,7 +85,6 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CopyDocument, Lock, SuccessFilled } from '@element-plus/icons-vue';

@@ -12,7 +12,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useDateStore } from '@/stores/dateStore.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 

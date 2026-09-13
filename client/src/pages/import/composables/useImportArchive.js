@@ -1,4 +1,3 @@
-import { ref } from 'vue';
 import { parseImportArchive } from '@/api/fitnessApi.js';
 import { formatNumber } from '@/i18n/index.js';
 import { useLocaleStore } from '@/stores/localeStore.js';

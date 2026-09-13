@@ -52,7 +52,6 @@
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue';
 import { useDateStore } from '@/stores/dateStore.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { formatDate as formatLocalizedDate } from '@/i18n/index.js';

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
 import { getDates, getDailySummary } from '@/api/fitnessApi.js';
 import { createLatestRequest, normalizeRequestError } from '@/utils/requestState.js';
 import { translate } from '@/i18n/index.js';

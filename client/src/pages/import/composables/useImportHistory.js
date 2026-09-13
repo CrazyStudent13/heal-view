@@ -1,4 +1,3 @@
-import { ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { clearImportedData, commitImportArchive, deleteImportHistory, getImportHistory } from '@/api/fitnessApi.js';
 import { formatNumber } from '@/i18n/index.js';

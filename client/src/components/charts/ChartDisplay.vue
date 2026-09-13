@@ -74,7 +74,6 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { normalizeErrorText } from '@/utils/requestState.js';
