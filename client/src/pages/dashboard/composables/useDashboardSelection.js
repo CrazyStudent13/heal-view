@@ -1,3 +1,4 @@
+import { computed, ref } from 'vue';
 
 export function useDashboardSelection(dateStore) {
   const viewMode = computed({
