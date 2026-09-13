@@ -1,8 +1,8 @@
 import { createI18n } from 'vue-i18n';
 import zhCnElement from 'element-plus/es/locale/lang/zh-cn';
 import enElement from 'element-plus/es/locale/lang/en';
-import zhCN from '@/i18n/locales/zh-CN.js';
-import en from '@/i18n/locales/en.js';
+import zhCN from './locales/zh-CN.js';
+import en from './locales/en.js';
 
 export const DEFAULT_LOCALE = 'zh-CN';
 

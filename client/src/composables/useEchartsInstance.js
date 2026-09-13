@@ -1,6 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue';
-import echarts from '@/lib/echarts.js';
-import { useThemeStore } from '@/stores/themeStore.js';
+// Keep this composable directly loadable by the Node test runner as well as Vite.
+// Relative imports avoid relying on Vite's `@` alias outside the browser build.
+import echarts from '../lib/echarts.js';
+import { useThemeStore } from '../stores/themeStore.js';
 
 export function resolveEchartsThemeColors(isDark) {
   return {

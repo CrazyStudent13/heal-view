@@ -4,3 +4,4 @@ import './sportRecordParser.test.js';
 import './requestState.test.js';
 import './asyncRequest.test.js';
 import './echartsInstance.test.js';
+import './dashboardRequests.test.js';

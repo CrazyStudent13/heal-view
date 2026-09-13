@@ -115,6 +115,19 @@ pnpm test:client
 pnpm test:server
 ```
 
+API 冒烟测试默认检查本地服务健康状态；设置 `SMOKE_PASSWORD` 后会继续验证访问保护、登录、日期列表和日汇总流程：
+
+```bash
+SMOKE_PASSWORD=你的访问密码 pnpm test:smoke
+```
+
+Windows PowerShell：
+
+```powershell
+$env:SMOKE_PASSWORD = '你的访问密码'
+pnpm test:smoke
+```
+
 ## NAS 部署（单容器方案）
 
 适用于群晖/QNAP 等 NAS 上的 Docker / Container Manager：

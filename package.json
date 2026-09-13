@@ -18,13 +18,16 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
+    "build": "pnpm build:client && pnpm docs:build",
     "build:client": "pnpm --filter heal-view-client build",
+    "check:i18n": "pnpm --filter heal-view-client check:i18n",
     "start:server": "pnpm --filter heal-view-server start",
     "import": "pnpm --filter heal-view-server import",
     "reset-access-password": "pnpm --filter heal-view-server reset-access-password",
     "test": "node --test tests/index.test.js",
     "test:client": "node --test tests/client/index.test.js",
-    "test:server": "node --test tests/server/index.test.js"
+    "test:server": "node --test tests/server/index.test.js",
+    "test:smoke": "node --test tests/server/apiSmoke.test.js"
   },
   "devDependencies": {
     "vitepress": "^1.6.4"

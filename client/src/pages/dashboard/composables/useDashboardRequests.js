@@ -1,5 +1,5 @@
-import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '@/domain/healthDataFallbacks.js';
-import { createLatestRequest } from '@/utils/requestState.js';
+import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '../../../domain/healthDataFallbacks.js';
+import { createLatestRequest } from '../../../utils/requestState.js';
 
 export function useDashboardRequests({ dateStore, dataStore, viewMode, currentChartType, chartData, sleepTimelineData, compareSleepTimelineData, weightData, loading, datesKey }) {
   const singleRequest = createLatestRequest();
