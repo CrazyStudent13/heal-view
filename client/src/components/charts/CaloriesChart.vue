@@ -18,8 +18,8 @@ import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEcha
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { calculateCalorieEfficiency } from '@/domain/healthRules.js';
 import { formatDate } from '@/i18n/index.js';
-import ChartPanel from '@/components/common/ChartPanel.vue';
-import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
+import ChartPanel from '@/components/ui/ChartPanel.vue';
+import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

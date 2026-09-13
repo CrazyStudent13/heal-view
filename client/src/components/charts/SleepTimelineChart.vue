@@ -55,9 +55,9 @@ import { ElEmpty } from 'element-plus';
 import { MoonNight } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useDataStore } from '@/stores/dataStore';
-import MetricCard from '@/components/common/MetricCard.vue';
+import MetricCard from '@/components/ui/MetricCard.vue';
 import SleepStageAnalysis from '@/components/charts/SleepStageAnalysis.vue';
-import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
+import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 function t(key, params) { return localeStore.t(key, params); }

@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import AsyncState from '@/components/common/AsyncState.vue';
+import AsyncState from '@/components/ui/AsyncState.vue';
 
 defineProps({
   loading: {

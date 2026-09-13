@@ -13,8 +13,8 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import AsyncState from '@/components/common/AsyncState.vue';
-import PageContainer from '@/components/common/PageContainer.vue';
+import AsyncState from '@/components/ui/AsyncState.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
 
 const { t } = useLocaleStore();
 const route = useRoute();

@@ -5,8 +5,8 @@
 
 <script setup>
 import { useDateStore } from '@/stores/dateStore.js';
-import DatePicker from '@/components/common/DatePicker.vue';
-import DateRangePicker from '@/components/common/DateRangePicker.vue';
+import DatePicker from '@/components/ui/DatePicker.vue';
+import DateRangePicker from '@/components/ui/DateRangePicker.vue';
 
 const dateStore = useDateStore();
 </script>

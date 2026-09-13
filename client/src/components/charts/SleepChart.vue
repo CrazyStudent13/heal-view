@@ -70,9 +70,9 @@ import { QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { formatDate } from '@/i18n/index.js';
 import { assessSleepRegularity } from '@/domain/healthRules.js';
-import MetricCard from '@/components/common/MetricCard.vue';
-import ChartPanel from '@/components/common/ChartPanel.vue';
-import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
+import MetricCard from '@/components/ui/MetricCard.vue';
+import ChartPanel from '@/components/ui/ChartPanel.vue';
+import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 

@@ -49,9 +49,9 @@ import echarts from '@/lib/echarts';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { useDateStore } from '@/stores/dateStore.js';
 import { useDataStore } from '@/stores/dataStore.js';
-import MetricCard from '@/components/common/MetricCard.vue';
-import ChartPanel from '@/components/common/ChartPanel.vue';
-import DateSelectionControls from '@/components/common/DateSelectionControls.vue';
+import MetricCard from '@/components/ui/MetricCard.vue';
+import ChartPanel from '@/components/ui/ChartPanel.vue';
+import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;

@@ -70,7 +70,7 @@
 <script setup>
 import { ElButton, ElTable, ElTableColumn, ElTag } from 'element-plus';
 import { Delete, Upload, View } from '@element-plus/icons-vue';
-import AsyncState from '@/components/common/AsyncState.vue';
+import AsyncState from '@/components/ui/AsyncState.vue';
 import { formatDateTime as formatLocalizedDateTime, formatNumber } from '@/i18n/index.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 

@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import PageContainer from '@/components/common/PageContainer.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import ArchiveUploadDialog from '@/pages/import/components/ArchiveUploadDialog.vue';
 import ImportHistoryTable from '@/pages/import/components/ImportHistoryTable.vue';

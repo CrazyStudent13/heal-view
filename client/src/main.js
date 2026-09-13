@@ -37,7 +37,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import '@/styles/index.scss'
 import App from '@/App.vue'
 import { router } from '@/router'
-import SectionTitle from '@/components/common/SectionTitle.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
 import { i18n } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 

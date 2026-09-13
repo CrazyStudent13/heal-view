@@ -25,7 +25,7 @@
 import { RouterView } from 'vue-router';
 import { UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import PageContainer from '@/components/common/PageContainer.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
 import ProfileNavigation from '@/pages/profile/components/ProfileNavigation.vue';
 
 const localeStore = useLocaleStore();

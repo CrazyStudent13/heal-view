@@ -38,7 +38,7 @@
 import { onMounted } from 'vue';
 import { useFilterStore } from '@/stores/filterStore.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import AsyncState from '@/components/common/AsyncState.vue';
+import AsyncState from '@/components/ui/AsyncState.vue';
 
 const filterStore = useFilterStore();
 const { t } = useLocaleStore();

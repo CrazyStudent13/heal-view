@@ -77,8 +77,8 @@ import { computed, defineAsyncComponent } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { normalizeErrorText } from '@/utils/requestState.js';
-import AsyncState from '@/components/common/AsyncState.vue';
-import ChartPanel from '@/components/common/ChartPanel.vue';
+import AsyncState from '@/components/ui/AsyncState.vue';
+import ChartPanel from '@/components/ui/ChartPanel.vue';
 
 function createLazyChart(loader) {
   return defineAsyncComponent({

@@ -8,7 +8,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useEchartsInstance, useEchartsThemeColors } from '@/composables/useEchartsInstance.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import ChartPanel from '@/components/common/ChartPanel.vue';
+import ChartPanel from '@/components/ui/ChartPanel.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
