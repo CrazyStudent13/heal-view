@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 import { getFilterOptions } from '@/api/fitnessApi.js';
 import { useAsyncRequest } from '@/composables/useAsyncRequest.js';
 
