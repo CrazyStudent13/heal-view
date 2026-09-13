@@ -24,6 +24,7 @@
           :weight-data="weightData"
           :user-profile="userProfile"
         />
+        <DashboardLoadingOverlay :active="refreshing" />
       </main>
     </div>
   </section>
@@ -33,6 +34,7 @@
 import { computed, inject, unref } from 'vue';
 import DashboardSidebar from '@/pages/dashboard/components/DashboardSidebar.vue';
 import DashboardChartArea from '@/pages/dashboard/components/DashboardChartArea.vue';
+import DashboardLoadingOverlay from '@/components/ui/DashboardLoadingOverlay.vue';
 import { dashboardContextKey } from '@/composables/dashboardContext.js';
 import { normalizeErrorText } from '@/utils/requestState.js';
 
@@ -88,6 +90,7 @@ function setViewMode(value) {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
 }
 
 .chart-area :deep(.chart-display) {

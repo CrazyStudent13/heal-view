@@ -12,10 +12,6 @@
       :error="errorMessage"
     />
 
-    <div v-if="refreshing" class="refresh-indicator">
-      <el-icon class="is-loading" aria-hidden="true"><Loading /></el-icon>
-    </div>
-
     <!-- Single day mode: show different content based on chart type -->
     <template v-if="viewMode === 'single'">
       <!-- Default to sport records when no specific chart selected -->
@@ -75,7 +71,6 @@
 
 <script setup>
 import { computed, defineAsyncComponent } from 'vue';
-import { Loading } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { normalizeErrorText } from '@/utils/requestState.js';
 import AsyncState from '@/components/ui/AsyncState.vue';
@@ -212,23 +207,6 @@ const singleAvgHeartRate = computed(() => {
 .chart-display :deep(.personal-data-view > .content-wrapper) {
   flex: 1;
   min-height: 0;
-}
-
-.refresh-indicator {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary-color);
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .chart-empty {
