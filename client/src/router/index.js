@@ -4,7 +4,6 @@ import { translate } from '@/i18n/index.js';
 
 const loadDashboardPage = () => import('@/pages/dashboard/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
-const loadPlansPage = () => import('@/pages/PlansPage.vue');
 const loadProfilePage = () => import('@/pages/profile/ProfilePage.vue');
 const loadProfileAccessPage = () => import('@/pages/profile/ProfileAccessPage.vue');
 const loadProfilePlaceholderPage = () => import('@/pages/profile/ProfileAboutPage.vue');
@@ -29,12 +28,6 @@ const routes = [
     name: 'import',
     component: loadImportPage,
     meta: { titleKey: 'nav.import' }
-  },
-  {
-    path: '/plans',
-    name: 'plans',
-    component: loadPlansPage,
-    meta: { titleKey: 'plans.title' }
   },
   {
     path: '/profile',

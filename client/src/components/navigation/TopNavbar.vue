@@ -57,7 +57,7 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { DataLine, Setting, SwitchButton, UploadFilled, Calendar, UserFilled } from '@element-plus/icons-vue';
+import { DataLine, Setting, SwitchButton, UploadFilled, UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useAuthStore } from '@/stores/authStore.js';
 
@@ -75,7 +75,6 @@ const auth = useAuthStore();
 
 const navItems = [
   { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },
-  { path: '/plans', labelKey: 'nav.plans', icon: Calendar },
   { path: '/profile', labelKey: 'profile.title', icon: UserFilled }
 ];
 
