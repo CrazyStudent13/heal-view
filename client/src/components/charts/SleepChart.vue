@@ -1,3 +1,4 @@
+<!-- 模块：睡眠分析图，展示睡眠时长、阶段和规律性指标。 -->
 <template>
   <div class="chart-wrapper">
     <div v-if="hasSleepRegularityMetrics" class="stats-card">

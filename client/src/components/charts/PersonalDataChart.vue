@@ -1,3 +1,4 @@
+<!-- 模块：个人数据图，展示用户身体指标和个人档案数据。 -->
 <template>
   <ChartPanel :empty="!profileData" :empty-description="t('chart.noData')">
     <div ref="chartRef" class="chart"></div>

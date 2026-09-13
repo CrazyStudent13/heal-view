@@ -1,3 +1,4 @@
+<!-- 模块：卡路里趋势图，展示每日消耗与摄入相关数据。 -->
 <template>
   <ChartPanel :empty="!hasData" :empty-description="t('chart.selectDate')">
     <template #title>

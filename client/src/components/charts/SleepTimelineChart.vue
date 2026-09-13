@@ -1,3 +1,4 @@
+<!-- 模块：睡眠时间线图，展示入睡、醒来及睡眠阶段时间轴。 -->
 <template>
   <div class="sleep-timeline-view" v-if="hasTimelineSummary">
     <div class="stats-card">

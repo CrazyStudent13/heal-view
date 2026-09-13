@@ -1,3 +1,4 @@
+<!-- 模块：步数趋势图，展示步数、距离和活动目标完成情况。 -->
 <template>
   <div class="chart-wrapper">
     <ChartLoadingSkeleton v-if="loading" :stat-count="6" :stat-columns="3" />

@@ -1,3 +1,4 @@
+<!-- 模块：个人数据视图，组合个人指标、目标和相关图表。 -->
 <template>
   <div class="personal-data-view">
     <!-- Loading state -->

@@ -1,3 +1,4 @@
+<!-- 模块：数据指标侧栏，负责图表导航和关键指标卡片汇总。 -->
 <template>
   <div class="data-cards-sidebar">
     <div class="overview-header">

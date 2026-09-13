@@ -1,3 +1,4 @@
+<!-- 模块：多日对比图，提供多个日期之间的指标趋势比较。 -->
 <template>
   <ChartPanel :empty="data.length === 0" :empty-description="t('chart.selectDate')">
     <template #title>

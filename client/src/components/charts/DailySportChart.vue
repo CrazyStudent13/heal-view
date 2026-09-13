@@ -1,3 +1,4 @@
+<!-- 模块：每日运动详情，展示运动记录、分段数据和运动心率。 -->
 <template>
   <div class="daily-sport-chart">
     <SectionTitle>

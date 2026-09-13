@@ -1,3 +1,4 @@
+<!-- 模块：心率趋势图，展示多日心率统计与变化趋势。 -->
 <template>
   <div class="chart-wrapper">
     <div v-if="hasData" class="stats-card">

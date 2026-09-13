@@ -1,3 +1,4 @@
+<!-- 模块：综合时间序列图，展示运动和心率等日活动趋势。 -->
 <template>
   <ChartPanel :empty="stepsData.length === 0 && heartRateData.length === 0" :empty-description="t('chart.noData')">
     <template #title>

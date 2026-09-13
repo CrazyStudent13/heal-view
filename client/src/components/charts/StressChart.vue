@@ -1,3 +1,4 @@
+<!-- 模块：压力趋势图，展示压力水平及其时间变化。 -->
 <template>
   <ChartPanel :empty="data.length === 0" :empty-description="t('chart.noData')">
     <template #title>

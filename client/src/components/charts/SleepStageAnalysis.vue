@@ -1,3 +1,4 @@
+<!-- 模块：睡眠阶段分析，负责睡眠阶段分布和阶段质量解读。 -->
 <template>
   <section class="analysis-card">
     <SectionTitle>

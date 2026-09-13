@@ -1,3 +1,4 @@
+<!-- 模块：单日心率图，展示单日心率区间、均值和静息心率。 -->
 <template>
   <div class="chart-wrapper">
     <div v-if="hasData" class="stats-card">

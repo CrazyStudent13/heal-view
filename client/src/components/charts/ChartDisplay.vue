@@ -1,3 +1,4 @@
+<!-- 模块：图表展示容器，根据当前图表类型和视图模式切换具体图表。 -->
 <template>
   <div
     class="chart-display"
