@@ -6,9 +6,9 @@ const loadDashboardPage = () => import('@/pages/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
 const loadPlansPage = () => import('@/pages/PlansPage.vue');
 const loadReportsPage = () => import('@/pages/ReportsPage.vue');
-const loadProfilePage = () => import('@/pages/ProfilePage.vue');
-const loadProfileAccessPage = () => import('@/pages/ProfileAccessPage.vue');
-const loadProfilePlaceholderPage = () => import('@/pages/ProfilePlaceholderPage.vue');
+const loadProfilePage = () => import('@/pages/profile/ProfilePage.vue');
+const loadProfileAccessPage = () => import('@/pages/profile/ProfileAccessPage.vue');
+const loadProfilePlaceholderPage = () => import('@/pages/profile/ProfileAboutPage.vue');
 const loadLoginPage = () => import('@/pages/LoginPage.vue');
 
 const routes = [

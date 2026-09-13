@@ -11,18 +11,7 @@
           </div>
         </div>
 
-        <nav class="profile-nav" :aria-label="t('profile.title')">
-          <RouterLink
-            v-for="item in menuItems"
-            :key="item.path"
-            :to="item.path"
-            class="profile-nav-item"
-            :class="{ active: route.path === item.path }"
-          >
-            <el-icon><component :is="item.icon" /></el-icon>
-            <span>{{ t(item.label) }}</span>
-          </RouterLink>
-        </nav>
+        <ProfileNavigation />
       </aside>
 
       <main class="profile-content page-surface-card">
@@ -33,19 +22,14 @@
 </template>
 
 <script setup>
-import { RouterLink, RouterView, useRoute } from 'vue-router';
-import { InfoFilled, Lock, UserFilled } from '@element-plus/icons-vue';
+import { RouterView } from 'vue-router';
+import { UserFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import PageContainer from '@/components/common/PageContainer.vue';
+import ProfileNavigation from '@/pages/profile/components/ProfileNavigation.vue';
 
 const localeStore = useLocaleStore();
 const { t } = localeStore;
-const route = useRoute();
-
-const menuItems = [
-  { path: '/profile/access', label: 'profile.access', icon: Lock },
-  { path: '/profile/about', label: 'profile.about', icon: InfoFilled }
-];
 </script>
 
 <style lang="scss">
