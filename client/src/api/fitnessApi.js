@@ -4,14 +4,14 @@ import apiClient from '@/api/client.js';
  * Get list of dates
  */
 export function getDates(config = {}) {
-  return apiClient.get('/dates', config);
+  return apiClient.get('/dates', { timeout: 60000, ...config });
 }
 
 /**
  * Get daily summary
  */
 export function getDailySummary(date, config = {}) {
-  return apiClient.get(`/dates/${date}/summary`, config);
+  return apiClient.get(`/dates/${date}/summary`, { timeout: 60000, ...config });
 }
 
 /**
