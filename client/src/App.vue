@@ -1,5 +1,4 @@
 <script setup>
-import { computed, onMounted, watch } from 'vue'
 import { ElConfigProvider } from 'element-plus'
 import { RouterView, useRoute } from 'vue-router'
 import { useLocaleStore } from '@/stores/localeStore'
