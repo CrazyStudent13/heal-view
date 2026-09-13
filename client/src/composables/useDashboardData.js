@@ -1,7 +1,6 @@
 import { ref, computed, watch, onMounted } from 'vue';
-import { normalizeDailySummary, normalizeSleepTimeline, normalizeWeightData } from '@/domain/healthDataFallbacks.js';
-import { createLatestRequest } from '@/utils/requestState.js';
 import { useDashboardSelection } from '@/pages/dashboard/composables/useDashboardSelection.js';
+import { useDashboardRequests } from '@/pages/dashboard/composables/useDashboardRequests.js';
 
 export function useDashboardData(dateStore, dataStore) {
   const {
@@ -19,52 +18,10 @@ export function useDashboardData(dateStore, dataStore) {
   const loading = ref(false);
   const initializing = ref(false);
 
-  const singleRequest = createLatestRequest();
-  const compareRequest = createLatestRequest();
-  const sleepRequest = createLatestRequest();
-  const compareSleepRequest = createLatestRequest();
-  const weightRequest = createLatestRequest();
-  const weightSidebarRequest = createLatestRequest();
+  const requests = useDashboardRequests({ dateStore, dataStore, viewMode, currentChartType, chartData, sleepTimelineData, compareSleepTimelineData, weightData, loading, datesKey });
 
   const initialLoading = computed(() => loading.value && chartData.value.length === 0 && !weightData.value);
   const refreshing = computed(() => loading.value && !initialLoading.value);
-
-  async function fetchSleepTimelineForDate(date) {
-    const request = sleepRequest.next();
-    if (!date) {
-      sleepTimelineData.value = null;
-      return;
-    }
-
-    const timeline = await dataStore.fetchSleepTimeline(date, { signal: request.signal });
-    if (request.isCurrent() && dateStore.selectedDate === date && currentChartType.value === 'sleep') {
-      sleepTimelineData.value = normalizeSleepTimeline(timeline, date);
-    }
-  }
-
-  async function fetchCompareSleepTimelines(dates) {
-    const request = compareSleepRequest.next();
-
-    if (dates.length === 0) {
-      compareSleepTimelineData.value = [];
-      return;
-    }
-
-    const data = [];
-    for (const date of dates) {
-      if (!request.isCurrent()) return;
-      const timeline = await dataStore.fetchSleepTimeline(date, { signal: request.signal });
-      if (timeline) {
-        data.push(normalizeSleepTimeline(timeline, date));
-      }
-    }
-
-    if (!request.isCurrent() || viewMode.value !== 'compare' || currentChartType.value !== 'sleep') {
-      return;
-    }
-
-    compareSleepTimelineData.value = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }
 
   async function handleChartChange(type) {
     if (type === 'personal' && !dataStore.userProfile) {
@@ -74,150 +31,15 @@ export function useDashboardData(dateStore, dataStore) {
     currentChartType.value = type;
 
     if (type === 'sleep' && viewMode.value === 'single' && dateStore.selectedDate) {
-      await fetchSleepTimelineForDate(dateStore.selectedDate);
+      await requests.fetchSleepTimelineForDate(dateStore.selectedDate);
     } else if (type === 'sleep' && viewMode.value === 'compare') {
-      await fetchCompareSleepTimelines(dateStore.selectedDates);
+      await requests.fetchCompareSleepTimelines(dateStore.selectedDates);
     } else if (type !== 'sleep') {
-      sleepRequest.cancel();
-      compareSleepRequest.cancel();
+      requests.cancelAll();
     }
 
     if (type === 'weight' && viewMode.value === 'compare') {
-      await fetchWeightData();
-    }
-  }
-
-  async function fetchSingleDayData(date) {
-    const request = singleRequest.next();
-
-    if (!date) {
-      chartData.value = [];
-      loading.value = false;
-      return;
-    }
-
-    loading.value = true;
-    const summary = await dataStore.fetchDailySummary(date, { signal: request.signal });
-    if (!request.isCurrent() || viewMode.value !== 'single' || dateStore.selectedDate !== date) {
-      return;
-    }
-
-    const normalized = normalizeDailySummary(summary || {}, date);
-    chartData.value = summary ? [normalized] : [];
-
-    if (request.isCurrent()) {
-      loading.value = false;
-    }
-  }
-
-  async function fetchCompareData(dates, options = {}) {
-    const { includeWeightForSidebar = true } = options;
-    const request = compareRequest.next();
-
-    if (dates.length === 0) {
-      chartData.value = [];
-      loading.value = false;
-      return;
-    }
-
-    loading.value = true;
-    const data = [];
-    for (const date of dates) {
-      if (!request.isCurrent()) return;
-      const summary = await dataStore.fetchDailySummary(date, { signal: request.signal });
-      if (summary) {
-        data.push(normalizeDailySummary(summary, date));
-      }
-    }
-    if (!request.isCurrent() || viewMode.value !== 'compare') {
-      return;
-    }
-
-    chartData.value = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-    loading.value = false;
-
-    if (includeWeightForSidebar) {
-      fetchWeightDataForSidebar(dates);
-    }
-  }
-
-  async function fetchWeightDataForSidebar(dates) {
-    const request = weightSidebarRequest.next();
-    if (dates.length === 0) return;
-    const requestedKey = datesKey(dates);
-
-    try {
-      const sorted = [...dates].sort();
-      const startDate = sorted[0];
-      const endDate = sorted[sorted.length - 1];
-
-      const data = normalizeWeightData(await dataStore.fetchWeightData({ startDate, endDate }, { signal: request.signal }));
-      if (!request.isCurrent() || viewMode.value !== 'compare' || requestedKey !== datesKey(dateStore.selectedDates)) {
-        return;
-      }
-
-      if (data?.dailyData) {
-        const weightChartData = data.dailyData.map(item => ({
-          date: item.date,
-          avgWeight: item.avgWeight
-        }));
-        if (weightChartData.length > 0) {
-          const mergedData = chartData.value.map(item => {
-            const weightItem = weightChartData.find(w => w.date === item.date);
-            return weightItem ? { ...item, avgWeight: weightItem.avgWeight } : item;
-          });
-          chartData.value = mergedData;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch weight data for sidebar:', error);
-    }
-  }
-
-  async function fetchWeightData(dates = dateStore.selectedDates) {
-    const request = weightRequest.next();
-    weightSidebarRequest.cancel();
-    if (dates.length === 0) {
-      weightData.value = null;
-      loading.value = false;
-      return;
-    }
-
-    try {
-      const sorted = [...dates].sort();
-      const startDate = sorted[0];
-      const endDate = sorted[sorted.length - 1];
-
-      loading.value = true;
-      const data = normalizeWeightData(await dataStore.fetchWeightData({ startDate, endDate }, { signal: request.signal }));
-      if (!request.isCurrent() || viewMode.value !== 'compare') {
-        return;
-      }
-
-      weightData.value = data;
-
-      if (data?.dailyData) {
-        const weightChartData = data.dailyData.map(item => ({
-          date: item.date,
-          avgWeight: item.avgWeight
-        }));
-        if (weightChartData.length > 0) {
-          const mergedData = chartData.value.map(item => {
-            const weightItem = weightChartData.find(w => w.date === item.date);
-            return weightItem ? { ...item, avgWeight: weightItem.avgWeight } : item;
-          });
-          chartData.value = mergedData;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch weight data:', error);
-      if (request.isCurrent()) {
-        weightData.value = null;
-      }
-    } finally {
-      if (request.isCurrent()) {
-        loading.value = false;
-      }
+      await requests.fetchWeightData();
     }
   }
 
@@ -235,7 +57,7 @@ export function useDashboardData(dateStore, dataStore) {
       const defaultDate = getDefaultSingleDate();
       if (defaultDate) {
         dateStore.selectDate(defaultDate);
-        await fetchSingleDayData(defaultDate);
+        await requests.fetchSingleDayData(defaultDate);
         await dataStore.fetchUserProfile();
       } else {
         console.warn('No dates available');
@@ -256,9 +78,9 @@ export function useDashboardData(dateStore, dataStore) {
     if (initializing.value) return;
 
     if (viewMode.value === 'single') {
-      await fetchSingleDayData(newDate);
+        await requests.fetchSingleDayData(newDate);
       if (currentChartType.value === 'sleep' && newDate) {
-        await fetchSleepTimelineForDate(newDate);
+        await requests.fetchSleepTimelineForDate(newDate);
       }
     }
   });
@@ -272,25 +94,20 @@ export function useDashboardData(dateStore, dataStore) {
       }
 
       if (currentChartType.value === 'weight') {
-        await fetchCompareData(newDates, { includeWeightForSidebar: false });
-        await fetchWeightData(newDates);
+        await requests.fetchCompareData(newDates, { includeWeightForSidebar: false });
+        await requests.fetchWeightData(newDates);
         compareSleepTimelineData.value = [];
       } else if (currentChartType.value === 'sleep') {
-        await fetchCompareData(newDates);
-        await fetchCompareSleepTimelines(newDates);
+        await requests.fetchCompareData(newDates);
+        await requests.fetchCompareSleepTimelines(newDates);
       } else {
-        await fetchCompareData(newDates);
+        await requests.fetchCompareData(newDates);
       }
     }
   }, { deep: true });
 
   watch(viewMode, async (newMode) => {
-    singleRequest.cancel();
-    compareRequest.cancel();
-    sleepRequest.cancel();
-    compareSleepRequest.cancel();
-    weightRequest.cancel();
-    weightSidebarRequest.cancel();
+    requests.cancelAll();
 
     currentChartType.value = newMode === 'single' ? 'personal' : 'weight';
     sleepTimelineData.value = null;
@@ -306,12 +123,12 @@ export function useDashboardData(dateStore, dataStore) {
       }
 
       if (dateStore.selectedDate) {
-        await fetchSingleDayData(dateStore.selectedDate);
+        await requests.fetchSingleDayData(dateStore.selectedDate);
       }
     } else {
       const selectedDates = initializeCompareSelection();
-      await fetchCompareData(selectedDates);
-      await fetchWeightData();
+      await requests.fetchCompareData(selectedDates);
+      await requests.fetchWeightData();
     }
   });
 
