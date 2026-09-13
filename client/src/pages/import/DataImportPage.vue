@@ -33,11 +33,7 @@
       @retry="loadHistory"
     />
 
-    <ArchiveUploadDialog
-      v-model="uploadDialogVisible"
-      :parsing="parsing"
-      @parse="parseArchives"
-    />
+    <ArchiveUploadDialog v-model="uploadDialogVisible" :parsing="parsing" @parse="parseArchives" />
 
     <ImportResultDialog
       v-model="resultDialogVisible"

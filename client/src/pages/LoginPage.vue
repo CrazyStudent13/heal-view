@@ -7,11 +7,7 @@
         size="small"
         :aria-label="t('settings.language')"
       >
-        <el-radio-button
-          v-for="locale in localeStore.availableLocales"
-          :key="locale.code"
-          :value="locale.code"
-        >
+        <el-radio-button v-for="locale in localeStore.availableLocales" :key="locale.code" :value="locale.code">
           {{ locale.code === 'zh-CN' ? 'ZH' : 'EN' }}
         </el-radio-button>
       </el-radio-group>
@@ -20,10 +16,7 @@
         <p class="brand-name">Heal View</p>
       </div>
 
-      <el-form
-        class="login-form"
-        @submit.prevent="handleLogin"
-      >
+      <el-form class="login-form" @submit.prevent="handleLogin">
         <el-form-item :error="auth.error">
           <el-input
             ref="passwordInput"
@@ -55,13 +48,7 @@
         </el-checkbox>
       </el-form>
 
-      <el-alert
-        class="forgot-password-tip"
-        type="info"
-        :closable="false"
-        show-icon
-        :title="t('auth.forgotPassword')"
-      >
+      <el-alert class="forgot-password-tip" type="info" :closable="false" show-icon :title="t('auth.forgotPassword')">
         <template #default>
           <div class="forgot-password-tip__content">
             <p>{{ t('auth.resetCommandHint') }}</p>
