@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
 import { config } from '../config/index.js';
+import { migrateDatabase } from './databaseMigrations.js';
 
 /**
  * Database service backed by node:sqlite (Node built-in SQLite, no native deps).
@@ -40,81 +41,15 @@ class DatabaseService {
       console.log('Creating new database');
     }
 
-    this.createTables();
+    const migration = migrateDatabase(this.db);
     this.api = this.createCompatApi();
+    if (migration.applied.length > 0) {
+      console.log(
+        'Database migrations applied:',
+        migration.applied.map(({ version, name }) => `${version} (${name})`).join(', ')
+      );
+    }
     console.log('Database initialized:', config.dbPath);
-  }
-
-  /**
-   * Create tables if not exist
-   */
-  createTables() {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS fitness_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        sid TEXT,
-        key TEXT,
-        time INTEGER,
-        date TEXT,
-        value TEXT,
-        update_time INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS sport_records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        sid TEXT,
-        category TEXT,
-        key TEXT,
-        time INTEGER,
-        date TEXT,
-        value TEXT,
-        parsed_value TEXT,
-        update_time INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS aggregated_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        sid TEXT,
-        tag TEXT,
-        key TEXT,
-        time INTEGER,
-        date TEXT,
-        value TEXT,
-        update_time INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS blood_pressure_records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        sid TEXT,
-        external_id TEXT,
-        time INTEGER,
-        date TEXT,
-        value TEXT,
-        parsed_value TEXT,
-        update_time INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS access_settings (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        enabled INTEGER NOT NULL DEFAULT 0,
-        password_hash TEXT,
-        updated_at INTEGER NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_fitness_date ON fitness_data(date);
-      CREATE INDEX IF NOT EXISTS idx_fitness_key ON fitness_data(key);
-      CREATE INDEX IF NOT EXISTS idx_sport_date ON sport_records(date);
-      CREATE INDEX IF NOT EXISTS idx_sport_category ON sport_records(category);
-      CREATE INDEX IF NOT EXISTS idx_aggregated_date ON aggregated_data(date);
-      CREATE INDEX IF NOT EXISTS idx_aggregated_key ON aggregated_data(key);
-      CREATE INDEX IF NOT EXISTS idx_blood_pressure_date ON blood_pressure_records(date);
-      CREATE INDEX IF NOT EXISTS idx_blood_pressure_time ON blood_pressure_records(time);
-    `);
-    console.log('Database tables created');
   }
 
   /**

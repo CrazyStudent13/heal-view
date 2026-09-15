@@ -1,0 +1,165 @@
+// 数据库迁移一经发布只能追加，不能修改旧版本，确保所有部署实例沿相同路径升级。
+const migrations = [
+  {
+    version: 1,
+    name: 'initial schema',
+    // 执行版本 1 的结构升级。
+    up(db) {
+      // 版本 1 是当前稳定结构的基线，同时兼容空库和已有但尚未记录版本的旧数据库。
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS fitness_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT,
+          sid TEXT,
+          key TEXT,
+          time INTEGER,
+          date TEXT,
+          value TEXT,
+          update_time INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS sport_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT,
+          sid TEXT,
+          category TEXT,
+          key TEXT,
+          time INTEGER,
+          date TEXT,
+          value TEXT,
+          parsed_value TEXT,
+          update_time INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS aggregated_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT,
+          sid TEXT,
+          tag TEXT,
+          key TEXT,
+          time INTEGER,
+          date TEXT,
+          value TEXT,
+          update_time INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS blood_pressure_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT,
+          sid TEXT,
+          external_id TEXT,
+          time INTEGER,
+          date TEXT,
+          value TEXT,
+          parsed_value TEXT,
+          update_time INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS access_settings (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          enabled INTEGER NOT NULL DEFAULT 0,
+          password_hash TEXT,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_fitness_date ON fitness_data(date);
+        CREATE INDEX IF NOT EXISTS idx_fitness_key ON fitness_data(key);
+        CREATE INDEX IF NOT EXISTS idx_sport_date ON sport_records(date);
+        CREATE INDEX IF NOT EXISTS idx_sport_category ON sport_records(category);
+        CREATE INDEX IF NOT EXISTS idx_aggregated_date ON aggregated_data(date);
+        CREATE INDEX IF NOT EXISTS idx_aggregated_key ON aggregated_data(key);
+        CREATE INDEX IF NOT EXISTS idx_blood_pressure_date ON blood_pressure_records(date);
+        CREATE INDEX IF NOT EXISTS idx_blood_pressure_time ON blood_pressure_records(time);
+      `);
+    },
+    // 校验版本 1 所需的表和字段。
+    validate(db) {
+      validateRequiredColumns(db, versionOneRequiredColumns);
+    }
+  }
+];
+
+export const LATEST_DATABASE_VERSION = migrations.at(-1)?.version ?? 0;
+
+// 每个版本明确记录必需字段，防止残缺旧库被错误标记为已完成迁移。
+const versionOneRequiredColumns = {
+  fitness_data: ['id', 'uid', 'sid', 'key', 'time', 'date', 'value', 'update_time'],
+  sport_records: ['id', 'uid', 'sid', 'category', 'key', 'time', 'date', 'value', 'parsed_value', 'update_time'],
+  aggregated_data: ['id', 'uid', 'sid', 'tag', 'key', 'time', 'date', 'value', 'update_time'],
+  blood_pressure_records: ['id', 'uid', 'sid', 'external_id', 'time', 'date', 'value', 'parsed_value', 'update_time'],
+  access_settings: ['id', 'enabled', 'password_hash', 'updated_at']
+};
+
+/**
+ * 校验数据库表是否包含当前版本要求的全部字段。
+ * @param {import('node:sqlite').DatabaseSync} db SQLite 数据库连接
+ * @param {Record<string, string[]>} requiredColumns 表名与必需字段的对应关系
+ */
+function validateRequiredColumns(db, requiredColumns) {
+  for (const [table, columns] of Object.entries(requiredColumns)) {
+    const actualColumns = new Set(
+      db
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => row.name)
+    );
+    const missingColumns = columns.filter((column) => !actualColumns.has(column));
+    if (missingColumns.length > 0) {
+      throw new Error(`Table ${table} is missing columns: ${missingColumns.join(', ')}`);
+    }
+  }
+}
+
+/**
+ * 获取当前数据库的结构版本号。
+ * @param {import('node:sqlite').DatabaseSync} db SQLite 数据库连接
+ * @returns {number} 当前结构版本号
+ */
+export function getDatabaseVersion(db) {
+  // SQLite 的 user_version 是应用可自行维护的整数，适合记录结构版本。
+  return Number(db.prepare('PRAGMA user_version').get().user_version);
+}
+
+/**
+ * 按版本顺序执行尚未应用的数据库结构迁移。
+ * @param {import('node:sqlite').DatabaseSync} db SQLite 数据库连接
+ * @returns {{ initialVersion: number, currentVersion: number, applied: Array<{ version: number, name: string }> }} 迁移结果
+ */
+export function migrateDatabase(db) {
+  const initialVersion = getDatabaseVersion(db);
+
+  if (initialVersion > LATEST_DATABASE_VERSION) {
+    throw new Error(`Database version ${initialVersion} is newer than supported version ${LATEST_DATABASE_VERSION}`);
+  }
+
+  const applied = [];
+  for (const migration of migrations) {
+    if (migration.version <= initialVersion) continue;
+
+    // 每次迁移独立使用事务；建表、校验或写版本号任一步失败都会整体回滚。
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      migration.up(db);
+      migration.validate?.(db);
+      db.exec(`PRAGMA user_version = ${migration.version}`);
+      db.exec('COMMIT');
+      applied.push({ version: migration.version, name: migration.name });
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw new Error(`Database migration ${migration.version} (${migration.name}) failed: ${error.message}`, {
+        cause: error
+      });
+    }
+  }
+
+  // 即使没有新迁移，也检查当前版本对应的结构，尽早发现数据库损坏或手工误改。
+  for (const migration of migrations) {
+    if (migration.version <= getDatabaseVersion(db)) migration.validate?.(db);
+  }
+
+  return {
+    initialVersion,
+    currentVersion: getDatabaseVersion(db),
+    applied
+  };
+}

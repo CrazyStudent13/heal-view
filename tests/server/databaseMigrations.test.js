@@ -1,0 +1,124 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import {
+  getDatabaseVersion,
+  LATEST_DATABASE_VERSION,
+  migrateDatabase
+} from '../../server/src/services/databaseMigrations.js';
+
+const expectedTables = [
+  'access_settings',
+  'aggregated_data',
+  'blood_pressure_records',
+  'fitness_data',
+  'sport_records'
+];
+
+function withTemporaryDatabase(run) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-db-'));
+  const db = new DatabaseSync(path.join(directory, 'health_data.db'));
+  try {
+    run(db);
+  } finally {
+    db.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test('initializes an empty database at the latest schema version', () => {
+  withTemporaryDatabase((db) => {
+    const result = migrateDatabase(db);
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+      .all()
+      .map((row) => row.name);
+
+    assert.equal(result.initialVersion, 0);
+    assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
+    assert.deepEqual(
+      result.applied.map((item) => item.version),
+      [1]
+    );
+    assert.deepEqual(tables, expectedTables);
+  });
+});
+
+test('upgrades an unversioned existing database without changing its data', () => {
+  withTemporaryDatabase((db) => {
+    db.exec(`
+      CREATE TABLE fitness_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uid TEXT,
+        sid TEXT,
+        key TEXT,
+        time INTEGER,
+        date TEXT,
+        value TEXT,
+        update_time INTEGER
+      );
+      CREATE INDEX custom_fitness_index ON fitness_data(uid);
+      INSERT INTO fitness_data (uid, sid, key, time, date, value, update_time)
+      VALUES ('existing-user', 'existing-source', 'steps', 1, '2026-01-01', '1000', 1);
+    `);
+
+    migrateDatabase(db);
+
+    assert.equal(getDatabaseVersion(db), LATEST_DATABASE_VERSION);
+    assert.deepEqual(
+      { ...db.prepare('SELECT uid, value FROM fitness_data').get() },
+      {
+        uid: 'existing-user',
+        value: '1000'
+      }
+    );
+    assert.ok(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'access_settings'").get());
+    assert.ok(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'custom_fitness_index'").get());
+  });
+});
+
+test('does not reapply migrations after the schema is current', () => {
+  withTemporaryDatabase((db) => {
+    migrateDatabase(db);
+    db.exec(`
+      INSERT INTO fitness_data (uid, sid, key, time, date, value, update_time)
+      VALUES ('user', 'source', 'steps', 1, '2026-01-01', '1000', 1);
+    `);
+
+    const result = migrateDatabase(db);
+
+    assert.deepEqual(result.applied, []);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM fitness_data').get().count, 1);
+  });
+});
+
+test('rejects databases created by a newer application version', () => {
+  withTemporaryDatabase((db) => {
+    db.exec(`PRAGMA user_version = ${LATEST_DATABASE_VERSION + 1}`);
+
+    assert.throws(() => migrateDatabase(db), /is newer than supported version/);
+  });
+});
+
+test('does not mark an incompatible existing schema as migrated', () => {
+  withTemporaryDatabase((db) => {
+    db.exec('CREATE TABLE fitness_data (id INTEGER PRIMARY KEY)');
+
+    assert.throws(() => migrateDatabase(db), /Database migration 1 \(initial schema\) failed/);
+    assert.equal(getDatabaseVersion(db), 0);
+    assert.deepEqual(
+      db
+        .prepare('PRAGMA table_info(fitness_data)')
+        .all()
+        .map((row) => row.name),
+      ['id']
+    );
+    assert.equal(
+      db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'access_settings'").get(),
+      undefined
+    );
+  });
+});
