@@ -57,7 +57,7 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { DataLine, Setting, SwitchButton, UploadFilled, UserFilled } from '@element-plus/icons-vue';
+import { DataLine, Setting, SwitchButton, UploadFilled, UserFilled, List } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useAuthStore } from '@/stores/authStore.js';
 
@@ -75,12 +75,13 @@ const auth = useAuthStore();
 
 const navItems = [
   { path: '/dashboard', labelKey: 'nav.dashboard', icon: DataLine },
+  { path: '/plans', labelKey: 'nav.plans', icon: List },
   { path: '/profile', labelKey: 'profile.title', icon: UserFilled }
 ];
 
 function isActive(item) {
-  if (item.path === '/profile') {
-    return route.path.startsWith('/profile');
+  if (item.path === '/profile' || item.path === '/plans') {
+    return route.path.startsWith(item.path);
   }
   return route.path === item.path;
 }

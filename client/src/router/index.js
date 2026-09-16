@@ -8,6 +8,9 @@ const loadProfilePage = () => import('@/pages/profile/ProfilePage.vue');
 const loadProfileAccessPage = () => import('@/pages/profile/ProfileAccessPage.vue');
 const loadProfilePlaceholderPage = () => import('@/pages/profile/ProfileAboutPage.vue');
 const loadLoginPage = () => import('@/pages/LoginPage.vue');
+const loadPlanLayoutPage = () => import('@/pages/plans/PlanLayoutPage.vue');
+const loadPlanOverviewPage = () => import('@/pages/plans/PlanOverviewPage.vue');
+const loadPlanExercisesPage = () => import('@/pages/PlansPage.vue');
 
 const routes = [
   {
@@ -28,6 +31,27 @@ const routes = [
     name: 'import',
     component: loadImportPage,
     meta: { titleKey: 'nav.import' }
+  },
+  {
+    path: '/plans',
+    name: 'plans',
+    component: loadPlanLayoutPage,
+    redirect: '/plans/overview',
+    meta: { titleKey: 'nav.plans' },
+    children: [
+      {
+        path: 'overview',
+        name: 'plans-overview',
+        component: loadPlanOverviewPage,
+        meta: { titleKey: 'plans.overview' }
+      },
+      {
+        path: 'exercises',
+        name: 'plans-exercises',
+        component: loadPlanExercisesPage,
+        meta: { titleKey: 'plans.exercise.title' }
+      }
+    ]
   },
   {
     path: '/profile',

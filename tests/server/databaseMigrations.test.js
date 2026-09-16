@@ -15,7 +15,8 @@ const expectedTables = [
   'aggregated_data',
   'blood_pressure_records',
   'fitness_data',
-  'sport_records'
+  'sport_records',
+  'training_exercises'
 ];
 
 function withTemporaryDatabase(run) {
@@ -41,7 +42,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1]
+      [1, 2, 3]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -92,6 +93,51 @@ test('does not reapply migrations after the schema is current', () => {
 
     assert.deepEqual(result.applied, []);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM fitness_data').get().count, 1);
+  });
+});
+
+test('adds equipment fields to existing version 2 exercise data', () => {
+  withTemporaryDatabase((db) => {
+    db.exec(`
+      CREATE TABLE fitness_data (id INTEGER, uid TEXT, sid TEXT, key TEXT, time INTEGER, date TEXT, value TEXT, update_time INTEGER);
+      CREATE TABLE sport_records (id INTEGER, uid TEXT, sid TEXT, category TEXT, key TEXT, time INTEGER, date TEXT, value TEXT, parsed_value TEXT, update_time INTEGER);
+      CREATE TABLE aggregated_data (id INTEGER, uid TEXT, sid TEXT, tag TEXT, key TEXT, time INTEGER, date TEXT, value TEXT, update_time INTEGER);
+      CREATE TABLE blood_pressure_records (id INTEGER, uid TEXT, sid TEXT, external_id TEXT, time INTEGER, date TEXT, value TEXT, parsed_value TEXT, update_time INTEGER);
+      CREATE TABLE access_settings (id INTEGER, enabled INTEGER, password_hash TEXT, updated_at INTEGER);
+      CREATE TABLE training_exercises (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL DEFAULT 'mdi:fitness-center',
+        category TEXT NOT NULL DEFAULT 'other',
+        scene TEXT NOT NULL DEFAULT 'indoor',
+        verification_mode TEXT NOT NULL DEFAULT 'manual',
+        metrics TEXT NOT NULL DEFAULT '[]',
+        purpose TEXT NOT NULL DEFAULT '',
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+      VALUES ('Running', 'mdi:run', 'aerobic', 'outdoor', 'auto', '["duration"]', 'Cardio', 1, 1, 1);
+      PRAGMA user_version = 2;
+    `);
+
+    const result = migrateDatabase(db);
+    const row = db.prepare('SELECT name, equipment_mode, equipment FROM training_exercises').get();
+
+    assert.deepEqual(
+      result.applied.map((item) => item.version),
+      [3]
+    );
+    assert.deepEqual(
+      { ...row },
+      {
+        name: 'Running',
+        equipment_mode: 'bodyweight',
+        equipment: ''
+      }
+    );
   });
 });
 

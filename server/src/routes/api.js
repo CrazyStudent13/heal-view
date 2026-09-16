@@ -16,14 +16,18 @@ import {
   removeImportHistory,
   uploadArchive
 } from '../controllers/importController.js';
-import {
-  getAuthStatus,
-  getSettings,
-  login,
-  logout,
-  saveSettings
-} from '../controllers/authController.js';
+import { getAuthStatus, getSettings, login, logout, saveSettings } from '../controllers/authController.js';
 import { requireAccess } from '../middleware/auth.js';
+import {
+  createTrainingExercise,
+  deleteTrainingExercise,
+  deleteTrainingExercises,
+  getTrainingExercise,
+  listTrainingExercises,
+  updateTrainingExercise,
+  updateTrainingExerciseEnabled,
+  updateTrainingExercisesEnabled
+} from '../controllers/trainingExerciseController.js';
 
 const router = express.Router();
 
@@ -58,6 +62,16 @@ router.get('/weight/data', getWeightData);
 
 // Get user profile data
 router.get('/user/profile', getUserProfile);
+
+// Training exercise catalog
+router.get('/training-exercises', listTrainingExercises);
+router.post('/training-exercises', createTrainingExercise);
+router.patch('/training-exercises/enabled', updateTrainingExercisesEnabled);
+router.delete('/training-exercises', deleteTrainingExercises);
+router.get('/training-exercises/:id', getTrainingExercise);
+router.put('/training-exercises/:id', updateTrainingExercise);
+router.patch('/training-exercises/:id/enabled', updateTrainingExerciseEnabled);
+router.delete('/training-exercises/:id', deleteTrainingExercise);
 
 // Parse and import health archive ZIP exports
 router.post('/imports/parse', uploadArchive.single('archive'), parseImportArchive);

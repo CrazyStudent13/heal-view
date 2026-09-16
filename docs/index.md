@@ -43,3 +43,4 @@ Heal View 面向希望长期整理个人运动健康数据的用户。文档会�
 | [项目概览](/project/overview) | 了解项目定位和边界 |
 | [系统架构](/project/architecture) | 了解前端、API、数据库和导入链路 |
 | [未来计划](/roadmap) | 查看后续准备推进的方向 |
+| [训练计划待办](/todos/training-plan) | 查看训练计划模块的产品约定、第一阶段范围和后续扩展 |

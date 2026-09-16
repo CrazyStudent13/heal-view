@@ -113,3 +113,31 @@ export function getAccessSettings() {
 export function saveAccessSettings(settings) {
   return apiClient.put('/auth/settings', settings);
 }
+
+export function getTrainingExercises(params = {}, config = {}) {
+  return apiClient.get('/training-exercises', { ...config, params });
+}
+
+export function createTrainingExercise(exercise) {
+  return apiClient.post('/training-exercises', exercise);
+}
+
+export function updateTrainingExercise(id, exercise) {
+  return apiClient.put(`/training-exercises/${id}`, exercise);
+}
+
+export function setTrainingExerciseEnabled(id, enabled) {
+  return apiClient.patch(`/training-exercises/${id}/enabled`, { enabled });
+}
+
+export function setTrainingExercisesEnabled(ids, enabled) {
+  return apiClient.patch('/training-exercises/enabled', { ids, enabled });
+}
+
+export function deleteTrainingExercise(id) {
+  return apiClient.delete(`/training-exercises/${id}`);
+}
+
+export function deleteTrainingExercises(ids) {
+  return apiClient.delete('/training-exercises', { data: { ids } });
+}

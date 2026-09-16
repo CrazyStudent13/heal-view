@@ -76,6 +76,49 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionOneRequiredColumns);
     }
+  },
+  {
+    version: 2,
+    name: 'training exercise catalog',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS training_exercises (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          icon TEXT NOT NULL DEFAULT 'mdi:fitness-center',
+          category TEXT NOT NULL DEFAULT 'other',
+          scene TEXT NOT NULL DEFAULT 'indoor',
+          verification_mode TEXT NOT NULL DEFAULT 'manual',
+          metrics TEXT NOT NULL DEFAULT '[]',
+          purpose TEXT NOT NULL DEFAULT '',
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_training_exercises_enabled ON training_exercises(enabled);
+        CREATE INDEX IF NOT EXISTS idx_training_exercises_category ON training_exercises(category);
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionTwoRequiredColumns);
+    }
+  },
+  {
+    version: 3,
+    name: 'training exercise equipment',
+    up(db) {
+      db.exec(`
+        ALTER TABLE training_exercises
+          ADD COLUMN equipment_mode TEXT NOT NULL DEFAULT 'bodyweight'
+          CHECK (equipment_mode IN ('bodyweight', 'equipment'));
+        ALTER TABLE training_exercises
+          ADD COLUMN equipment TEXT NOT NULL DEFAULT '';
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionThreeRequiredColumns);
+    }
   }
 ];
 
@@ -88,6 +131,26 @@ const versionOneRequiredColumns = {
   aggregated_data: ['id', 'uid', 'sid', 'tag', 'key', 'time', 'date', 'value', 'update_time'],
   blood_pressure_records: ['id', 'uid', 'sid', 'external_id', 'time', 'date', 'value', 'parsed_value', 'update_time'],
   access_settings: ['id', 'enabled', 'password_hash', 'updated_at']
+};
+
+const versionTwoRequiredColumns = {
+  training_exercises: [
+    'id',
+    'name',
+    'icon',
+    'category',
+    'scene',
+    'verification_mode',
+    'metrics',
+    'purpose',
+    'enabled',
+    'created_at',
+    'updated_at'
+  ]
+};
+
+const versionThreeRequiredColumns = {
+  training_exercises: ['equipment_mode', 'equipment']
 };
 
 /**

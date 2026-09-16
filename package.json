@@ -27,6 +27,7 @@
     "check:i18n": "pnpm --filter heal-view-client check:i18n",
     "start:server": "pnpm --filter heal-view-server start",
     "import": "pnpm --filter heal-view-server import",
+    "seed:training-exercises": "pnpm --filter heal-view-server seed-training-exercises",
     "reset-access-password": "pnpm --filter heal-view-server reset-access-password",
     "test": "node --test tests/index.test.js",
     "test:client": "node --test tests/client/index.test.js",

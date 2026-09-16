@@ -11,6 +11,7 @@
     "start": "node src/app.js",
     "dev": "node --watch src/app.js",
     "import": "node src/scripts/importData.js",
+    "seed-training-exercises": "node src/scripts/seedTrainingExercises.js",
     "reset-access-password": "node src/scripts/resetAccessPassword.js"
   },
   "dependencies": {

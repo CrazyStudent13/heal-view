@@ -4,6 +4,7 @@ import './client/requestState.test.js';
 import './client/asyncRequest.test.js';
 import './client/echartsInstance.test.js';
 import './client/dashboardRequests.test.js';
+import './client/trainingExercise.test.js';
 import './server/jsonParser.test.js';
 import './server/databaseMigrations.test.js';
 import './server/apiSmoke.test.js';

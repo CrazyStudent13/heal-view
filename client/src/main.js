@@ -1,5 +1,5 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import {
   ElAlert,
   ElButton,
@@ -18,6 +18,7 @@ import {
   ElIcon,
   ElInput,
   ElOption,
+  ElPagination,
   ElPopconfirm,
   ElRadioButton,
   ElRadioGroup,
@@ -32,24 +33,24 @@ import {
   ElText,
   ElTooltip,
   ElUpload
-} from 'element-plus'
-import 'element-plus/dist/index.css'
-import 'element-plus/theme-chalk/dark/css-vars.css'
-import '@/styles/index.scss'
-import App from '@/App.vue'
-import { router } from '@/router'
-import SectionTitle from '@/components/ui/SectionTitle.vue'
-import { i18n } from '@/i18n'
-import { useAuthStore } from '@/stores/authStore'
+} from 'element-plus';
+import 'element-plus/dist/index.css';
+import 'element-plus/theme-chalk/dark/css-vars.css';
+import '@/styles/index.scss';
+import App from '@/App.vue';
+import { router } from '@/router';
+import SectionTitle from '@/components/ui/SectionTitle.vue';
+import { i18n } from '@/i18n';
+import { useAuthStore } from '@/stores/authStore';
 
-const app = createApp(App)
-const pinia = createPinia()
+const app = createApp(App);
+const pinia = createPinia();
 
-app.component('SectionTitle', SectionTitle)
+app.component('SectionTitle', SectionTitle);
 
-app.use(pinia)
-app.use(i18n)
-app.use(router)
+app.use(pinia);
+app.use(i18n);
+app.use(router);
 
 const elementComponents = [
   ElAlert,
@@ -69,6 +70,7 @@ const elementComponents = [
   ElIcon,
   ElInput,
   ElOption,
+  ElPagination,
   ElPopconfirm,
   ElRadioButton,
   ElRadioGroup,
@@ -83,21 +85,19 @@ const elementComponents = [
   ElText,
   ElTooltip,
   ElUpload
-]
+];
 
-elementComponents
-  .filter(Boolean)
-  .forEach(component => app.component(component.name, component))
+elementComponents.filter(Boolean).forEach((component) => app.component(component.name, component));
 
 window.addEventListener('heal-view-auth-required', () => {
-  const auth = useAuthStore(pinia)
-  auth.authenticated = false
+  const auth = useAuthStore(pinia);
+  auth.authenticated = false;
   if (router.currentRoute.value.name !== 'login') {
     router.push({
       name: 'login',
       query: { redirect: router.currentRoute.value.fullPath }
-    })
+    });
   }
-})
+});
 
-app.mount('#app')
+app.mount('#app');
