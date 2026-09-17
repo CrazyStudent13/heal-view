@@ -13,6 +13,7 @@
     <div class="sessions-toolbar">
       <el-date-picker
         v-model="dateRange"
+        class="session-date-filter"
         type="daterange"
         value-format="YYYY-MM-DD"
         :start-placeholder="t('nav.startDate')"
@@ -35,23 +36,15 @@
             ><time :datetime="row.scheduledDate">{{ row.scheduledDate }}</time></template
           >
         </el-table-column>
-        <el-table-column :label="t('plans.sessions.name')" min-width="160">
-          <template #default="{ row }">
-            <span class="session-name">{{ row.name || t('plans.sessions.title') }}</span>
-          </template>
-        </el-table-column>
         <el-table-column :label="t('plans.sessions.plan')" min-width="150" prop="planName" />
-        <el-table-column :label="t('plans.sessions.phase')" min-width="130" prop="phaseName" />
-        <el-table-column :label="t('plans.sessions.exercises')" min-width="220">
+        <el-table-column :label="t('plans.sessions.exercises')" min-width="300">
           <template #default="{ row }">
             <div class="session-exercises">
-              <span v-for="exercise in row.exercises" :key="exercise.name">{{ exercise.name }}</span>
+              <div v-for="exercise in row.exercises" :key="exercise.name" class="session-exercise">
+                <span>{{ exercise.name }}</span>
+                <small>{{ targetsText(exercise.targets) }}</small>
+              </div>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('plans.sessions.status')" width="108">
-          <template #default="{ row }">
-            <el-tag size="small" :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column :label="t('plans.sessions.actions')" width="104" fixed="right">
@@ -82,15 +75,20 @@ const plans = ref([]);
 const dateRange = ref([]);
 const planId = ref('');
 
-function statusLabel(status) {
-  return t(`plans.manager.statuses.${status}`);
+function metricLabel(metric) {
+  return t(`plans.exercise.metricOptions.${metric}`);
 }
 
-function statusTagType(status) {
-  if (['achieved'].includes(status)) return 'success';
-  if (['partial'].includes(status)) return 'warning';
-  if (['skipped'].includes(status)) return 'danger';
-  return 'info';
+function unitLabel(metric) {
+  return t(`plans.manager.units.${metric}`);
+}
+
+function targetsText(targets) {
+  const entries = Object.entries(targets || {});
+  if (entries.length === 0) return t('plans.manager.noTargets');
+  return entries
+    .map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`)
+    .join(t('common.listSeparator'));
 }
 
 async function loadSessions() {
@@ -159,6 +157,10 @@ p {
   gap: 12px;
   padding: 18px 0;
 }
+.sessions-toolbar :deep(.el-date-editor.session-date-filter) {
+  width: 360px !important;
+  flex: 0 0 360px !important;
+}
 .sessions-toolbar :deep(.el-select) {
   width: 220px;
 }
@@ -171,23 +173,22 @@ p {
   overflow: auto;
 }
 .sessions-table {
-  min-width: 800px;
-}
-.session-name {
-  color: var(--text-primary);
-  font-weight: 600;
+  min-width: 670px;
 }
 .session-exercises {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 7px;
 }
-.session-exercises span {
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  background: var(--app-bg);
+.session-exercise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text-primary);
   font-size: 12px;
+}
+.session-exercise small {
+  color: var(--text-secondary);
 }
 @media (max-width: 640px) {
   .sessions-header {

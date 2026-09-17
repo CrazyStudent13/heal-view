@@ -46,7 +46,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1, 2, 3, 4]
+      [1, 2, 3, 4, 5]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -132,7 +132,7 @@ test('adds equipment fields to existing version 2 exercise data', () => {
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [3, 4]
+      [3, 4, 5]
     );
     assert.deepEqual(
       { ...row },
@@ -141,6 +141,67 @@ test('adds equipment fields to existing version 2 exercise data', () => {
         equipment_mode: 'bodyweight',
         equipment: ''
       }
+    );
+  });
+});
+
+test('moves existing training sessions from phases to their training plans', () => {
+  withTemporaryDatabase((db) => {
+    migrateDatabase(db);
+    db.exec(`
+      DROP TABLE training_session_items;
+      DROP TABLE training_sessions;
+      CREATE TABLE training_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phase_id INTEGER NOT NULL REFERENCES training_phases(id) ON DELETE CASCADE,
+        scheduled_date TEXT NOT NULL,
+        sequence INTEGER NOT NULL DEFAULT 1 CHECK (sequence > 0),
+        name TEXT NOT NULL DEFAULT '',
+        notes TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'planned',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE (phase_id, scheduled_date, sequence)
+      );
+      CREATE TABLE training_session_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER NOT NULL REFERENCES training_sessions(id) ON DELETE CASCADE,
+        exercise_id INTEGER NOT NULL REFERENCES training_exercises(id) ON DELETE RESTRICT,
+        position INTEGER NOT NULL DEFAULT 0,
+        verification_mode TEXT NOT NULL,
+        targets TEXT NOT NULL DEFAULT '{}',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE (session_id, exercise_id)
+      );
+      INSERT INTO training_plans (name, start_date, end_date, created_at, updated_at)
+      VALUES ('Recovery', '2026-09-01', '2026-09-30', 1, 1);
+      INSERT INTO training_phases (plan_id, name, start_date, end_date, created_at, updated_at)
+      VALUES (1, 'Foundation', '2026-09-01', '2026-09-30', 1, 1);
+      INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+      VALUES ('Walking', 'mdi:walk', 'aerobic', 'outdoor', 'auto', '["duration"]', '', 1, 1, 1);
+      INSERT INTO training_sessions (phase_id, scheduled_date, name, created_at, updated_at)
+      VALUES (1, '2026-09-17', 'Easy walk', 1, 1);
+      INSERT INTO training_session_items
+        (session_id, exercise_id, verification_mode, targets, created_at, updated_at)
+      VALUES (1, 1, 'auto', '{"duration":30}', 1, 1);
+      PRAGMA user_version = 4;
+    `);
+
+    const result = migrateDatabase(db);
+
+    assert.deepEqual(
+      result.applied.map((item) => item.version),
+      [5]
+    );
+    assert.deepEqual(
+      { ...db.prepare('SELECT plan_id, scheduled_date, name FROM training_sessions').get() },
+      { plan_id: 1, scheduled_date: '2026-09-17', name: 'Easy walk' }
+    );
+    assert.deepEqual(
+      { ...db.prepare('SELECT session_id, targets FROM training_session_items').get() },
+      { session_id: 1, targets: '{"duration":30}' }
     );
   });
 });

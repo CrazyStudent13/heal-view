@@ -95,7 +95,7 @@ router.get('/training-sessions', listTrainingSessions);
 router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
 router.delete('/training-phases/:id', deleteTrainingPhase);
-router.post('/training-phases/:phaseId/sessions', createTrainingSession);
+router.post('/training-plans/:planId/sessions', createTrainingSession);
 router.put('/training-sessions/:id', updateTrainingSession);
 router.delete('/training-sessions/:id', deleteTrainingSession);
 

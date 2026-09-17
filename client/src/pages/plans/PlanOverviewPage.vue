@@ -18,25 +18,34 @@
         :row-class-name="({ row }) => (row.id === selectedPlanId ? 'is-selected' : '')"
         @row-click="(row) => selectPlan(row.id)"
       >
-        <el-table-column :label="t('plans.manager.planName')" min-width="160">
+        <el-table-column :label="t('plans.manager.planName')" min-width="180">
           <template #default="{ row }">
             <div class="plan-cell-name">{{ row.name }}</div>
-            <div class="plan-cell-dates">{{ row.startDate }} - {{ row.endDate }}</div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('plans.manager.status')" width="88">
+        <el-table-column :label="t('plans.manager.planGoal')" min-width="240">
+          <template #default="{ row }">
+            <span class="plan-cell-goal">{{ row.goal || t('common.empty') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('nav.startDate')" width="118" prop="startDate" />
+        <el-table-column :label="t('nav.endDate')" width="118" prop="endDate" />
+        <el-table-column :label="t('plans.manager.status')" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('plans.manager.phases')" width="70" align="center" prop="phaseCount" />
-        <el-table-column :label="t('plans.sessions.title')" width="70" align="center" prop="sessionCount" />
-        <template #empty>
-          <el-empty :description="t('plans.overviewEmpty')" :image-size="76">
-            <el-button type="primary" :icon="Plus" @click="openPlanDialog()">{{
-              t('plans.manager.addPlan')
+        <el-table-column :label="t('plans.manager.phases')" width="92" align="center" prop="phaseCount" />
+        <el-table-column :label="t('plans.sessions.title')" width="104" align="center" prop="sessionCount" />
+        <el-table-column :label="t('plans.sessions.actions')" width="104" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click.stop="selectPlan(row.id)">{{
+              t('plans.sessions.viewPlan')
             }}</el-button>
-          </el-empty>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty :description="t('plans.overviewEmpty')" :image-size="76" />
         </template>
       </el-table>
     </div>
@@ -55,8 +64,9 @@
             </div>
             <div class="plan-detail-actions">
               <el-button :icon="EditPen" @click="openPlanDialog(planDetail)">{{ t('common.edit') }}</el-button>
-              <el-button type="primary" :icon="Plus" @click="openPhaseDialog()">{{
-                t('plans.manager.addPhase')
+              <el-button :icon="Plus" @click="openPhaseDialog()">{{ t('plans.manager.addPhase') }}</el-button>
+              <el-button type="primary" :icon="Plus" @click="openSessionDialog()">{{
+                t('plans.manager.addSession')
               }}</el-button>
             </div>
           </header>
@@ -81,15 +91,6 @@
                   <p v-if="phase.description" class="phase-description">{{ phase.description }}</p>
                 </div>
                 <div class="phase-actions">
-                  <el-tooltip :content="t('plans.manager.addSession')" placement="top">
-                    <el-button
-                      circle
-                      type="primary"
-                      :icon="Plus"
-                      :aria-label="t('plans.manager.addSession')"
-                      @click="openSessionDialog(phase)"
-                    />
-                  </el-tooltip>
                   <el-tooltip :content="t('plans.manager.editPhase')" placement="top">
                     <el-button
                       circle
@@ -112,58 +113,52 @@
                   </el-popconfirm>
                 </div>
               </header>
-
-              <div v-if="phase.sessions.length === 0" class="session-empty">
-                <span>{{ t('plans.manager.noSessions') }}</span>
-                <el-button link type="primary" :icon="Plus" @click="openSessionDialog(phase)">{{
-                  t('plans.manager.addSession')
-                }}</el-button>
-              </div>
-
-              <div v-else class="session-list">
-                <article v-for="session in phase.sessions" :key="session.id" class="session-row">
-                  <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
-                  <div class="session-main">
-                    <div class="session-name-line">
-                      <strong>{{ session.name || t('plans.manager.addSession') }}</strong>
-                      <el-tag size="small" :type="statusTagType(session.status)">{{
-                        statusLabel(session.status)
-                      }}</el-tag>
-                    </div>
-                    <div class="session-items">
-                      <div v-for="item in session.items" :key="item.id" class="session-item">
-                        <span>{{ item.exercise.name }}</span>
-                        <small>{{ targetsText(item) }}</small>
-                      </div>
-                    </div>
-                    <p v-if="session.notes" class="session-notes">{{ session.notes }}</p>
-                  </div>
-                  <div class="session-actions">
-                    <el-tooltip :content="t('plans.manager.editSession')" placement="top">
-                      <el-button
-                        circle
-                        :icon="EditPen"
-                        :aria-label="t('plans.manager.editSession')"
-                        @click="openSessionDialog(phase, session)"
-                      />
-                    </el-tooltip>
-                    <el-popconfirm
-                      :title="t('plans.manager.confirmDeleteSession', { date: session.scheduledDate })"
-                      :width="250"
-                      confirm-button-type="danger"
-                      :confirm-button-text="t('common.delete')"
-                      :cancel-button-text="t('common.cancel')"
-                      @confirm="removeSession(session)"
-                    >
-                      <template #reference>
-                        <el-button circle type="danger" plain :icon="Delete" :aria-label="t('common.delete')" />
-                      </template>
-                    </el-popconfirm>
-                  </div>
-                </article>
-              </div>
             </section>
           </div>
+
+          <section class="plan-sessions-section">
+            <h4>{{ t('plans.sessions.title') }}</h4>
+            <div v-if="planDetail.sessions.length === 0" class="session-empty">
+              <span>{{ t('plans.manager.noSessions') }}</span>
+            </div>
+
+            <div v-else class="session-list">
+              <article v-for="session in planDetail.sessions" :key="session.id" class="session-row">
+                <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
+                <div class="session-main">
+                  <div class="session-items">
+                    <div v-for="item in session.items" :key="item.id" class="session-item">
+                      <span>{{ item.exercise.name }}</span>
+                      <small>{{ targetsText(item) }}</small>
+                    </div>
+                  </div>
+                  <p v-if="session.notes" class="session-notes">{{ session.notes }}</p>
+                </div>
+                <div class="session-actions">
+                  <el-tooltip :content="t('plans.manager.editSession')" placement="top">
+                    <el-button
+                      circle
+                      :icon="EditPen"
+                      :aria-label="t('plans.manager.editSession')"
+                      @click="openSessionDialog(session)"
+                    />
+                  </el-tooltip>
+                  <el-popconfirm
+                    :title="t('plans.manager.confirmDeleteSession', { date: session.scheduledDate })"
+                    :width="250"
+                    confirm-button-type="danger"
+                    :confirm-button-text="t('common.delete')"
+                    :cancel-button-text="t('common.cancel')"
+                    @confirm="removeSession(session)"
+                  >
+                    <template #reference>
+                      <el-button circle type="danger" plain :icon="Delete" :aria-label="t('common.delete')" />
+                    </template>
+                  </el-popconfirm>
+                </div>
+              </article>
+            </div>
+          </section>
         </template>
       </main>
     </el-drawer>
@@ -269,24 +264,14 @@
       destroy-on-close
     >
       <el-form label-position="top" @submit.prevent>
-        <div class="session-form-grid">
-          <el-form-item :label="t('plans.manager.sessionDate')" required>
-            <el-date-picker
-              v-model="sessionForm.scheduledDate"
-              class="full-width"
-              type="date"
-              value-format="YYYY-MM-DD"
-            />
-          </el-form-item>
-          <el-form-item :label="t('plans.manager.sessionName')">
-            <el-input
-              v-model="sessionForm.name"
-              maxlength="100"
-              show-word-limit
-              :placeholder="t('plans.manager.sessionNamePlaceholder')"
-            />
-          </el-form-item>
-        </div>
+        <el-form-item :label="t('plans.manager.sessionDate')" required>
+          <el-date-picker
+            v-model="sessionForm.scheduledDate"
+            class="session-date-input"
+            type="date"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
 
         <div class="training-items-heading">
           <span>{{ t('plans.manager.trainingItems') }}</span>
@@ -390,14 +375,13 @@ const sessionDialogVisible = ref(false);
 const editingPlanId = ref(null);
 const editingPhaseId = ref(null);
 const editingSessionId = ref(null);
-const selectedPhaseId = ref(null);
 let itemKey = 0;
 
 const planStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
 const phaseStatuses = ['planned', 'active', 'paused', 'completed', 'cancelled'];
 const planForm = reactive({ name: '', dates: [], status: 'draft', goal: '', notes: '' });
 const phaseForm = reactive({ name: '', dates: [], status: 'planned', description: '', adjustmentReason: '' });
-const sessionForm = reactive({ scheduledDate: '', name: '', notes: '', status: 'planned', items: [] });
+const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
 
 const canAddExercise = computed(() =>
   exercises.value.some(
@@ -574,12 +558,10 @@ function createItem(exerciseId = null, targets = {}) {
   return { key: itemKey, exerciseId, targets: { ...targets } };
 }
 
-function openSessionDialog(phase, session = null) {
-  selectedPhaseId.value = phase.id;
+function openSessionDialog(session = null) {
   editingSessionId.value = session?.id || null;
   Object.assign(sessionForm, {
-    scheduledDate: session?.scheduledDate || phase.startDate,
-    name: session?.name || '',
+    scheduledDate: session?.scheduledDate || planDetail.value.startDate,
     notes: session?.notes || '',
     status: session?.status || 'planned',
     items: session?.items.map((item) => createItem(item.exerciseId, item.targets)) || []
@@ -628,7 +610,6 @@ async function saveSession() {
   try {
     const payload = {
       scheduledDate: sessionForm.scheduledDate,
-      name: sessionForm.name,
       notes: sessionForm.notes,
       status: sessionForm.status,
       items: sessionForm.items.map((item) => ({
@@ -639,7 +620,7 @@ async function saveSession() {
       }))
     };
     if (editingSessionId.value) await updateTrainingSession(editingSessionId.value, payload);
-    else await createTrainingSession(selectedPhaseId.value, payload);
+    else await createTrainingSession(planDetail.value.id, payload);
     sessionDialogVisible.value = false;
     await loadPlans(planDetail.value.id);
     ElMessage.success(t('plans.manager.saved'));
@@ -674,7 +655,6 @@ onMounted(loadWorkspace);
 .phase-header,
 .phase-title-line,
 .plan-detail-title__line,
-.session-name-line,
 .training-items-heading,
 .training-item-editor__top {
   display: flex;
@@ -709,8 +689,7 @@ h2 {
 }
 .phase-empty {
   display: grid;
-  flex: 1;
-  min-height: 320px;
+  min-height: 180px;
   place-items: center;
 }
 .plan-table-region {
@@ -718,11 +697,9 @@ h2 {
   min-height: 380px;
   margin-top: 20px;
   overflow: auto;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
 }
 .plan-table {
-  min-width: 760px;
+  min-width: 1080px;
 }
 .plan-table :deep(.el-table__row) {
   cursor: pointer;
@@ -735,11 +712,12 @@ h2 {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.plan-cell-dates {
-  margin-top: 4px;
+.plan-cell-goal {
+  display: block;
+  overflow: hidden;
   color: var(--text-secondary);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .plan-detail {
   min-width: 0;
@@ -757,8 +735,7 @@ h2 {
   border-bottom: 1px solid var(--card-border);
 }
 .plan-detail-title__line,
-.phase-title-line,
-.session-name-line {
+.phase-title-line {
   gap: 10px;
 }
 .plan-detail-title h3 {
@@ -789,6 +766,15 @@ h2 {
 }
 .phase-section:last-child {
   border-bottom: 0;
+}
+.plan-sessions-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--card-border);
+}
+.plan-sessions-section h4 {
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
 }
 .phase-header h4 {
   color: var(--text-primary);
@@ -827,15 +813,10 @@ h2 {
 .session-main {
   min-width: 0;
 }
-.session-main strong {
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
 .session-items {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 9px;
+  gap: 7px;
 }
 .session-item {
   display: flex;
@@ -857,6 +838,9 @@ h2 {
 }
 .full-width {
   width: 100%;
+}
+.session-date-input {
+  width: min(280px, 100%);
 }
 .session-form-grid {
   display: grid;

@@ -171,7 +171,7 @@ function serializePhase(row) {
 function serializeSession(row) {
   return {
     id: Number(row.id),
-    phaseId: Number(row.phase_id),
+    planId: Number(row.plan_id),
     scheduledDate: row.scheduled_date,
     sequence: Number(row.sequence),
     name: row.name || '',
@@ -185,9 +185,7 @@ function serializeSession(row) {
 function serializeSessionListItem(row) {
   return {
     ...serializeSession(row),
-    planId: Number(row.plan_id),
     planName: row.plan_name,
-    phaseName: row.phase_name,
     itemCount: Number(row.item_count),
     exercises: parseJson(row.exercises, [])
   };
@@ -263,7 +261,7 @@ export function listTrainingPlans(req, res) {
         COUNT(DISTINCT s.id) AS session_count
       FROM training_plans p
       LEFT JOIN training_phases ph ON ph.plan_id = p.id
-      LEFT JOIN training_sessions s ON s.phase_id = ph.id
+      LEFT JOIN training_sessions s ON s.plan_id = p.id
       GROUP BY p.id
       ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END,
         p.start_date DESC, p.id DESC
@@ -298,15 +296,14 @@ export function listTrainingSessions(req, res) {
     }
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = queryRows(
-      `SELECT s.*, p.id AS plan_id, p.name AS plan_name, ph.name AS phase_name,
+      `SELECT s.*, p.name AS plan_name,
         (SELECT COUNT(*) FROM training_session_items item_count WHERE item_count.session_id = s.id) AS item_count,
         (SELECT COALESCE(json_group_array(json_object('name', exercise.name, 'targets', json(item.targets))), '[]')
           FROM training_session_items item
           JOIN training_exercises exercise ON exercise.id = item.exercise_id
           WHERE item.session_id = s.id) AS exercises
        FROM training_sessions s
-       JOIN training_phases ph ON ph.id = s.phase_id
-       JOIN training_plans p ON p.id = ph.plan_id
+       JOIN training_plans p ON p.id = s.plan_id
        ${whereClause}
        ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC`,
       params
@@ -325,13 +322,9 @@ export function getTrainingPlan(req, res) {
     const phases = queryRows('SELECT * FROM training_phases WHERE plan_id = ? ORDER BY position, start_date, id', [
       plan.id
     ]).map(serializePhase);
-    const phaseIds = phases.map((phase) => phase.id);
-    if (phaseIds.length === 0) return res.json({ ...plan, phases: [] });
-
-    const placeholders = phaseIds.map(() => '?').join(', ');
     const sessions = queryRows(
-      `SELECT * FROM training_sessions WHERE phase_id IN (${placeholders}) ORDER BY scheduled_date, sequence, id`,
-      phaseIds
+      'SELECT * FROM training_sessions WHERE plan_id = ? ORDER BY scheduled_date, sequence, id',
+      [plan.id]
     ).map(serializeSession);
     const sessionIds = sessions.map((session) => session.id);
     const items =
@@ -348,13 +341,10 @@ export function getTrainingPlan(req, res) {
           ).map(serializeItem);
 
     const itemsBySession = Map.groupBy(items, (item) => item.sessionId);
-    const sessionsByPhase = Map.groupBy(
-      sessions.map((session) => ({ ...session, items: itemsBySession.get(session.id) || [] })),
-      (session) => session.phaseId
-    );
     return res.json({
       ...plan,
-      phases: phases.map((phase) => ({ ...phase, sessions: sessionsByPhase.get(phase.id) || [] }))
+      phases,
+      sessions: sessions.map((session) => ({ ...session, items: itemsBySession.get(session.id) || [] }))
     });
   } catch (error) {
     console.error('Error getting training plan:', error);
@@ -394,6 +384,16 @@ export function updateTrainingPlan(req, res) {
     );
     if (outsidePhase)
       return respondConflict(res, 'PLAN_DATES_EXCLUDE_PHASES', 'Plan dates must include all existing phases');
+    const outsideSession = queryRow(
+      'SELECT id FROM training_sessions WHERE plan_id = ? AND (scheduled_date < ? OR scheduled_date > ?) LIMIT 1',
+      [id, value.startDate, value.endDate]
+    );
+    if (outsideSession)
+      return respondConflict(
+        res,
+        'PLAN_DATES_EXCLUDE_SESSIONS',
+        'Plan dates must include all existing training sessions'
+      );
     databaseService.getDb().run(
       `UPDATE training_plans SET name = ?, goal = ?, start_date = ?, end_date = ?, status = ?, notes = ?, updated_at = ?
        WHERE id = ?`,
@@ -458,13 +458,6 @@ export function updateTrainingPhase(req, res) {
     if (!validatePhaseWithinPlan(validation.value, plan)) {
       return respondConflict(res, 'PHASE_OUTSIDE_PLAN', 'Phase dates must be within the training plan');
     }
-    const outsideSession = queryRow(
-      'SELECT id FROM training_sessions WHERE phase_id = ? AND (scheduled_date < ? OR scheduled_date > ?) LIMIT 1',
-      [id, validation.value.startDate, validation.value.endDate]
-    );
-    if (outsideSession) {
-      return respondConflict(res, 'PHASE_DATES_EXCLUDE_SESSIONS', 'Phase dates must include all training sessions');
-    }
     const value = validation.value;
     databaseService.getDb().run(
       `UPDATE training_phases SET name = ?, start_date = ?, end_date = ?, description = ?,
@@ -504,17 +497,17 @@ export function createTrainingSession(req, res) {
   const db = databaseService.getDb();
   let transactionOpen = false;
   try {
-    const phase = getPhase(Number(req.params.phaseId));
-    if (!phase) return res.status(404).json({ error: 'Training phase not found' });
+    const plan = getPlan(Number(req.params.planId));
+    if (!plan) return res.status(404).json({ error: 'Training plan not found' });
     const value = validation.value;
-    if (value.scheduledDate < phase.startDate || value.scheduledDate > phase.endDate) {
-      return respondConflict(res, 'SESSION_OUTSIDE_PHASE', 'Training session date must be within the phase');
+    if (value.scheduledDate < plan.startDate || value.scheduledDate > plan.endDate) {
+      return respondConflict(res, 'SESSION_OUTSIDE_PLAN', 'Training session date must be within the plan');
     }
     const exerciseValidation = validateExercises(value.items);
     if (exerciseValidation.error) return res.status(400).json({ error: exerciseValidation.error });
     const duplicate = queryRow(
-      'SELECT id FROM training_sessions WHERE phase_id = ? AND scheduled_date = ? AND sequence = ?',
-      [phase.id, value.scheduledDate, value.sequence]
+      'SELECT id FROM training_sessions WHERE plan_id = ? AND scheduled_date = ? AND sequence = ?',
+      [plan.id, value.scheduledDate, value.sequence]
     );
     if (duplicate)
       return respondConflict(res, 'SESSION_DATE_EXISTS', 'A training session already exists for this date');
@@ -524,9 +517,9 @@ export function createTrainingSession(req, res) {
     transactionOpen = true;
     db.run(
       `INSERT INTO training_sessions
-        (phase_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
+        (plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [phase.id, value.scheduledDate, value.sequence, value.name, value.notes, value.status, now, now]
+      [plan.id, value.scheduledDate, value.sequence, value.name, value.notes, value.status, now, now]
     );
     const id = Number(queryRow('SELECT last_insert_rowid() AS id').id);
     saveSessionItems(db, id, exerciseValidation.items, now);
@@ -549,16 +542,17 @@ export function updateTrainingSession(req, res) {
     const id = Number(req.params.id);
     const session = getSession(id);
     if (!session) return res.status(404).json({ error: 'Training session not found' });
-    const phase = getPhase(session.phaseId);
+    const plan = getPlan(session.planId);
+    if (!plan) return res.status(404).json({ error: 'Training plan not found' });
     const value = validation.value;
-    if (value.scheduledDate < phase.startDate || value.scheduledDate > phase.endDate) {
-      return respondConflict(res, 'SESSION_OUTSIDE_PHASE', 'Training session date must be within the phase');
+    if (value.scheduledDate < plan.startDate || value.scheduledDate > plan.endDate) {
+      return respondConflict(res, 'SESSION_OUTSIDE_PLAN', 'Training session date must be within the plan');
     }
     const exerciseValidation = validateExercises(value.items);
     if (exerciseValidation.error) return res.status(400).json({ error: exerciseValidation.error });
     const duplicate = queryRow(
-      'SELECT id FROM training_sessions WHERE phase_id = ? AND scheduled_date = ? AND sequence = ? AND id <> ?',
-      [phase.id, value.scheduledDate, value.sequence, id]
+      'SELECT id FROM training_sessions WHERE plan_id = ? AND scheduled_date = ? AND sequence = ? AND id <> ?',
+      [plan.id, value.scheduledDate, value.sequence, id]
     );
     if (duplicate)
       return respondConflict(res, 'SESSION_DATE_EXISTS', 'A training session already exists for this date');

@@ -174,8 +174,8 @@ export function deleteTrainingPhase(id) {
   return apiClient.delete(`/training-phases/${id}`);
 }
 
-export function createTrainingSession(phaseId, session) {
-  return apiClient.post(`/training-phases/${phaseId}/sessions`, session);
+export function createTrainingSession(planId, session) {
+  return apiClient.post(`/training-plans/${planId}/sessions`, session);
 }
 
 export function updateTrainingSession(id, session) {

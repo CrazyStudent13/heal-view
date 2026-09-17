@@ -191,7 +191,65 @@ const migrations = [
       `);
     },
     validate(db) {
-      validateRequiredColumns(db, versionFourRequiredColumns);
+      validateVersionFourSchema(db);
+    }
+  },
+  {
+    version: 5,
+    name: 'link training sessions directly to plans',
+    up(db) {
+      db.exec(`
+        CREATE TABLE training_sessions_v5 (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plan_id INTEGER NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
+          scheduled_date TEXT NOT NULL,
+          sequence INTEGER NOT NULL DEFAULT 1 CHECK (sequence > 0),
+          name TEXT NOT NULL DEFAULT '',
+          notes TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'planned'
+            CHECK (status IN ('planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE (plan_id, scheduled_date, sequence)
+        );
+
+        INSERT INTO training_sessions_v5
+          (id, plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
+        SELECT s.id, p.plan_id, s.scheduled_date, s.sequence, s.name, s.notes, s.status, s.created_at, s.updated_at
+        FROM training_sessions s
+        JOIN training_phases p ON p.id = s.phase_id;
+
+        CREATE TABLE training_session_items_v5 (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id INTEGER NOT NULL REFERENCES training_sessions_v5(id) ON DELETE CASCADE,
+          exercise_id INTEGER NOT NULL REFERENCES training_exercises(id) ON DELETE RESTRICT,
+          position INTEGER NOT NULL DEFAULT 0,
+          verification_mode TEXT NOT NULL
+            CHECK (verification_mode IN ('auto', 'manual', 'mixed')),
+          targets TEXT NOT NULL DEFAULT '{}',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE (session_id, exercise_id)
+        );
+
+        INSERT INTO training_session_items_v5
+          (id, session_id, exercise_id, position, verification_mode, targets, created_at, updated_at)
+        SELECT id, session_id, exercise_id, position, verification_mode, targets, created_at, updated_at
+        FROM training_session_items;
+
+        DROP TABLE training_session_items;
+        DROP TABLE training_sessions;
+        ALTER TABLE training_sessions_v5 RENAME TO training_sessions;
+        ALTER TABLE training_session_items_v5 RENAME TO training_session_items;
+
+        CREATE INDEX idx_training_sessions_plan ON training_sessions(plan_id, scheduled_date, sequence);
+        CREATE INDEX idx_training_sessions_date ON training_sessions(scheduled_date);
+        CREATE INDEX idx_training_session_items_session ON training_session_items(session_id, position);
+        CREATE INDEX idx_training_session_items_exercise ON training_session_items(exercise_id);
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionFiveRequiredColumns);
     }
   }
 ];
@@ -264,6 +322,47 @@ const versionFourRequiredColumns = {
     'updated_at'
   ]
 };
+
+const versionFiveRequiredColumns = {
+  training_sessions: [
+    'id',
+    'plan_id',
+    'scheduled_date',
+    'sequence',
+    'name',
+    'notes',
+    'status',
+    'created_at',
+    'updated_at'
+  ],
+  training_session_items: [
+    'id',
+    'session_id',
+    'exercise_id',
+    'position',
+    'verification_mode',
+    'targets',
+    'created_at',
+    'updated_at'
+  ]
+};
+
+function validateVersionFourSchema(db) {
+  validateRequiredColumns(db, {
+    ...versionFourRequiredColumns,
+    training_sessions: versionFourRequiredColumns.training_sessions.filter((column) => column !== 'phase_id')
+  });
+
+  const sessionColumns = new Set(
+    db
+      .prepare('PRAGMA table_info(training_sessions)')
+      .all()
+      .map((row) => row.name)
+  );
+  if (!sessionColumns.has('phase_id') && !sessionColumns.has('plan_id')) {
+    throw new Error('Table training_sessions is missing its plan association');
+  }
+}
 
 /**
  * 校验数据库表是否包含当前版本要求的全部字段。
