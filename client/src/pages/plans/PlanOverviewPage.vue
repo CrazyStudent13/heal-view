@@ -166,10 +166,21 @@
     <el-dialog
       v-model="planDialogVisible"
       :title="editingPlanId ? t('plans.manager.editPlan') : t('plans.manager.addPlan')"
-      width="min(620px, calc(100vw - 32px))"
+      width="min(820px, calc(100vw - 32px))"
       destroy-on-close
     >
-      <el-form label-position="top" @submit.prevent>
+      <el-steps
+        v-if="!editingPlanId"
+        :active="planCreationStep"
+        finish-status="success"
+        simple
+        class="plan-creation-steps"
+      >
+        <el-step :title="t('plans.manager.creationPlanInfo')" />
+        <el-step :title="t('plans.manager.creationSessions')" />
+      </el-steps>
+
+      <el-form v-if="editingPlanId || planCreationStep === 0" label-position="top" @submit.prevent>
         <el-form-item :label="t('plans.manager.planName')" required>
           <el-input
             v-model="planForm.name"
@@ -200,9 +211,74 @@
           <el-input v-model="planForm.notes" type="textarea" :rows="3" maxlength="2000" show-word-limit />
         </el-form-item>
       </el-form>
+
+      <section v-else class="plan-draft-sessions">
+        <header class="plan-draft-sessions__header">
+          <h3>{{ t('plans.sessions.title') }}</h3>
+          <el-button type="primary" :icon="Plus" @click="openSessionDialog()">{{
+            t('plans.manager.addSession')
+          }}</el-button>
+        </header>
+
+        <el-empty
+          v-if="draftSessions.length === 0"
+          :description="t('plans.manager.draftSessionsEmpty')"
+          :image-size="76"
+        />
+
+        <div v-else class="session-list plan-draft-sessions__list">
+          <article v-for="session in draftSessionsSorted" :key="session.key" class="session-row">
+            <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
+            <div class="session-main">
+              <div class="session-items">
+                <div v-for="item in session.items" :key="item.key" class="session-item">
+                  <span>{{ exerciseFor(item.exerciseId)?.name }}</span>
+                  <small>{{ targetsText(item) }}</small>
+                </div>
+              </div>
+              <p v-if="session.notes" class="session-notes">{{ session.notes }}</p>
+            </div>
+            <div class="session-actions">
+              <el-tooltip :content="t('plans.manager.editSession')" placement="top">
+                <el-button
+                  circle
+                  :icon="EditPen"
+                  :aria-label="t('plans.manager.editSession')"
+                  @click="openSessionDialog(session)"
+                />
+              </el-tooltip>
+              <el-popconfirm
+                :title="t('plans.manager.confirmDeleteSession', { date: session.scheduledDate })"
+                :width="250"
+                confirm-button-type="danger"
+                :confirm-button-text="t('common.delete')"
+                :cancel-button-text="t('common.cancel')"
+                @confirm="removeDraftSession(session.key)"
+              >
+                <template #reference>
+                  <el-button circle type="danger" plain :icon="Delete" :aria-label="t('common.delete')" />
+                </template>
+              </el-popconfirm>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <template #footer>
         <el-button @click="planDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="savePlan">{{ t('common.save') }}</el-button>
+        <template v-if="editingPlanId">
+          <el-button type="primary" :loading="saving" @click="savePlan">{{ t('common.save') }}</el-button>
+        </template>
+        <template v-else-if="planCreationStep === 0">
+          <el-button :loading="saving" @click="savePlanOnly">{{ t('plans.manager.createPlanOnly') }}</el-button>
+          <el-button type="primary" @click="nextPlanCreationStep">{{ t('plans.manager.nextStep') }}</el-button>
+        </template>
+        <template v-else>
+          <el-button @click="planCreationStep = 0">{{ t('plans.manager.previousStep') }}</el-button>
+          <el-button type="primary" :loading="saving" @click="savePlanWithSessions">{{
+            t('plans.manager.createPlanWithSessions')
+          }}</el-button>
+        </template>
       </template>
     </el-dialog>
 
@@ -258,7 +334,7 @@
 
     <el-dialog
       v-model="sessionDialogVisible"
-      :title="editingSessionId ? t('plans.manager.editSession') : t('plans.manager.addSession')"
+      :title="sessionDialogTitle"
       width="min(820px, calc(100vw - 32px))"
       top="6vh"
       destroy-on-close
@@ -347,6 +423,7 @@ import { normalizeRequestError } from '@/utils/requestState.js';
 import {
   createTrainingPhase,
   createTrainingPlan,
+  createTrainingPlanWithSessions,
   createTrainingSession,
   deleteTrainingPhase,
   deleteTrainingSession,
@@ -375,7 +452,11 @@ const sessionDialogVisible = ref(false);
 const editingPlanId = ref(null);
 const editingPhaseId = ref(null);
 const editingSessionId = ref(null);
+const editingDraftSessionKey = ref(null);
+const planCreationStep = ref(0);
+const draftSessions = ref([]);
 let itemKey = 0;
+let draftSessionKey = 0;
 
 const planStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
 const phaseStatuses = ['planned', 'active', 'paused', 'completed', 'cancelled'];
@@ -387,6 +468,16 @@ const canAddExercise = computed(() =>
   exercises.value.some(
     (exercise) => exercise.enabled && !sessionForm.items.some((item) => item.exerciseId === exercise.id)
   )
+);
+
+const isCreatingPlan = computed(() => !editingPlanId.value && planDialogVisible.value && planCreationStep.value === 1);
+const sessionDialogTitle = computed(() =>
+  editingSessionId.value || editingDraftSessionKey.value
+    ? t('plans.manager.editSession')
+    : t('plans.manager.addSession')
+);
+const draftSessionsSorted = computed(() =>
+  [...draftSessions.value].sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))
 );
 
 function statusLabel(status) {
@@ -469,6 +560,9 @@ async function selectPlan(id) {
 
 function openPlanDialog(plan = null) {
   editingPlanId.value = plan?.id || null;
+  planCreationStep.value = 0;
+  draftSessions.value = [];
+  editingDraftSessionKey.value = null;
   Object.assign(planForm, {
     name: plan?.name || '',
     dates: plan ? [plan.startDate, plan.endDate] : [],
@@ -479,22 +573,39 @@ function openPlanDialog(plan = null) {
   planDialogVisible.value = true;
 }
 
+function planPayload() {
+  return {
+    name: planForm.name,
+    startDate: planForm.dates[0],
+    endDate: planForm.dates[1],
+    status: planForm.status,
+    goal: planForm.goal,
+    notes: planForm.notes
+  };
+}
+
+function validatePlanForm() {
+  if (!planForm.name.trim()) {
+    ElMessage.warning(t('plans.manager.nameRequired'));
+    return false;
+  }
+  if (planForm.dates.length !== 2) {
+    ElMessage.warning(t('plans.manager.datesRequired'));
+    return false;
+  }
+  return true;
+}
+
+function nextPlanCreationStep() {
+  if (!validatePlanForm()) return;
+  planCreationStep.value = 1;
+}
+
 async function savePlan() {
-  if (!planForm.name.trim()) return ElMessage.warning(t('plans.manager.nameRequired'));
-  if (planForm.dates.length !== 2) return ElMessage.warning(t('plans.manager.datesRequired'));
+  if (!validatePlanForm()) return;
   saving.value = true;
   try {
-    const payload = {
-      name: planForm.name,
-      startDate: planForm.dates[0],
-      endDate: planForm.dates[1],
-      status: planForm.status,
-      goal: planForm.goal,
-      notes: planForm.notes
-    };
-    const saved = editingPlanId.value
-      ? await updateTrainingPlan(editingPlanId.value, payload)
-      : await createTrainingPlan(payload);
+    const saved = await updateTrainingPlan(editingPlanId.value, planPayload());
     planDialogVisible.value = false;
     await loadPlans(saved.id);
     detailDrawerVisible.value = true;
@@ -504,6 +615,63 @@ async function savePlan() {
   } finally {
     saving.value = false;
   }
+}
+
+async function savePlanOnly() {
+  if (!validatePlanForm()) return;
+  saving.value = true;
+  try {
+    const saved = await createTrainingPlan(planPayload());
+    planDialogVisible.value = false;
+    await loadPlans(saved.id);
+    detailDrawerVisible.value = true;
+    ElMessage.success(t('plans.manager.saved'));
+  } catch (requestError) {
+    ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function savePlanWithSessions() {
+  if (!validatePlanForm()) return;
+  if (!validateDraftSessions()) return;
+  saving.value = true;
+  try {
+    const saved = await createTrainingPlanWithSessions({
+      plan: planPayload(),
+      sessions: draftSessions.value.map((session) => ({
+        scheduledDate: session.scheduledDate,
+        notes: session.notes,
+        status: session.status,
+        items: session.items.map((item) => ({ exerciseId: item.exerciseId, targets: item.targets }))
+      }))
+    });
+    planDialogVisible.value = false;
+    await loadPlans(saved.id);
+    detailDrawerVisible.value = true;
+    ElMessage.success(t('plans.manager.saved'));
+  } catch (requestError) {
+    ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+function validateDraftSessions() {
+  const dates = new Set();
+  for (const session of draftSessions.value) {
+    if (session.scheduledDate < planForm.dates[0] || session.scheduledDate > planForm.dates[1]) {
+      ElMessage.warning(t('plans.manager.sessionOutsidePlan'));
+      return false;
+    }
+    if (dates.has(session.scheduledDate)) {
+      ElMessage.warning(t('plans.manager.sessionDateExists'));
+      return false;
+    }
+    dates.add(session.scheduledDate);
+  }
+  return true;
 }
 
 function openPhaseDialog(phase = null) {
@@ -559,9 +727,10 @@ function createItem(exerciseId = null, targets = {}) {
 }
 
 function openSessionDialog(session = null) {
-  editingSessionId.value = session?.id || null;
+  editingSessionId.value = isCreatingPlan.value ? null : session?.id || null;
+  editingDraftSessionKey.value = isCreatingPlan.value ? session?.key || null : null;
   Object.assign(sessionForm, {
-    scheduledDate: session?.scheduledDate || planDetail.value.startDate,
+    scheduledDate: session?.scheduledDate || (isCreatingPlan.value ? planForm.dates[0] : planDetail.value.startDate),
     notes: session?.notes || '',
     status: session?.status || 'planned',
     items: session?.items.map((item) => createItem(item.exerciseId, item.targets)) || []
@@ -606,19 +775,38 @@ async function saveSession() {
   if (!sessionForm.scheduledDate) return ElMessage.warning(t('plans.manager.dateRequired'));
   if (sessionForm.items.length === 0) return ElMessage.warning(t('plans.manager.itemsRequired'));
   if (sessionForm.items.some((item) => !item.exerciseId)) return ElMessage.warning(t('plans.manager.exerciseRequired'));
+  const payload = {
+    scheduledDate: sessionForm.scheduledDate,
+    notes: sessionForm.notes,
+    status: sessionForm.status,
+    items: sessionForm.items.map((item) => ({
+      exerciseId: item.exerciseId,
+      targets: Object.fromEntries(
+        Object.entries(item.targets).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
+      )
+    }))
+  };
+  if (isCreatingPlan.value) {
+    if (payload.scheduledDate < planForm.dates[0] || payload.scheduledDate > planForm.dates[1]) {
+      return ElMessage.warning(t('plans.manager.sessionOutsidePlan'));
+    }
+    if (
+      draftSessions.value.some(
+        (session) => session.scheduledDate === payload.scheduledDate && session.key !== editingDraftSessionKey.value
+      )
+    ) {
+      return ElMessage.warning(t('plans.manager.sessionDateExists'));
+    }
+    const draft = { key: editingDraftSessionKey.value || ++draftSessionKey, ...payload };
+    const index = draftSessions.value.findIndex((session) => session.key === draft.key);
+    if (index === -1) draftSessions.value.push(draft);
+    else draftSessions.value.splice(index, 1, draft);
+    sessionDialogVisible.value = false;
+    return;
+  }
+
   saving.value = true;
   try {
-    const payload = {
-      scheduledDate: sessionForm.scheduledDate,
-      notes: sessionForm.notes,
-      status: sessionForm.status,
-      items: sessionForm.items.map((item) => ({
-        exerciseId: item.exerciseId,
-        targets: Object.fromEntries(
-          Object.entries(item.targets).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
-        )
-      }))
-    };
     if (editingSessionId.value) await updateTrainingSession(editingSessionId.value, payload);
     else await createTrainingSession(planDetail.value.id, payload);
     sessionDialogVisible.value = false;
@@ -629,6 +817,10 @@ async function saveSession() {
   } finally {
     saving.value = false;
   }
+}
+
+function removeDraftSession(key) {
+  draftSessions.value = draftSessions.value.filter((session) => session.key !== key);
 }
 
 async function removeSession(session) {
@@ -686,6 +878,26 @@ h2 {
 }
 .plan-alert {
   margin-top: 16px;
+}
+.plan-creation-steps {
+  margin: 0 0 24px;
+}
+.plan-draft-sessions {
+  min-height: 280px;
+}
+.plan-draft-sessions__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.plan-draft-sessions__header h3 {
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.plan-draft-sessions__list {
+  margin-bottom: 20px;
 }
 .phase-empty {
   display: grid;
@@ -910,7 +1122,8 @@ h2 {
 @media (max-width: 640px) {
   .plan-content-header,
   .plan-detail-header,
-  .phase-header {
+  .phase-header,
+  .plan-draft-sessions__header {
     flex-direction: column;
   }
   .plan-content-header > .el-button,

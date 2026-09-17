@@ -371,6 +371,90 @@ export function createTrainingPlan(req, res) {
   }
 }
 
+export function createTrainingPlanWithSessions(req, res) {
+  const planValidation = validatePlanPayload(req.body?.plan);
+  if (planValidation.errors) {
+    return res.status(400).json({ error: 'Invalid training plan', fields: { plan: planValidation.errors } });
+  }
+
+  const rawSessions = Array.isArray(req.body?.sessions) ? req.body.sessions : [];
+  const sessionValues = [];
+  const fields = {};
+  const sessionSlots = new Set();
+  rawSessions.forEach((session, index) => {
+    const sessionValidation = validateSessionPayload(session);
+    if (sessionValidation.errors) {
+      Object.entries(sessionValidation.errors).forEach(([field, message]) => {
+        fields[`sessions.${index}.${field}`] = message;
+      });
+      return;
+    }
+
+    const value = sessionValidation.value;
+    if (value.scheduledDate < planValidation.value.startDate || value.scheduledDate > planValidation.value.endDate) {
+      fields[`sessions.${index}.scheduledDate`] = 'Training session date must be within the plan';
+      return;
+    }
+    const slot = `${value.scheduledDate}:${value.sequence}`;
+    if (sessionSlots.has(slot)) {
+      fields[`sessions.${index}.scheduledDate`] = 'Only one training session is allowed for this date';
+      return;
+    }
+    sessionSlots.add(slot);
+    sessionValues.push(value);
+  });
+
+  if (Object.keys(fields).length > 0) {
+    return res.status(400).json({ error: 'Invalid training sessions', fields });
+  }
+
+  const exerciseValues = [];
+  for (const [index, session] of sessionValues.entries()) {
+    const exerciseValidation = validateExercises(session.items);
+    if (exerciseValidation.error) {
+      return res.status(400).json({
+        error: 'Invalid training sessions',
+        fields: { [`sessions.${index}.items`]: exerciseValidation.error }
+      });
+    }
+    exerciseValues.push(exerciseValidation.items);
+  }
+
+  const db = databaseService.getDb();
+  let transactionOpen = false;
+  try {
+    const now = Date.now();
+    const plan = planValidation.value;
+    db.run('BEGIN IMMEDIATE');
+    transactionOpen = true;
+    db.run(
+      `INSERT INTO training_plans (name, goal, start_date, end_date, status, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [plan.name, plan.goal, plan.startDate, plan.endDate, plan.status, plan.notes, now, now]
+    );
+    const planId = Number(queryRow('SELECT last_insert_rowid() AS id').id);
+
+    sessionValues.forEach((session, index) => {
+      db.run(
+        `INSERT INTO training_sessions
+          (plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [planId, session.scheduledDate, session.sequence, session.name, session.notes, session.status, now, now]
+      );
+      const sessionId = Number(queryRow('SELECT last_insert_rowid() AS id').id);
+      saveSessionItems(db, sessionId, exerciseValues[index], now);
+    });
+
+    db.run('COMMIT');
+    transactionOpen = false;
+    return res.status(201).json(getPlan(planId));
+  } catch (error) {
+    if (transactionOpen) db.run('ROLLBACK');
+    console.error('Error creating training plan with sessions:', error);
+    return res.status(500).json({ error: 'Failed to create training plan' });
+  }
+}
+
 export function updateTrainingPlan(req, res) {
   const validation = validatePlanPayload(req.body);
   if (validation.errors) return res.status(400).json({ error: 'Invalid training plan', fields: validation.errors });

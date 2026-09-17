@@ -31,6 +31,7 @@ import {
 import {
   createTrainingPhase,
   createTrainingPlan,
+  createTrainingPlanWithSessions,
   createTrainingSession,
   deleteTrainingPhase,
   deleteTrainingSession,
@@ -89,6 +90,7 @@ router.delete('/training-exercises/:id', deleteTrainingExercise);
 // Training plans, phases, and dated training sessions
 router.get('/training-plans', listTrainingPlans);
 router.post('/training-plans', createTrainingPlan);
+router.post('/training-plans/with-sessions', createTrainingPlanWithSessions);
 router.get('/training-plans/:id', getTrainingPlan);
 router.put('/training-plans/:id', updateTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);

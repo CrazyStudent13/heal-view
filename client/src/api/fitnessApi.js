@@ -158,6 +158,10 @@ export function createTrainingPlan(plan) {
   return apiClient.post('/training-plans', plan);
 }
 
+export function createTrainingPlanWithSessions(payload) {
+  return apiClient.post('/training-plans/with-sessions', payload);
+}
+
 export function updateTrainingPlan(id, plan) {
   return apiClient.put(`/training-plans/${id}`, plan);
 }

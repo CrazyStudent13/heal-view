@@ -17,6 +17,7 @@ import {
   ElFormItem,
   ElIcon,
   ElInput,
+  ElInputNumber,
   ElOption,
   ElPagination,
   ElPopconfirm,
@@ -26,13 +27,16 @@ import {
   ElSelect,
   ElSkeleton,
   ElSkeletonItem,
+  ElStep,
+  ElSteps,
   ElSwitch,
   ElTable,
   ElTableColumn,
   ElTag,
   ElText,
   ElTooltip,
-  ElUpload
+  ElUpload,
+  vLoading
 } from 'element-plus';
 import 'element-plus/dist/index.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
@@ -69,6 +73,7 @@ const elementComponents = [
   ElFormItem,
   ElIcon,
   ElInput,
+  ElInputNumber,
   ElOption,
   ElPagination,
   ElPopconfirm,
@@ -78,6 +83,8 @@ const elementComponents = [
   ElSelect,
   ElSkeleton,
   ElSkeletonItem,
+  ElStep,
+  ElSteps,
   ElSwitch,
   ElTable,
   ElTableColumn,
@@ -88,6 +95,7 @@ const elementComponents = [
 ];
 
 elementComponents.filter(Boolean).forEach((component) => app.component(component.name, component));
+app.directive('loading', vLoading);
 
 window.addEventListener('heal-view-auth-required', () => {
   const auth = useAuthStore(pinia);
