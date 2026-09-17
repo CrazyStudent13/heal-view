@@ -15,13 +15,14 @@
 
 <script setup>
 import { RouterLink, useRoute } from 'vue-router';
-import { Collection, List } from '@element-plus/icons-vue';
+import { Calendar, Collection, List } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 
 const { t } = useLocaleStore();
 const route = useRoute();
 const menuItems = [
   { path: '/plans/overview', labelKey: 'plans.overview', icon: List },
+  { path: '/plans/sessions', labelKey: 'plans.sessions.title', icon: Calendar },
   { path: '/plans/exercises', labelKey: 'plans.exercise.title', icon: Collection }
 ];
 </script>

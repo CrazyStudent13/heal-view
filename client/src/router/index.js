@@ -10,6 +10,7 @@ const loadProfilePlaceholderPage = () => import('@/pages/profile/ProfileAboutPag
 const loadLoginPage = () => import('@/pages/LoginPage.vue');
 const loadPlanLayoutPage = () => import('@/pages/plans/PlanLayoutPage.vue');
 const loadPlanOverviewPage = () => import('@/pages/plans/PlanOverviewPage.vue');
+const loadPlanSessionsPage = () => import('@/pages/plans/PlanSessionsPage.vue');
 const loadPlanExercisesPage = () => import('@/pages/PlansPage.vue');
 
 const routes = [
@@ -50,6 +51,12 @@ const routes = [
         name: 'plans-exercises',
         component: loadPlanExercisesPage,
         meta: { titleKey: 'plans.exercise.title' }
+      },
+      {
+        path: 'sessions',
+        name: 'plans-sessions',
+        component: loadPlanSessionsPage,
+        meta: { titleKey: 'plans.sessions.title' }
       }
     ]
   },

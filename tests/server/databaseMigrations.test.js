@@ -16,7 +16,11 @@ const expectedTables = [
   'blood_pressure_records',
   'fitness_data',
   'sport_records',
-  'training_exercises'
+  'training_exercises',
+  'training_phases',
+  'training_plans',
+  'training_session_items',
+  'training_sessions'
 ];
 
 function withTemporaryDatabase(run) {
@@ -42,7 +46,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1, 2, 3]
+      [1, 2, 3, 4]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -128,7 +132,7 @@ test('adds equipment fields to existing version 2 exercise data', () => {
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [3]
+      [3, 4]
     );
     assert.deepEqual(
       { ...row },

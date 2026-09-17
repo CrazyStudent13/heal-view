@@ -34,6 +34,7 @@ class DatabaseService {
 
     // Opens the file directly; creates an empty DB file if missing.
     this.db = new DatabaseSync(config.dbPath);
+    this.db.exec('PRAGMA foreign_keys = ON');
 
     if (existed) {
       console.log('Loaded existing database');

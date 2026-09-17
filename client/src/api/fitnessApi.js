@@ -141,3 +141,47 @@ export function deleteTrainingExercise(id) {
 export function deleteTrainingExercises(ids) {
   return apiClient.delete('/training-exercises', { data: { ids } });
 }
+
+export function getTrainingPlans(config = {}) {
+  return apiClient.get('/training-plans', config);
+}
+
+export function getTrainingPlan(id, config = {}) {
+  return apiClient.get(`/training-plans/${id}`, config);
+}
+
+export function getTrainingSessions(params = {}, config = {}) {
+  return apiClient.get('/training-sessions', { ...config, params });
+}
+
+export function createTrainingPlan(plan) {
+  return apiClient.post('/training-plans', plan);
+}
+
+export function updateTrainingPlan(id, plan) {
+  return apiClient.put(`/training-plans/${id}`, plan);
+}
+
+export function createTrainingPhase(planId, phase) {
+  return apiClient.post(`/training-plans/${planId}/phases`, phase);
+}
+
+export function updateTrainingPhase(id, phase) {
+  return apiClient.put(`/training-phases/${id}`, phase);
+}
+
+export function deleteTrainingPhase(id) {
+  return apiClient.delete(`/training-phases/${id}`);
+}
+
+export function createTrainingSession(phaseId, session) {
+  return apiClient.post(`/training-phases/${phaseId}/sessions`, session);
+}
+
+export function updateTrainingSession(id, session) {
+  return apiClient.put(`/training-sessions/${id}`, session);
+}
+
+export function deleteTrainingSession(id) {
+  return apiClient.delete(`/training-sessions/${id}`);
+}

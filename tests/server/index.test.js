@@ -4,5 +4,7 @@ import './requestValidation.test.js';
 import './trainingExerciseValidation.test.js';
 import './trainingExerciseDeletion.test.js';
 import './trainingExerciseSeed.test.js';
+import './trainingPlanValidation.test.js';
+import './trainingPlanCrud.test.js';
 import './jsonSafe.test.js';
 import './apiSmoke.test.js';

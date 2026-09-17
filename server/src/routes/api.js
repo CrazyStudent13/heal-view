@@ -28,6 +28,19 @@ import {
   updateTrainingExerciseEnabled,
   updateTrainingExercisesEnabled
 } from '../controllers/trainingExerciseController.js';
+import {
+  createTrainingPhase,
+  createTrainingPlan,
+  createTrainingSession,
+  deleteTrainingPhase,
+  deleteTrainingSession,
+  getTrainingPlan,
+  listTrainingPlans,
+  listTrainingSessions,
+  updateTrainingPhase,
+  updateTrainingPlan,
+  updateTrainingSession
+} from '../controllers/trainingPlanController.js';
 
 const router = express.Router();
 
@@ -72,6 +85,19 @@ router.get('/training-exercises/:id', getTrainingExercise);
 router.put('/training-exercises/:id', updateTrainingExercise);
 router.patch('/training-exercises/:id/enabled', updateTrainingExerciseEnabled);
 router.delete('/training-exercises/:id', deleteTrainingExercise);
+
+// Training plans, phases, and dated training sessions
+router.get('/training-plans', listTrainingPlans);
+router.post('/training-plans', createTrainingPlan);
+router.get('/training-plans/:id', getTrainingPlan);
+router.put('/training-plans/:id', updateTrainingPlan);
+router.get('/training-sessions', listTrainingSessions);
+router.post('/training-plans/:planId/phases', createTrainingPhase);
+router.put('/training-phases/:id', updateTrainingPhase);
+router.delete('/training-phases/:id', deleteTrainingPhase);
+router.post('/training-phases/:phaseId/sessions', createTrainingSession);
+router.put('/training-sessions/:id', updateTrainingSession);
+router.delete('/training-sessions/:id', deleteTrainingSession);
 
 // Parse and import health archive ZIP exports
 router.post('/imports/parse', uploadArchive.single('archive'), parseImportArchive);

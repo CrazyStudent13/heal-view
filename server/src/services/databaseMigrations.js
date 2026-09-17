@@ -119,6 +119,80 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionThreeRequiredColumns);
     }
+  },
+  {
+    version: 4,
+    name: 'training plans phases and sessions',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS training_plans (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          goal TEXT NOT NULL DEFAULT '',
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'draft'
+            CHECK (status IN ('draft', 'active', 'paused', 'completed', 'archived')),
+          notes TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_phases (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plan_id INTEGER NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          adjustment_reason TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'planned'
+            CHECK (status IN ('planned', 'active', 'paused', 'completed', 'cancelled')),
+          position INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          phase_id INTEGER NOT NULL REFERENCES training_phases(id) ON DELETE CASCADE,
+          scheduled_date TEXT NOT NULL,
+          sequence INTEGER NOT NULL DEFAULT 1 CHECK (sequence > 0),
+          name TEXT NOT NULL DEFAULT '',
+          notes TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'planned'
+            CHECK (status IN ('planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE (phase_id, scheduled_date, sequence)
+        );
+
+        CREATE TABLE IF NOT EXISTS training_session_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id INTEGER NOT NULL REFERENCES training_sessions(id) ON DELETE CASCADE,
+          exercise_id INTEGER NOT NULL REFERENCES training_exercises(id) ON DELETE RESTRICT,
+          position INTEGER NOT NULL DEFAULT 0,
+          verification_mode TEXT NOT NULL
+            CHECK (verification_mode IN ('auto', 'manual', 'mixed')),
+          targets TEXT NOT NULL DEFAULT '{}',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE (session_id, exercise_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_training_plans_status ON training_plans(status);
+        CREATE INDEX IF NOT EXISTS idx_training_plans_dates ON training_plans(start_date, end_date);
+        CREATE INDEX IF NOT EXISTS idx_training_phases_plan ON training_phases(plan_id, position);
+        CREATE INDEX IF NOT EXISTS idx_training_phases_dates ON training_phases(start_date, end_date);
+        CREATE INDEX IF NOT EXISTS idx_training_sessions_phase ON training_sessions(phase_id, scheduled_date, sequence);
+        CREATE INDEX IF NOT EXISTS idx_training_sessions_date ON training_sessions(scheduled_date);
+        CREATE INDEX IF NOT EXISTS idx_training_session_items_session ON training_session_items(session_id, position);
+        CREATE INDEX IF NOT EXISTS idx_training_session_items_exercise ON training_session_items(exercise_id);
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionFourRequiredColumns);
+    }
   }
 ];
 
@@ -151,6 +225,44 @@ const versionTwoRequiredColumns = {
 
 const versionThreeRequiredColumns = {
   training_exercises: ['equipment_mode', 'equipment']
+};
+
+const versionFourRequiredColumns = {
+  training_plans: ['id', 'name', 'goal', 'start_date', 'end_date', 'status', 'notes', 'created_at', 'updated_at'],
+  training_phases: [
+    'id',
+    'plan_id',
+    'name',
+    'start_date',
+    'end_date',
+    'description',
+    'adjustment_reason',
+    'status',
+    'position',
+    'created_at',
+    'updated_at'
+  ],
+  training_sessions: [
+    'id',
+    'phase_id',
+    'scheduled_date',
+    'sequence',
+    'name',
+    'notes',
+    'status',
+    'created_at',
+    'updated_at'
+  ],
+  training_session_items: [
+    'id',
+    'session_id',
+    'exercise_id',
+    'position',
+    'verification_mode',
+    'targets',
+    'created_at',
+    'updated_at'
+  ]
 };
 
 /**
