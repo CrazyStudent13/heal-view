@@ -83,11 +83,10 @@
                 <h3>{{ planDetail.name }}</h3>
                 <el-tag :type="statusTagType(planDetail.status)">{{ statusLabel(planDetail.status) }}</el-tag>
               </div>
-              <p>{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
+              <p v-if="!planDetail.goal">{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
               <p v-if="planDetail.phases?.[0]?.name" class="plan-phase-label">
                 {{ t('plans.manager.phaseName') }}：{{ planDetail.phases[0].name }}
               </p>
-              <p v-if="planDetail.goal" class="plan-goal">{{ planDetail.goal }}</p>
             </div>
             <div class="plan-detail-actions">
               <el-button :icon="EditPen" @click="openPlanDialog(planDetail)">{{ t('common.edit') }}</el-button>
@@ -106,6 +105,15 @@
                   <el-button type="danger" plain :icon="Delete">{{ t('common.delete') }}</el-button>
                 </template>
               </el-popconfirm>
+            </div>
+            <div v-if="planDetail.goal" class="plan-goal">
+              <div class="plan-goal__content">
+                <div class="plan-goal__heading">
+                  <span>{{ t('plans.manager.planGoal') }}</span>
+                  <span class="plan-goal__period">{{ planDetail.startDate }} - {{ planDetail.endDate }}</span>
+                </div>
+                <p>{{ planDetail.goal }}</p>
+              </div>
             </div>
           </header>
 
@@ -304,15 +312,15 @@
             :placeholder="t('plans.manager.planNamePlaceholder')"
           />
         </el-form-item>
-        <el-form-item :label="t('plans.manager.phaseName')">
-          <el-input
-            v-model="planForm.phaseName"
-            maxlength="100"
-            show-word-limit
-            :placeholder="t('plans.manager.phaseNamePlaceholder')"
-          />
-        </el-form-item>
-        <div class="plan-form-grid" style="display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 12px">
+        <div class="plan-form-grid">
+          <el-form-item :label="t('plans.manager.phaseName')">
+            <el-input
+              v-model="planForm.phaseName"
+              maxlength="100"
+              show-word-limit
+              :placeholder="t('plans.manager.phaseNamePlaceholder')"
+            />
+          </el-form-item>
           <el-form-item :label="t('plans.manager.dateRange')" required>
             <el-date-picker v-model="planForm.dates" class="full-width" type="daterange" value-format="YYYY-MM-DD" />
           </el-form-item>
@@ -1335,7 +1343,10 @@ h2 {
   margin-bottom: 14px;
 }
 .plan-form-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.25fr) 160px;
   align-items: start;
+  gap: 12px;
 }
 .plan-form-grid :deep(.el-form-item) {
   width: auto;
@@ -1735,6 +1746,7 @@ h2 {
   gap: 16px;
 }
 .plan-detail-header {
+  flex-wrap: wrap;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--card-border);
 }
@@ -1747,10 +1759,47 @@ h2 {
   font-size: 20px;
   letter-spacing: 0;
 }
-.plan-goal,
 .phase-description {
   max-width: 720px;
   line-height: 1.55;
+  white-space: pre-wrap;
+}
+.plan-goal {
+  display: flex;
+  align-items: flex-start;
+  flex: 0 0 100%;
+  width: 100%;
+  padding: 9px 12px;
+  border-left: 3px solid var(--primary-color);
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--primary-color) 7%, var(--card-bg));
+}
+.plan-goal__content {
+  width: 100%;
+  min-width: 0;
+}
+.plan-goal__heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 2px;
+}
+.plan-goal__heading > span:first-child {
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 600;
+}
+.plan-goal__period {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.plan-goal__content > p {
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 .plan-detail-actions,
@@ -1984,6 +2033,12 @@ h2 {
   .target-grid,
   .no-targets {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .plan-form-grid {
+    grid-template-columns: 1fr;
   }
 }
 
