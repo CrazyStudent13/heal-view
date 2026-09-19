@@ -13,7 +13,8 @@ import {
   deleteTrainingPhase,
   deleteTrainingSession,
   getTrainingPlan,
-  listTrainingPlans
+  listTrainingPlans,
+  listTrainingSessions
 } from '../../server/src/controllers/trainingPlanController.js';
 import { databaseService } from '../../server/src/services/database.js';
 
@@ -186,6 +187,18 @@ test('creates and reads a plan with phases and dated training sessions', async (
       sameDaySessionResponse
     );
     assert.equal(sameDaySessionResponse.statusCode, 201);
+
+    const pagedSessionsResponse = responseRecorder();
+    listTrainingSessions(
+      { query: { planId: String(composedResponse.body.id), page: '2', pageSize: '2' } },
+      pagedSessionsResponse
+    );
+    assert.equal(pagedSessionsResponse.statusCode, 200);
+    assert.equal(pagedSessionsResponse.body.total, 3);
+    assert.equal(pagedSessionsResponse.body.page, 2);
+    assert.equal(pagedSessionsResponse.body.pageSize, 2);
+    assert.equal(pagedSessionsResponse.body.sessions.length, 1);
+    assert.equal(pagedSessionsResponse.body.sessions[0].id, sameDaySessionResponse.body.id);
 
     const listResponse = responseRecorder();
     listTrainingPlans({}, listResponse);

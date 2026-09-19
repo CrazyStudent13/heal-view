@@ -5,6 +5,7 @@ const PHASE_STATUSES = new Set(['planned', 'active', 'paused', 'completed', 'can
 const SESSION_STATUSES = new Set(['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped']);
 const TARGET_METRICS = new Set([
   'duration',
+  'durationSeconds',
   'distance',
   'sets',
   'repetitions',
@@ -95,9 +96,11 @@ function validatePhasePayload(payload = {}) {
 function validateTargets(targets) {
   if (!targets || typeof targets !== 'object' || Array.isArray(targets)) return null;
   const normalized = {};
+  if (targets.duration != null && targets.durationSeconds != null) return null;
   for (const [metric, rawValue] of Object.entries(targets)) {
     const number = Number(rawValue);
     if (!TARGET_METRICS.has(metric) || !Number.isFinite(number) || number <= 0) return null;
+    if (metric === 'durationSeconds' && !Number.isInteger(number)) return null;
     normalized[metric] = number;
   }
   return normalized;
@@ -244,7 +247,10 @@ function validateExercises(items) {
   for (const item of items) {
     const exercise = byId.get(item.exerciseId);
     const supportedMetrics = new Set(parseJson(exercise.metrics, []));
-    if (Object.keys(item.targets).some((metric) => !supportedMetrics.has(metric))) {
+    if (Object.keys(item.targets).some((metric) => metric !== 'durationSeconds' && !supportedMetrics.has(metric))) {
+      return { error: 'A target uses a metric that is not supported by its exercise' };
+    }
+    if (Object.prototype.hasOwnProperty.call(item.targets, 'durationSeconds') && !supportedMetrics.has('duration')) {
       return { error: 'A target uses a metric that is not supported by its exercise' };
     }
   }
@@ -297,6 +303,11 @@ export function listTrainingPlans(req, res) {
 export function listTrainingSessions(req, res) {
   try {
     const { startDate, endDate, planId, status } = req.query;
+    const page = Number.isInteger(Number(req.query.page)) && Number(req.query.page) > 0 ? Number(req.query.page) : 1;
+    const pageSize =
+      Number.isInteger(Number(req.query.pageSize)) && Number(req.query.pageSize) > 0
+        ? Math.min(Number(req.query.pageSize), 100)
+        : 10;
     const conditions = [];
     const params = [];
     if (isValidDate(startDate)) {
@@ -316,6 +327,15 @@ export function listTrainingSessions(req, res) {
       params.push(status);
     }
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const total = Number(
+      queryRow(
+        `SELECT COUNT(*) AS total
+         FROM training_sessions s
+         JOIN training_plans p ON p.id = s.plan_id
+         ${whereClause}`,
+        params
+      )?.total || 0
+    );
     const rows = queryRows(
       `SELECT s.*, p.name AS plan_name,
         (SELECT COUNT(*) FROM training_session_items item_count WHERE item_count.session_id = s.id) AS item_count,
@@ -326,10 +346,11 @@ export function listTrainingSessions(req, res) {
        FROM training_sessions s
        JOIN training_plans p ON p.id = s.plan_id
        ${whereClause}
-       ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC`,
-      params
+       ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, (page - 1) * pageSize]
     );
-    return res.json({ sessions: rows.map(serializeSessionListItem) });
+    return res.json({ sessions: rows.map(serializeSessionListItem), total, page, pageSize });
   } catch (error) {
     console.error('Error listing training sessions:', error);
     return res.status(500).json({ error: 'Failed to fetch training sessions' });

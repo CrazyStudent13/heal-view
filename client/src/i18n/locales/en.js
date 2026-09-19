@@ -194,6 +194,11 @@ export default {
       },
       units: {
         duration: 'min',
+        durationParts: {
+          hours: 'h',
+          minutes: 'm',
+          seconds: 's'
+        },
         distance: 'km',
         sets: 'sets',
         repetitions: 'reps',

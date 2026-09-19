@@ -19,13 +19,13 @@
         :start-placeholder="t('nav.startDate')"
         :end-placeholder="t('nav.endDate')"
         :aria-label="t('plans.sessions.filterDate')"
-        @change="loadSessions"
+        @change="applyFilters"
       />
-      <el-select v-model="planId" clearable :placeholder="t('plans.sessions.filterPlan')" @change="loadSessions">
+      <el-select v-model="planId" clearable :placeholder="t('plans.sessions.filterPlan')" @change="applyFilters">
         <el-option :label="t('plans.sessions.allPlans')" value="" />
         <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
       </el-select>
-      <el-select v-model="status" clearable :placeholder="t('plans.sessions.filterStatus')" @change="loadSessions">
+      <el-select v-model="status" clearable :placeholder="t('plans.sessions.filterStatus')" @change="applyFilters">
         <el-option :label="t('plans.sessions.allStatuses')" value="" />
         <el-option
           v-for="sessionStatus in sessionStatuses"
@@ -53,12 +53,18 @@
         </el-table-column>
         <el-table-column :label="t('plans.sessions.exercises')" min-width="300">
           <template #default="{ row }">
-            <div class="session-exercises">
-              <div v-for="exercise in row.exercises" :key="exercise.name" class="session-exercise">
-                <span>{{ exercise.name }}</span>
-                <small>{{ targetsText(exercise.targets) }}</small>
-              </div>
-            </div>
+            <el-tooltip placement="top" popper-class="session-content-tooltip" :show-after="300">
+              <template #content>
+                <div
+                  v-for="(exercise, index) in row.exercises"
+                  :key="`${exercise.name}-${index}`"
+                  class="session-tooltip-line"
+                >
+                  {{ exercise.name }} {{ targetsText(exercise.targets) }}
+                </div>
+              </template>
+              <div class="session-exercises-summary">{{ exercisesText(row.exercises) }}</div>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column :label="t('plans.sessions.actions')" width="104" fixed="right">
@@ -68,6 +74,17 @@
         </el-table-column>
         <template #empty><el-empty :description="t('plans.sessions.empty')" /></template>
       </el-table>
+    </div>
+    <div class="sessions-pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="pageSizes"
+        :total="total"
+        layout="total, sizes, prev, pager, next"
+        @current-change="loadSessions"
+        @size-change="handlePageSizeChange"
+      />
     </div>
   </section>
 </template>
@@ -89,7 +106,12 @@ const plans = ref([]);
 const dateRange = ref([]);
 const planId = ref('');
 const status = ref('');
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const pageSizes = [10, 20, 50];
 const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
+const durationParts = ['hours', 'minutes', 'seconds'];
 
 function statusLabel(value) {
   return t(`plans.manager.statuses.${value}`);
@@ -110,12 +132,47 @@ function unitLabel(metric) {
   return t(`plans.manager.units.${metric}`);
 }
 
+function durationPartLabel(part) {
+  return t(`plans.manager.units.durationParts.${durationParts.includes(part) ? part : 'seconds'}`);
+}
+
 function targetsText(targets) {
-  const entries = Object.entries(targets || {});
-  if (entries.length === 0) return t('plans.manager.noTargets');
-  return entries
-    .map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`)
+  const entries = Object.entries(targets || {}).filter(
+    ([metric]) => !['duration', 'durationSeconds', 'durationUnit'].includes(metric)
+  );
+  const parts = [];
+  const seconds = durationSecondsFromTargets(targets || {});
+  if (seconds > 0) parts.push(`${metricLabel('duration')} ${formatDurationText(seconds)}`);
+  parts.push(...entries.map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`));
+  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+}
+
+function exercisesText(exercises = []) {
+  return exercises
+    .map((exercise) => `${exercise.name} ${targetsText(exercise.targets)}`)
     .join(t('common.listSeparator'));
+}
+
+function durationSecondsFromTargets(targets) {
+  if (Number.isFinite(Number(targets.durationSeconds)) && Number(targets.durationSeconds) > 0) {
+    return Number(targets.durationSeconds);
+  }
+  if (!Number.isFinite(Number(targets.duration)) || Number(targets.duration) <= 0) return 0;
+  return Number(targets.duration) * (targets.durationUnit === 'seconds' ? 1 : 60);
+}
+
+function formatDurationText(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return [
+    hours > 0 ? `${hours}${durationPartLabel('hours')}` : '',
+    minutes > 0 ? `${minutes}${durationPartLabel('minutes')}` : '',
+    remainder > 0 || (hours === 0 && minutes === 0) ? `${remainder}${durationPartLabel('seconds')}` : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 async function loadSessions() {
@@ -126,14 +183,27 @@ async function loadSessions() {
       startDate: dateRange.value?.[0],
       endDate: dateRange.value?.[1],
       planId: planId.value || undefined,
-      status: status.value || undefined
+      status: status.value || undefined,
+      page: currentPage.value,
+      pageSize: pageSize.value
     });
     sessions.value = response.sessions;
+    total.value = response.total;
   } catch (requestError) {
     error.value = normalizeRequestError(requestError, t) || t('plans.manager.loadFailed');
   } finally {
     loading.value = false;
   }
+}
+
+function applyFilters() {
+  currentPage.value = 1;
+  loadSessions();
+}
+
+function handlePageSizeChange() {
+  currentPage.value = 1;
+  loadSessions();
 }
 
 function viewPlan(id) {
@@ -155,13 +225,16 @@ onMounted(async () => {
 .sessions-page {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .sessions-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex: 0 0 auto;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--card-border);
 }
@@ -182,6 +255,7 @@ p {
 .sessions-toolbar {
   display: flex;
   flex-wrap: wrap;
+  flex: 0 0 auto;
   gap: 12px;
   padding: 18px 0;
 }
@@ -196,29 +270,36 @@ p {
   margin-bottom: 14px;
 }
 .sessions-table-region {
-  flex: 1;
-  min-height: 340px;
-  overflow: auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 .sessions-table {
+  width: 100%;
   min-width: 670px;
 }
-.session-exercises {
+.sessions-pagination {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  margin-top: 16px;
+  overflow-x: auto;
 }
-.session-exercise {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.session-exercises-summary {
+  min-width: 0;
+  overflow: hidden;
   color: var(--text-primary);
-  font-size: 12px;
-}
-.session-exercise small {
-  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (max-width: 640px) {
+  .sessions-page {
+    height: auto;
+    min-height: 360px;
+    overflow: visible;
+  }
   .sessions-header {
     flex-direction: column;
   }
@@ -226,5 +307,23 @@ p {
   .sessions-toolbar :deep(.el-select) {
     width: 100%;
   }
+  .sessions-pagination {
+    justify-content: flex-start;
+  }
+  .sessions-table-region {
+    flex: none;
+    height: 60vh;
+    min-height: 360px;
+    overflow: auto;
+  }
+}
+
+:global(.session-content-tooltip) {
+  max-width: min(560px, calc(100vw - 32px));
+  line-height: 1.6;
+}
+
+:global(.session-content-tooltip .session-tooltip-line + .session-tooltip-line) {
+  margin-top: 4px;
 }
 </style>

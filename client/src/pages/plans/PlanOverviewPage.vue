@@ -412,15 +412,50 @@
                   />
                 </el-select>
                 <div v-if="metricsFor(item).length > 0" class="target-grid">
-                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                  <label
+                    v-for="metric in metricsFor(item)"
+                    :key="metric"
+                    class="target-field"
+                    :class="{ 'target-field--duration': metric === 'duration' }"
+                  >
                     <span>{{ metricLabel(metric) }}</span>
-                    <el-input-number
-                      v-model="item.targets[metric]"
-                      :min="0"
-                      :precision="metricPrecision(metric)"
-                      controls-position="right"
-                    />
-                    <small>{{ unitLabel(metric) }}</small>
+                    <template v-if="metric === 'duration'">
+                      <div class="duration-input-group">
+                        <el-input-number
+                          v-model="item.durationParts.hours"
+                          :min="0"
+                          :max="99"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('hours') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.minutes"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('minutes') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.seconds"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('seconds') }}</small>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <el-input-number
+                        v-model="item.targets[metric]"
+                        :min="0"
+                        :precision="metricPrecision(metric)"
+                        controls-position="right"
+                      />
+                      <small>{{ unitLabel(metric) }}</small>
+                    </template>
                   </label>
                 </div>
                 <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
@@ -580,15 +615,50 @@
             <el-table-column :label="t('plans.manager.targets')" min-width="460">
               <template #default="{ row: item }">
                 <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
-                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                  <label
+                    v-for="metric in metricsFor(item)"
+                    :key="metric"
+                    class="target-field"
+                    :class="{ 'target-field--duration': metric === 'duration' }"
+                  >
                     <span>{{ metricLabel(metric) }}</span>
-                    <el-input-number
-                      v-model="item.targets[metric]"
-                      :min="0"
-                      :precision="metricPrecision(metric)"
-                      controls-position="right"
-                    />
-                    <small>{{ unitLabel(metric) }}</small>
+                    <template v-if="metric === 'duration'">
+                      <div class="duration-input-group">
+                        <el-input-number
+                          v-model="item.durationParts.hours"
+                          :min="0"
+                          :max="99"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('hours') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.minutes"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('minutes') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.seconds"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('seconds') }}</small>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <el-input-number
+                        v-model="item.targets[metric]"
+                        :min="0"
+                        :precision="metricPrecision(metric)"
+                        controls-position="right"
+                      />
+                      <small>{{ unitLabel(metric) }}</small>
+                    </template>
                   </label>
                 </div>
                 <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
@@ -630,7 +700,7 @@
     >
       <p class="batch-session-dialog__description">{{ t('plans.manager.batchDescription') }}</p>
       <el-form label-position="top" @submit.prevent>
-        <div class="session-form-grid">
+        <div class="batch-session-fields">
           <el-form-item :label="t('plans.manager.dateRange')" required>
             <el-date-picker
               v-model="batchSessionForm.dates"
@@ -645,9 +715,6 @@
               <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
             </el-select>
           </el-form-item>
-        </div>
-
-        <div class="batch-session-dialog__frequency">
           <el-form-item>
             <template #label>
               <span class="batch-frequency-label">
@@ -666,14 +733,14 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item v-if="batchSessionForm.frequency === 'weekdays'" :label="t('plans.manager.batchWeekdays')">
-            <el-checkbox-group v-model="batchSessionForm.weekdays" class="weekday-options">
-              <el-checkbox v-for="day in weekdayOptions" :key="day.value" :label="day.value">
-                {{ day.label }}
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-form-item>
         </div>
+        <el-form-item v-if="batchSessionForm.frequency === 'weekdays'" :label="t('plans.manager.batchWeekdays')">
+          <el-checkbox-group v-model="batchSessionForm.weekdays" class="weekday-options">
+            <el-checkbox v-for="day in weekdayOptions" :key="day.value" :label="day.value">
+              {{ day.label }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
         <p v-if="batchSessionForm.frequency === 'china_workdays' && chinaCalendarLoading" class="calendar-notice">
           {{ t('plans.manager.chinaCalendarLoading') }}
         </p>
@@ -718,15 +785,50 @@
             <el-table-column :label="t('plans.manager.targets')" min-width="460">
               <template #default="{ row: item }">
                 <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
-                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                  <label
+                    v-for="metric in metricsFor(item)"
+                    :key="metric"
+                    class="target-field"
+                    :class="{ 'target-field--duration': metric === 'duration' }"
+                  >
                     <span>{{ metricLabel(metric) }}</span>
-                    <el-input-number
-                      v-model="item.targets[metric]"
-                      :min="0"
-                      :precision="metricPrecision(metric)"
-                      controls-position="right"
-                    />
-                    <small>{{ unitLabel(metric) }}</small>
+                    <template v-if="metric === 'duration'">
+                      <div class="duration-input-group">
+                        <el-input-number
+                          v-model="item.durationParts.hours"
+                          :min="0"
+                          :max="99"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('hours') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.minutes"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('minutes') }}</small>
+                        <el-input-number
+                          v-model="item.durationParts.seconds"
+                          :min="0"
+                          :max="59"
+                          :precision="0"
+                          controls-position="right"
+                        />
+                        <small>{{ durationPartLabel('seconds') }}</small>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <el-input-number
+                        v-model="item.targets[metric]"
+                        :min="0"
+                        :precision="metricPrecision(metric)"
+                        controls-position="right"
+                      />
+                      <small>{{ unitLabel(metric) }}</small>
+                    </template>
                   </label>
                 </div>
                 <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
@@ -826,6 +928,7 @@ const batchSessionForm = reactive({
 const batchSessionItems = ref([]);
 const batchRule = reactive({ frequency: 'china_workdays', weekdays: [1, 2, 3, 4, 5] });
 const batchFrequencies = ['daily', 'china_workdays', 'weekdays', 'odd', 'even'];
+const durationParts = ['hours', 'minutes', 'seconds'];
 const weekdayOptions = computed(() => [
   { value: 1, label: t('plans.manager.weekdays.mon') },
   { value: 2, label: t('plans.manager.weekdays.tue') },
@@ -964,16 +1067,45 @@ function unitLabel(metric) {
   return t(`plans.manager.units.${metric}`);
 }
 
+function durationPartLabel(part) {
+  return t(`plans.manager.units.durationParts.${durationParts.includes(part) ? part : 'seconds'}`);
+}
+
 function metricPrecision(metric) {
   return ['distance', 'weight', 'speed', 'incline'].includes(metric) ? 1 : 0;
 }
 
 function targetsText(item) {
-  const entries = Object.entries(item.targets || {});
-  if (entries.length === 0) return t('plans.manager.noTargets');
-  return entries
-    .map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`)
-    .join(t('common.listSeparator'));
+  const entries = Object.entries(item.targets || {}).filter(
+    ([metric]) => !['duration', 'durationSeconds', 'durationUnit'].includes(metric)
+  );
+  const parts = [];
+  const seconds = durationSecondsFromTargets(item.targets || {}) || durationSecondsFromParts(item.durationParts);
+  if (seconds > 0) parts.push(`${metricLabel('duration')} ${formatDurationText(seconds)}`);
+  parts.push(...entries.map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`));
+  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+}
+
+function durationSecondsFromTargets(targets) {
+  if (Number.isFinite(Number(targets.durationSeconds)) && Number(targets.durationSeconds) > 0) {
+    return Number(targets.durationSeconds);
+  }
+  if (!Number.isFinite(Number(targets.duration)) || Number(targets.duration) <= 0) return 0;
+  return Number(targets.duration) * (targets.durationUnit === 'seconds' ? 1 : 60);
+}
+
+function formatDurationText(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return [
+    hours > 0 ? `${hours}${durationPartLabel('hours')}` : '',
+    minutes > 0 ? `${minutes}${durationPartLabel('minutes')}` : '',
+    remainder > 0 || (hours === 0 && minutes === 0) ? `${remainder}${durationPartLabel('seconds')}` : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 async function loadPlanDetail(id) {
@@ -1202,7 +1334,7 @@ async function savePlanWithSessions() {
         scheduledDate: session.scheduledDate,
         notes: session.notes,
         status: session.status,
-        items: session.items.map((item) => ({ exerciseId: item.exerciseId, targets: item.targets }))
+        items: session.items.map((item) => ({ exerciseId: item.exerciseId, targets: targetPayload(item) }))
       }))
     });
     await syncPlanPhase(saved.id);
@@ -1248,7 +1380,12 @@ async function removePlan(plan) {
 
 function createItem(exerciseId = null, targets = {}) {
   itemKey += 1;
-  return { key: itemKey, exerciseId, targets: { ...targets } };
+  const normalizedTargets = { ...targets };
+  const durationPartsValue = durationPartsFromTargets(normalizedTargets);
+  delete normalizedTargets.duration;
+  delete normalizedTargets.durationSeconds;
+  delete normalizedTargets.durationUnit;
+  return { key: itemKey, exerciseId, durationParts: durationPartsValue, targets: normalizedTargets };
 }
 
 function batchExerciseOptionsFor(currentItem) {
@@ -1331,7 +1468,11 @@ function generateBatchSessions() {
       scheduledDate,
       notes: '',
       status: 'planned',
-      items: batchItems.value.map((item) => createItem(item.exerciseId, item.targets))
+      items: batchItems.value.map((item) => {
+        const draftItem = createItem(item.exerciseId, item.targets);
+        draftItem.durationParts = { ...item.durationParts };
+        return draftItem;
+      })
     });
   });
   ElMessage.success(t('plans.manager.batchGenerated', { count: dates.length }));
@@ -1430,9 +1571,7 @@ async function saveBatchSessions() {
 
   const items = batchSessionItems.value.map((item) => ({
     exerciseId: item.exerciseId,
-    targets: Object.fromEntries(
-      Object.entries(item.targets).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
-    )
+    targets: targetPayload(item)
   }));
   saving.value = true;
   try {
@@ -1501,6 +1640,43 @@ function removeSessionItem(index) {
 
 function resetItemTargets(item) {
   item.targets = Object.fromEntries(metricsFor(item).map((metric) => [metric, undefined]));
+  item.durationParts = { hours: 0, minutes: 0, seconds: 0 };
+}
+
+function targetPayload(item) {
+  const targets = Object.fromEntries(
+    Object.entries(item.targets).filter(
+      ([metric, value]) =>
+        !['duration', 'durationSeconds', 'durationUnit'].includes(metric) &&
+        Number.isFinite(Number(value)) &&
+        Number(value) > 0
+    )
+  );
+  if (metricsFor(item).includes('duration')) {
+    const seconds = durationSecondsFromParts(item.durationParts);
+    if (seconds > 0) targets.durationSeconds = seconds;
+  }
+  return targets;
+}
+
+function durationPartsFromTargets(targets) {
+  return durationPartsFromSeconds(durationSecondsFromTargets(targets));
+}
+
+function durationPartsFromSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  return {
+    hours: Math.floor(seconds / 3600),
+    minutes: Math.floor((seconds % 3600) / 60),
+    seconds: seconds % 60
+  };
+}
+
+function durationSecondsFromParts(parts = {}) {
+  const hours = Math.max(0, Number(parts.hours) || 0);
+  const minutes = Math.max(0, Number(parts.minutes) || 0);
+  const seconds = Math.max(0, Number(parts.seconds) || 0);
+  return Math.round(hours * 3600 + minutes * 60 + seconds);
 }
 
 async function saveSession() {
@@ -1513,9 +1689,7 @@ async function saveSession() {
     status: sessionForm.status,
     items: sessionForm.items.map((item) => ({
       exerciseId: item.exerciseId,
-      targets: Object.fromEntries(
-        Object.entries(item.targets).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
-      )
+      targets: targetPayload(item)
     }))
   };
   if (isCreatingPlan.value) {
@@ -1632,10 +1806,13 @@ h2 {
   color: var(--text-secondary);
   font-size: 13px;
 }
-.batch-session-dialog__frequency {
+.batch-session-fields {
   display: grid;
-  grid-template-columns: minmax(220px, 0.75fr) minmax(320px, 1.25fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+}
+.batch-session-fields .el-form-item {
+  min-width: 0;
 }
 .batch-frequency-label {
   display: flex;
@@ -2300,7 +2477,8 @@ h2 {
   min-width: 0;
 }
 .session-target-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
+  justify-content: start;
 }
 .target-field {
   display: flex;
@@ -2315,10 +2493,34 @@ h2 {
 .target-field small {
   flex: none;
 }
+.target-field--duration {
+  grid-column: 1 / -1;
+}
+.duration-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.target-field .duration-input-group :deep(.el-input-number) {
+  width: 84px;
+  min-width: 84px;
+  flex: none;
+}
+.duration-input-group small {
+  min-width: 12px;
+  margin-right: 2px;
+}
 .target-field :deep(.el-input-number) {
   width: auto;
   min-width: 72px;
   flex: 1;
+}
+.session-target-grid .target-field:not(.target-field--duration) :deep(.el-input-number) {
+  width: 88px;
+  min-width: 88px;
+  flex: none;
 }
 .target-field small {
   min-width: 0;
@@ -2378,6 +2580,7 @@ h2 {
     grid-column: 1 / -1;
   }
   .session-form-grid,
+  .batch-session-fields,
   .target-grid,
   .batch-rule__controls,
   .plan-form-grid {

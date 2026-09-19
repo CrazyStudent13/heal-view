@@ -193,6 +193,11 @@ export default {
       },
       units: {
         duration: '分钟',
+        durationParts: {
+          hours: '时',
+          minutes: '分',
+          seconds: '秒'
+        },
         distance: '公里',
         sets: '组',
         repetitions: '次',

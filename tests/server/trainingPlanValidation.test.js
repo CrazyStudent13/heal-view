@@ -42,3 +42,18 @@ test('requires each training session exercise once and accepts positive targets'
   assert.ok(duplicate.errors['items.1.exerciseId']);
   assert.ok(invalidTarget.errors['items.0.targets']);
 });
+
+test('accepts canonical duration targets in seconds', () => {
+  const valid = trainingPlanValidation.validateSessionPayload({
+    scheduledDate: '2026-09-17',
+    items: [{ exerciseId: 1, targets: { durationSeconds: 90 } }]
+  });
+  const invalid = trainingPlanValidation.validateSessionPayload({
+    scheduledDate: '2026-09-17',
+    items: [{ exerciseId: 1, targets: { durationSeconds: 90.5 } }]
+  });
+
+  assert.equal(valid.errors, undefined);
+  assert.ok(invalid.errors['items.0.targets']);
+  assert.deepEqual(valid.value.items[0].targets, { durationSeconds: 90 });
+});
