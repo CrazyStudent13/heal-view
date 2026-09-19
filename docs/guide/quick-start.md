@@ -22,13 +22,13 @@ pnpm install
 pnpm dev:server
 ```
 
-后端默认运行在 `http://localhost:3000`。
+后端默认运行在 `http://localhost:43128`。
 
 ```bash
 pnpm dev:client
 ```
 
-前端默认运行在 `http://localhost:5173`。浏览器访问前端地址即可使用应用。
+前端默认运行在 `http://localhost:43127`。浏览器访问前端地址即可使用应用。
 
 ## 启动文档站
 

@@ -14,7 +14,8 @@ pnpm --filter heal-view-client build
 
 ## 说明
 
-- 开发时通过 Vite 代理将 `/api` 转发到本地后端（默认 `http://localhost:3000`），见 `vite.config.js`
+- 开发时默认监听 `http://localhost:43127`，并通过 Vite 代理将 `/api` 转发到本地后端（默认 `http://localhost:43128`），见 `vite.config.js`
+- 可在 `client/.env` 中通过 `CLIENT_PORT` 和 `API_PROXY_TARGET` 覆盖开发配置
 - 生产部署时将 `dist/` 交由后端 Express 静态托管，单容器部署
 
 详见仓库根目录 [README.md](../README.md)。

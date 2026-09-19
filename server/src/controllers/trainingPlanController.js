@@ -619,15 +619,24 @@ export function updateTrainingPhase(req, res) {
   }
 }
 
-function saveSessionItems(db, sessionId, items, now) {
+function saveSessionItems(db, sessionId, items, now, startPosition = 0) {
   items.forEach((item, index) => {
     db.run(
       `INSERT INTO training_session_items
         (session_id, exercise_id, position, verification_mode, targets, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [sessionId, item.exerciseId, index, item.verificationMode, JSON.stringify(item.targets), now, now]
+      [sessionId, item.exerciseId, startPosition + index, item.verificationMode, JSON.stringify(item.targets), now, now]
     );
   });
+}
+
+function appendSessionItems(db, sessionId, items, now) {
+  if (items.length === 0) return;
+  const row = queryRow(
+    'SELECT COALESCE(MAX(position), -1) AS max_position FROM training_session_items WHERE session_id = ?',
+    [sessionId]
+  );
+  saveSessionItems(db, sessionId, items, now, Number(row?.max_position ?? -1) + 1);
 }
 
 export function createTrainingSession(req, res) {
@@ -724,17 +733,11 @@ export function createTrainingSessionsBatch(req, res) {
   }
 
   const existing = queryRows(
-    `SELECT scheduled_date, sequence FROM training_sessions
+    `SELECT id, scheduled_date, sequence FROM training_sessions
      WHERE plan_id = ? AND scheduled_date IN (${sessionValues.map(() => '?').join(', ')})`,
     [planId, ...sessionValues.map((session) => session.scheduledDate)]
   );
-  const existingSlots = new Set(existing.map((session) => `${session.scheduled_date}:${session.sequence}`));
-  const conflicts = sessionValues.filter((session) =>
-    existingSlots.has(`${session.scheduledDate}:${session.sequence}`)
-  );
-  if (conflicts.length > 0) {
-    return respondConflict(res, 'SESSION_DATE_EXISTS', `${conflicts.length} training session dates already exist`);
-  }
+  const existingBySlot = new Map(existing.map((session) => [`${session.scheduled_date}:${session.sequence}`, session]));
 
   const db = databaseService.getDb();
   let transactionOpen = false;
@@ -742,7 +745,26 @@ export function createTrainingSessionsBatch(req, res) {
     const now = Date.now();
     db.run('BEGIN IMMEDIATE');
     transactionOpen = true;
+    let createdCount = 0;
+    let updatedCount = 0;
+    let itemCount = 0;
     sessionValues.forEach((session, index) => {
+      const existingSession = existingBySlot.get(`${session.scheduledDate}:${session.sequence}`);
+      if (existingSession) {
+        const existingItems = queryRows(
+          'SELECT exercise_id FROM training_session_items WHERE session_id = ? ORDER BY position, id',
+          [existingSession.id]
+        );
+        const existingExerciseIds = new Set(existingItems.map((item) => Number(item.exercise_id)));
+        const newItems = exerciseValues[index].filter((item) => !existingExerciseIds.has(item.exerciseId));
+        appendSessionItems(db, existingSession.id, newItems, now);
+        if (newItems.length > 0) {
+          db.run('UPDATE training_sessions SET updated_at = ? WHERE id = ?', [now, existingSession.id]);
+          updatedCount += 1;
+          itemCount += newItems.length;
+        }
+        return;
+      }
       db.run(
         `INSERT INTO training_sessions
           (plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
@@ -751,10 +773,18 @@ export function createTrainingSessionsBatch(req, res) {
       );
       const id = Number(queryRow('SELECT last_insert_rowid() AS id').id);
       saveSessionItems(db, id, exerciseValues[index], now);
+      createdCount += 1;
+      itemCount += exerciseValues[index].length;
     });
     db.run('COMMIT');
     transactionOpen = false;
-    return res.status(201).json({ count: sessionValues.length, plan: getPlan(planId) });
+    return res.status(201).json({
+      count: createdCount + updatedCount,
+      createdCount,
+      updatedCount,
+      itemCount,
+      plan: getPlan(planId)
+    });
   } catch (error) {
     if (transactionOpen) db.run('ROLLBACK');
     console.error('Error creating training sessions in batch:', error);

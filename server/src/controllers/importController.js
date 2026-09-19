@@ -1,6 +1,4 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import {
   clearImportedData,
@@ -10,10 +8,9 @@ import {
   parseArchiveFile
 } from '../services/archiveImportService.js';
 import { resetUserProfileCache } from './weightController.js';
+import { config } from '../config/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadDir = path.resolve(__dirname, '../../uploads');
+const uploadDir = config.uploadDir;
 
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {

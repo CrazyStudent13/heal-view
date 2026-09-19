@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
+import path from 'path';
 import { config } from '../config/index.js';
 import { migrateDatabase } from './databaseMigrations.js';
 
@@ -30,6 +31,7 @@ class DatabaseService {
    * for compatibility with the previous sql.js-based API).
    */
   async initialize() {
+    fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
     const existed = fs.existsSync(config.dbPath);
 
     // Opens the file directly; creates an empty DB file if missing.

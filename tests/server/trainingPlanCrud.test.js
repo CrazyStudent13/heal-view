@@ -9,6 +9,7 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
+  createTrainingSessionsBatch,
   deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
@@ -242,6 +243,93 @@ test('creates and reads a plan with phases and dated training sessions', async (
     );
     assert.equal(rejectedResponse.statusCode, 400);
     assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_plans')[0].values[0][0], 1);
+  } finally {
+    databaseService.close();
+    config.dbPath = originalDbPath;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('appends batch exercises to existing training dates', async () => {
+  const originalDbPath = config.dbPath;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-plan-batch-'));
+  config.dbPath = path.join(directory, 'health_data.db');
+
+  try {
+    await databaseService.initialize();
+    const now = Date.now();
+    databaseService.getDb().run(
+      `INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      ['Walking', 'mdi:walk', 'aerobic', 'outdoor', 'auto', '["duration"]', 'Cardio', now, now]
+    );
+    const walkingId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    databaseService.getDb().run(
+      `INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      ['Plank', 'mdi:human', 'strength', 'indoor', 'auto', '["duration"]', 'Core', now, now]
+    );
+    const plankId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+
+    const planResponse = responseRecorder();
+    createTrainingPlan(
+      {
+        body: {
+          name: 'Batch append plan',
+          startDate: '2026-09-01',
+          endDate: '2026-09-30',
+          status: 'active'
+        }
+      },
+      planResponse
+    );
+    assert.equal(planResponse.statusCode, 201);
+
+    const sessionResponse = responseRecorder();
+    createTrainingSession(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          scheduledDate: '2026-09-10',
+          notes: 'Keep the original note',
+          status: 'planned',
+          items: [{ exerciseId: walkingId, targets: { durationSeconds: 600 } }]
+        }
+      },
+      sessionResponse
+    );
+    assert.equal(sessionResponse.statusCode, 201);
+
+    const batchResponse = responseRecorder();
+    createTrainingSessionsBatch(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          sessions: [
+            { scheduledDate: '2026-09-10', items: [{ exerciseId: plankId, targets: { durationSeconds: 30 } }] },
+            { scheduledDate: '2026-09-11', items: [{ exerciseId: plankId, targets: { durationSeconds: 45 } }] }
+          ]
+        }
+      },
+      batchResponse
+    );
+    assert.equal(batchResponse.statusCode, 201);
+    assert.equal(batchResponse.body.createdCount, 1);
+    assert.equal(batchResponse.body.updatedCount, 1);
+    assert.equal(batchResponse.body.itemCount, 2);
+
+    const detailResponse = responseRecorder();
+    getTrainingPlan({ params: { id: planResponse.body.id } }, detailResponse);
+    assert.equal(detailResponse.body.sessions.length, 2);
+    const appendedSession = detailResponse.body.sessions.find((session) => session.scheduledDate === '2026-09-10');
+    assert.equal(appendedSession.notes, 'Keep the original note');
+    assert.equal(appendedSession.items.length, 2);
+    assert.deepEqual(
+      appendedSession.items.map((item) => item.exerciseId).sort((a, b) => a - b),
+      [walkingId, plankId].sort((a, b) => a - b)
+    );
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

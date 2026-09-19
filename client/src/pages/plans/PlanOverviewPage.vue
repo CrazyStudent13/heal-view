@@ -1459,23 +1459,38 @@ function generateBatchSessions() {
     );
   }
   const dates = batchDates();
-  const existingDates = new Set(draftSessions.value.map((session) => session.scheduledDate));
-  const conflicts = dates.filter((date) => existingDates.has(date));
-  if (conflicts.length > 0) return ElMessage.warning(t('plans.manager.batchConflict', { count: conflicts.length }));
+  let generatedCount = 0;
+  let appendedCount = 0;
   dates.forEach((scheduledDate) => {
+    const existingSession = draftSessions.value.find((session) => session.scheduledDate === scheduledDate);
+    const newItems = batchItems.value
+      .filter((item) => !existingSession?.items.some((existingItem) => existingItem.exerciseId === item.exerciseId))
+      .map((item) => {
+        const draftItem = createItem(item.exerciseId, item.targets);
+        draftItem.durationParts = { ...item.durationParts };
+        return draftItem;
+      });
+    if (existingSession) {
+      existingSession.items.push(...newItems);
+      if (newItems.length > 0) appendedCount += 1;
+      return;
+    }
     draftSessions.value.push({
       key: ++draftSessionKey,
       scheduledDate,
       notes: '',
       status: 'planned',
-      items: batchItems.value.map((item) => {
-        const draftItem = createItem(item.exerciseId, item.targets);
-        draftItem.durationParts = { ...item.durationParts };
-        return draftItem;
-      })
+      items: newItems
     });
+    generatedCount += 1;
   });
-  ElMessage.success(t('plans.manager.batchGenerated', { count: dates.length }));
+  if (generatedCount > 0 && appendedCount > 0) {
+    ElMessage.success(t('plans.manager.batchMixed', { generated: generatedCount, appended: appendedCount }));
+  } else if (appendedCount > 0) {
+    ElMessage.success(t('plans.manager.batchAppended', { count: appendedCount }));
+  } else {
+    ElMessage.success(t('plans.manager.batchGenerated', { count: generatedCount }));
+  }
 }
 
 function isChinaWorkday(date, override) {
@@ -1565,9 +1580,6 @@ async function saveBatchSessions() {
   }
   const dates = batchSessionDates.value;
   if (dates.length === 0) return ElMessage.warning(t('plans.manager.batchNoDates'));
-  const existingDates = new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate));
-  const conflicts = dates.filter((date) => existingDates.has(date));
-  if (conflicts.length > 0) return ElMessage.warning(t('plans.manager.batchConflict', { count: conflicts.length }));
 
   const items = batchSessionItems.value.map((item) => ({
     exerciseId: item.exerciseId,
@@ -1575,7 +1587,7 @@ async function saveBatchSessions() {
   }));
   saving.value = true;
   try {
-    await createTrainingSessionsBatch(
+    const response = await createTrainingSessionsBatch(
       planDetail.value.id,
       dates.map((scheduledDate) => ({
         scheduledDate,
@@ -1586,7 +1598,15 @@ async function saveBatchSessions() {
     );
     batchSessionDialogVisible.value = false;
     await loadPlans(planDetail.value.id);
-    ElMessage.success(t('plans.manager.batchGenerated', { count: dates.length }));
+    const generatedCount = Number(response?.createdCount || 0);
+    const appendedCount = Number(response?.updatedCount || 0);
+    if (generatedCount > 0 && appendedCount > 0) {
+      ElMessage.success(t('plans.manager.batchMixed', { generated: generatedCount, appended: appendedCount }));
+    } else if (appendedCount > 0) {
+      ElMessage.success(t('plans.manager.batchAppended', { count: appendedCount }));
+    } else {
+      ElMessage.success(t('plans.manager.batchGenerated', { count: generatedCount }));
+    }
   } catch (requestError) {
     ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
   } finally {

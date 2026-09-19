@@ -1,0 +1,36 @@
+services:
+  heal-view:
+    image: ${HEAL_VIEW_IMAGE:-heal-view:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    ports:
+      - '${HEAL_VIEW_PORT:-43128}:43128'
+    environment:
+      NODE_ENV: production
+      PORT: 43128
+      DATA_DIR: /app/data
+      DB_PATH: /app/data/health_data.db
+      UPLOAD_DIR: /app/uploads
+      AUTH_SESSION_TTL: ${AUTH_SESSION_TTL:-604800}
+      AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-heal_view_session}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      CACHE_TTL_DATES: ${CACHE_TTL_DATES:-86400}
+      CACHE_TTL_SUMMARY: ${CACHE_TTL_SUMMARY:-3600}
+    volumes:
+      - ${HEAL_VIEW_DATA_DIR:-./deploy/data}:/app/data
+      - ${HEAL_VIEW_UPLOAD_DIR:-./deploy/uploads}:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:43128/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

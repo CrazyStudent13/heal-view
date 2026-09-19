@@ -4,8 +4,8 @@ import { defaultTrainingExercises } from '../../server/src/data/defaultTrainingE
 import { trainingExerciseValidation } from '../../server/src/controllers/trainingExerciseController.js';
 
 test('defines a valid and unique default training exercise catalog', () => {
-  assert.equal(defaultTrainingExercises.length, 11);
-  assert.equal(new Set(defaultTrainingExercises.map((exercise) => exercise.name)).size, 11);
+  assert.equal(defaultTrainingExercises.length, 12);
+  assert.equal(new Set(defaultTrainingExercises.map((exercise) => exercise.name)).size, 12);
 
   for (const exercise of defaultTrainingExercises) {
     const result = trainingExerciseValidation.validatePayload(exercise);
@@ -27,6 +27,7 @@ test('uses the requested metrics for each default training exercise', () => {
     肩膊推举器: ['weight', 'sets'],
     蝶式拉背器: ['weight', 'sets'],
     高拉背器: ['weight', 'sets'],
+    大腿内外侧肌训练器: ['weight', 'sets'],
     平板支撑: ['duration', 'sets'],
     俯卧撑: ['sets', 'repetitions'],
     仰卧起坐: ['sets', 'repetitions']
@@ -53,6 +54,7 @@ test('classifies default exercises by their equipment requirements', () => {
     肩膊推举器: { mode: 'equipment', equipment: '肩膊推举器' },
     蝶式拉背器: { mode: 'equipment', equipment: '蝶式拉背器' },
     高拉背器: { mode: 'equipment', equipment: '高拉背器' },
+    大腿内外侧肌训练器: { mode: 'equipment', equipment: '大腿内外侧肌训练器' },
     平板支撑: { mode: 'bodyweight', equipment: '' },
     俯卧撑: { mode: 'bodyweight', equipment: '' },
     仰卧起坐: { mode: 'bodyweight', equipment: '' }

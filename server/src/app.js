@@ -1,10 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config } from './config/index.js';
 import { databaseService } from './services/database.js';
 import { initializeChinaWorkdayCalendar } from './services/chinaWorkdayCalendar.js';
 import apiRoutes from './routes/api.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
 
 const app = express();
 
@@ -20,6 +26,21 @@ app.use('/api', apiRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// In production the client build is copied into the image and served from the
+// same origin as the API. Keeping the SPA fallback here also makes history-mode
+// routes (for example /dashboard) work after a browser refresh.
+app.use(express.static(clientDistPath, { index: 'index.html' }));
+app.get(/^(?!\/api(?:\/|$)).*/, (req, res, next) => {
+  if (!req.accepts('html')) {
+    next();
+    return;
+  }
+
+  res.sendFile(path.join(clientDistPath, 'index.html'), (error) => {
+    if (error) next(error);
+  });
 });
 
 // Error handling middleware

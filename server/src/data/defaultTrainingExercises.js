@@ -88,6 +88,17 @@ export const defaultTrainingExercises = [
     purpose: '主要锻炼背阔肌、斜方肌和肱二头肌，增强上肢拉力'
   },
   {
+    name: '大腿内外侧肌训练器',
+    icon: 'mdi:human-barbell',
+    category: 'strength',
+    scene: 'indoor',
+    equipmentMode: 'equipment',
+    equipment: '大腿内外侧肌训练器',
+    verificationMode: 'manual',
+    metrics: ['weight', 'sets'],
+    purpose: '主要锻炼大腿内收肌和外展肌，增强髋部稳定性与下肢力量'
+  },
+  {
     name: '平板支撑',
     icon: 'mdi:yoga',
     category: 'strength',

@@ -295,6 +295,7 @@ import MdiBoxingGlove from '@iconify-vue/mdi/boxing-glove';
 import MdiDumbbell from '@iconify-vue/mdi/dumbbell';
 import MdiFitnessCenter from '@iconify-vue/mdi/fitness-center';
 import MdiHumanHiking from '@iconify-vue/mdi/human-hiking';
+import MdiHumanBarbell from '@iconify-vue/mdi/human-barbell';
 import MdiHumanRowing from '@iconify-vue/mdi/human-rowing';
 import MdiJumpRope from '@iconify-vue/mdi/jump-rope';
 import MdiMeditation from '@iconify-vue/mdi/meditation';
@@ -359,6 +360,7 @@ const iconOptions = [
   { value: 'mdi:human-rowing', labelKey: 'plans.exercise.icons.rowing', component: MdiHumanRowing },
   { value: 'mdi:dumbbell', labelKey: 'plans.exercise.icons.dumbbell', component: MdiDumbbell },
   { value: 'mdi:weight-lifter', labelKey: 'plans.exercise.icons.weightLifting', component: MdiWeightLifter },
+  { value: 'mdi:human-barbell', labelKey: 'plans.exercise.icons.machineStrength', component: MdiHumanBarbell },
   { value: 'mdi:arm-flex', labelKey: 'plans.exercise.icons.bodyweight', component: MdiArmFlex },
   { value: 'mdi:yoga', labelKey: 'plans.exercise.icons.yoga', component: MdiYoga },
   { value: 'mdi:meditation', labelKey: 'plans.exercise.icons.meditation', component: MdiMeditation },

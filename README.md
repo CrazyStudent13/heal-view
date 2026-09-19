@@ -44,11 +44,15 @@
 
 后端默认只依赖以下变量，详见 [server/.env.example](server/.env.example)：
 
-- `PORT`：后端端口，默认 `3000`
+- `PORT`：后端端口，默认 `43128`
 - `CACHE_TTL_DATES`：日期列表缓存秒数，默认 `86400`
 - `CACHE_TTL_SUMMARY`：日汇总缓存秒数，默认 `3600`
 - `AUTH_SESSION_TTL`：访问保护会话有效期秒数，默认 `604800`（7天）
 - `AUTH_COOKIE_NAME`：访问保护 Cookie 名称，默认 `heal_view_session`
+- `AUTH_COOKIE_SECURE`：是否给登录 Cookie 加 `Secure`，生产 HTTPS 默认 `true`；若临时直接使用 HTTP 端口需设为 `false`
+- `DATA_DIR`：CSV/原始数据目录，Docker 中默认 `/app/data`
+- `DB_PATH`：SQLite 文件路径，Docker 中默认 `/app/data/health_data.db`
+- `UPLOAD_DIR`：上传压缩包临时目录，Docker 中默认 `/app/uploads`
 
 ### 安装依赖
 
@@ -64,7 +68,7 @@ pnpm install
 pnpm --filter heal-view-server start
 ```
 
-后端服务器将运行在 http://localhost:3000
+后端服务器将运行在 http://localhost:43128
 
 首次使用（或更新数据时）需要先导入运动健康数据，直接在页面上传压缩包即可：
 
@@ -78,7 +82,7 @@ pnpm --filter heal-view-server import
 pnpm --filter heal-view-client dev
 ```
 
-前端应用将运行在 http://localhost:5173
+前端应用将运行在 http://localhost:43127
 
 > 根目录 `package.json` 提供了快捷脚本：`pnpm dev:client`、`pnpm dev:server`、`pnpm start:server`、`pnpm build:client`、`pnpm import`。
 
@@ -98,7 +102,7 @@ pnpm reset-access-password
 
 ### 访问应用
 
-在浏览器中打开 http://localhost:5173 即可使用应用。
+在浏览器中打开 http://localhost:43127 即可使用应用。
 
 ### 运行测试
 
@@ -128,27 +132,43 @@ $env:SMOKE_PASSWORD = '你的访问密码'
 pnpm test:smoke
 ```
 
-## NAS 部署（单容器方案）
+## Docker 部署（单容器方案）
 
-适用于群晖/QNAP 等 NAS 上的 Docker / Container Manager：
+镜像会自动安装依赖、构建 Vue 前端，并由同一个 Express 进程提供前端和 `/api`。SQLite 数据库、导入文件分别挂载到 `deploy/data` 和 `deploy/uploads`，容器重建不会丢数据。
 
 ```bash
-# 1. 构建前端产物（仓库根目录执行）
-pnpm --filter heal-view-client build   # 产物输出到 client/dist
+# 在服务器上首次部署
+git clone https://github.com/CrazyStudent13/heal-view.git
+cd heal-view
+cp deploy/.env.example deploy/.env
+mkdir -p deploy/data deploy/uploads
+# 官方 Node 镜像中的 node 用户 UID 是 1000，确保绑定目录可写
+sudo chown -R 1000:1000 deploy/data deploy/uploads
 
-# 2. 构建镜像（从仓库根目录执行）
-docker build -t heal-view .
-
-# 3. 运行（将 SQLite 文件放到持久卷，备份 = 拷贝一个文件）
-docker run -d \
-  -p 3000:3000 \
-  -v /path/to/data:/app/data \
-  -v /path/to/health_data.db:/app/server/health_data.db \
-  --name heal-view \
-  heal-view
+# 本地构建并启动；生产环境建议放在 Nginx/Caddy HTTPS 反向代理后面
+docker compose --env-file deploy/.env up -d --build
+docker compose --env-file deploy/.env ps
+curl http://127.0.0.1:43128/health
 ```
 
-构建后的前端静态文件由 Express 统一托管，单容器、单端口、单进程，管理最省事。`node:sqlite` 是 Node 内置模块，在 NAS 的 ARM 芯片上也无需编译，开箱即用。
+更新时执行：
+
+```bash
+git pull
+docker compose --env-file deploy/.env up -d --build
+```
+
+备份只需停止写入后复制 `deploy/data/health_data.db`（以及需要保留的 `deploy/uploads`）。不要把 SQLite 文件直接映射到容器内的 `/app/server`，应使用 Compose 中的 `/app/data` 持久卷。
+
+### GitHub Actions 自动发布
+
+`.github/workflows/deploy.yml` 会在 `main` 分支 push 时构建镜像并推送到 GHCR，然后通过 SSH 执行 `docker compose pull && docker compose up -d`。服务器首次准备：
+
+1. 安装 Docker Engine 和 Compose 插件，克隆仓库，复制 `deploy/.env.example` 为 `deploy/.env`，创建 `deploy/data` 与 `deploy/uploads`。
+2. 在仓库 Settings → Secrets and variables → Actions 添加 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_PATH`（例如 `/opt/heal-view`）和具有 `read:packages` 权限的 `GHCR_TOKEN`。
+3. 将 GHCR 镜像设为可见，或确保服务器用该 Token 登录 GHCR。工作流会自动把 `HEAL_VIEW_IMAGE` 更新为本次发布的镜像。
+
+如果不需要 SSH 自动更新，只保留镜像构建步骤即可；服务器上手动执行 `docker compose --env-file deploy/.env pull && docker compose --env-file deploy/.env up -d`。
 
 ## 项目结构
 
@@ -162,8 +182,11 @@ heal-view/
 │   │   ├── routes/            # API路由
 │   │   ├── utils/             # 工具函数
 │   │   └── scripts/           # 数据导入脚本
-│   ├── cache/                 # 内存缓存（node-cache，运行时生成）
-│   └── health_data.db         # SQLite数据库文件
+│   └── cache/                 # 内存缓存（node-cache，运行时生成）
+├── deploy/                    # Docker 生产环境配置与持久化目录
+│   ├── .env.example
+│   ├── data/                  # SQLite 数据库和 CSV 数据
+│   └── uploads/               # 导入压缩包临时目录
 │
 ├── client/                    # 前端应用
 │   ├── src/

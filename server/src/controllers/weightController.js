@@ -4,13 +4,10 @@ import { config } from '../config/index.js';
 import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
-import { fileURLToPath } from 'url';
 import { normalizeDateParam, validateDateRange } from '../utils/requestValidation.js';
 import { safeJsonParse } from '../utils/jsonSafe.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dataDir = path.join(__dirname, '../../data');
+const dataDir = config.dataDir;
 
 function findDataFile(fileNameFragment) {
   if (!fs.existsSync(dataDir)) return null;
@@ -144,7 +141,7 @@ async function loadUserProfile() {
         // Parse RegularGoalList for target BMI (field:4) or target weight
         try {
           const goals = safeJsonParse(row.RegularGoalList, []);
-          const weightGoal = goals.find(g => g.field === 4); // field:4 seems to be BMI/weight goal
+          const weightGoal = goals.find((g) => g.field === 4); // field:4 seems to be BMI/weight goal
           if (weightGoal && Number.isFinite(Number(weightGoal.target))) {
             resolvedProfile.targetBMI = parseFloat(weightGoal.target);
           }
@@ -289,8 +286,8 @@ export async function getWeightData(req, res) {
     }
 
     // Calculate metrics
-    const allDates = dailyData.map(d => d.date);
-    const allWeights = dailyData.map(d => d.avgWeight);
+    const allDates = dailyData.map((d) => d.date);
+    const allWeights = dailyData.map((d) => d.avgWeight);
 
     // Latest weight
     const latestWeight = allWeights.length > 0 ? allWeights[allWeights.length - 1] : 0;
@@ -301,26 +298,28 @@ export async function getWeightData(req, res) {
     // Highest weight in history (with date)
     let highestWeight = { weight: 0, date: '' };
     if (dailyData.length > 0) {
-      const maxItem = dailyData.reduce((max, item) => item.avgWeight > max.avgWeight ? item : max, dailyData[0]);
+      const maxItem = dailyData.reduce((max, item) => (item.avgWeight > max.avgWeight ? item : max), dailyData[0]);
       highestWeight = { weight: maxItem.avgWeight, date: maxItem.date };
     }
 
     // Weight change (first to last in range)
-    const weightChange = allWeights.length >= 2
-      ? parseFloat((allWeights[allWeights.length - 1] - allWeights[0]).toFixed(1))
-      : 0;
+    const weightChange =
+      allWeights.length >= 2 ? parseFloat((allWeights[allWeights.length - 1] - allWeights[0]).toFixed(1)) : 0;
 
     // Target weight
     const targetWeight = profile.targetWeight || null;
 
     // BMI reference table based on user's height
     const heightM = profile.height / 100;
-    const bmiReference = profile.height > 0 ? {
-      underweight: { bmi: 18.5, weight: parseFloat((18.5 * heightM * heightM).toFixed(1)) },
-      normal: { bmi: 24, weight: parseFloat((24 * heightM * heightM).toFixed(1)) },
-      overweight: { bmi: 28, weight: parseFloat((28 * heightM * heightM).toFixed(1)) },
-      userHeight: profile.height
-    } : null;
+    const bmiReference =
+      profile.height > 0
+        ? {
+            underweight: { bmi: 18.5, weight: parseFloat((18.5 * heightM * heightM).toFixed(1)) },
+            normal: { bmi: 24, weight: parseFloat((24 * heightM * heightM).toFixed(1)) },
+            overweight: { bmi: 28, weight: parseFloat((28 * heightM * heightM).toFixed(1)) },
+            userHeight: profile.height
+          }
+        : null;
 
     // Average daily calories (BMR + avg sport calories)
     const age = calculateAge(profile.birth);
@@ -336,10 +335,16 @@ export async function getWeightData(req, res) {
         WHERE 1=1
     `;
     const sportParams = [];
-    if (range.startDate) { sportQuery += ` AND date >= ?`; sportParams.push(range.startDate); }
-    if (range.endDate) { sportQuery += ` AND date <= ?`; sportParams.push(range.endDate); }
+    if (range.startDate) {
+      sportQuery += ` AND date >= ?`;
+      sportParams.push(range.startDate);
+    }
+    if (range.endDate) {
+      sportQuery += ` AND date <= ?`;
+      sportParams.push(range.endDate);
+    }
     sportQuery += ` GROUP BY date )`;
-    
+
     const sportResult = databaseService.query(sportQuery, sportParams);
     if (sportResult.length > 0 && sportResult[0].values[0][0]) {
       avgSportCalories = Math.round(sportResult[0].values[0][0]);
@@ -409,13 +414,16 @@ export async function getUserProfile(req, res) {
 
     // BMI reference table based on user's height
     const heightM = profile.height / 100;
-    const bmiReference = profile.height > 0 ? {
-      underweight: { bmi: 18.5, weight: parseFloat((18.5 * heightM * heightM).toFixed(1)) },
-      normal: { bmi: 24, weight: parseFloat((24 * heightM * heightM).toFixed(1)) },
-      overweight: { bmi: 28, weight: parseFloat((28 * heightM * heightM).toFixed(1)) },
-      obese: { bmi: 30, weight: parseFloat((30 * heightM * heightM).toFixed(1)) },
-      userHeight: profile.height
-    } : null;
+    const bmiReference =
+      profile.height > 0
+        ? {
+            underweight: { bmi: 18.5, weight: parseFloat((18.5 * heightM * heightM).toFixed(1)) },
+            normal: { bmi: 24, weight: parseFloat((24 * heightM * heightM).toFixed(1)) },
+            overweight: { bmi: 28, weight: parseFloat((28 * heightM * heightM).toFixed(1)) },
+            obese: { bmi: 30, weight: parseFloat((30 * heightM * heightM).toFixed(1)) },
+            userHeight: profile.height
+          }
+        : null;
 
     const response = {
       height: profile.height,

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const baseUrl = process.env.SMOKE_BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.SMOKE_BASE_URL || 'http://localhost:43128';
 const password = process.env.SMOKE_PASSWORD || '';
 
 async function request(path, options = {}) {
@@ -42,7 +42,7 @@ test('API smoke: protected dashboard flow works with configured password', { ski
   assert.ok(Array.isArray(dates));
 
   if (dates.length > 0) {
-  const summaryResponse = await request(`/api/dates/${dates[0]}/summary`, { headers: { cookie: cookieHeader } });
+    const summaryResponse = await request(`/api/dates/${dates[0]}/summary`, { headers: { cookie: cookieHeader } });
     assert.equal(summaryResponse.status, 200);
     assert.equal((await summaryResponse.json()).date, dates[0]);
   }

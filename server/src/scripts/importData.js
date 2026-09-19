@@ -1,15 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
-import { fileURLToPath } from 'url';
 import { databaseService } from '../services/database.js';
 import { timestampToDate } from '../utils/timestamp.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { config } from '../config/index.js';
 
 // Data directory path
-const dataDir = path.join(__dirname, '../../../data');
+const dataDir = config.dataDir;
 
 // Valuable fitness data keys (filter out low-value high-frequency data)
 const valuableFitnessKeys = new Set([
@@ -21,7 +18,7 @@ const valuableFitnessKeys = new Set([
   'weight',
   'spo2',
   'intensity',
-  'fitness_report'  // Added to support sleep data from weekly statistics
+  'fitness_report' // Added to support sleep data from weekly statistics
 ]);
 
 /**
@@ -58,7 +55,9 @@ async function importFitnessData() {
           const value = row.Value || row.value;
           const updateTime = parseInt(row.UpdateTime || row.updateTime || 0);
 
-          values.push(`('${uid}', '${sid}', '${key}', ${time}, '${date}', '${value.replace(/'/g, "''")}', ${updateTime})`);
+          values.push(
+            `('${uid}', '${sid}', '${key}', ${time}, '${date}', '${value.replace(/'/g, "''")}', ${updateTime})`
+          );
           count++;
 
           // Batch insert
@@ -119,7 +118,12 @@ async function importSportRecords() {
         const value = row.Value || row.value;
         const updateTime = parseInt(row.UpdateTime || row.updateTime || 0);
 
-        values.push(`('${uid}', '${sid}', '${category}', '${key}', ${time}, '${date}', '${value.replace(/'/g, "''")}', '${value.replace(/'/g, "''")}', ${updateTime})`);
+        values.push(
+          `('${uid}', '${sid}', '${category}', '${key}', ${time}, '${date}', '${value.replace(
+            /'/g,
+            "''"
+          )}', '${value.replace(/'/g, "''")}', ${updateTime})`
+        );
         count++;
 
         // Batch insert
@@ -179,7 +183,9 @@ async function importAggregatedData() {
         const value = row.Value || row.value;
         const updateTime = parseInt(row.UpdateTime || row.updateTime || 0);
 
-        values.push(`('${uid}', '${sid}', '${tag}', '${key}', ${time}, '${date}', '${value.replace(/'/g, "''")}', ${updateTime})`);
+        values.push(
+          `('${uid}', '${sid}', '${tag}', '${key}', ${time}, '${date}', '${value.replace(/'/g, "''")}', ${updateTime})`
+        );
         count++;
 
         // Batch insert
@@ -211,7 +217,7 @@ async function importAggregatedData() {
  */
 function findFile(pattern) {
   const files = fs.readdirSync(dataDir);
-  return files.find(f => f.includes(pattern));
+  return files.find((f) => f.includes(pattern));
 }
 
 /**
@@ -251,7 +257,6 @@ async function main() {
     console.log(`- Fitness data: ${fitnessCount ? fitnessCount.values[0][0] : 0} records`);
     console.log(`- Sport records: ${sportCount ? sportCount.values[0][0] : 0} records`);
     console.log(`- Aggregated data: ${aggregatedCount ? aggregatedCount.values[0][0] : 0} records`);
-
   } catch (error) {
     console.error('Import failed:', error);
   } finally {

@@ -16,6 +16,8 @@ data/**/*.csv
 data/*.zip
 data/**/*.zip
 uploads/
+deploy/data/
+deploy/uploads/
 
 # Environment variables
 .env
