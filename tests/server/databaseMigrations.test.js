@@ -14,6 +14,8 @@ const expectedTables = [
   'access_settings',
   'aggregated_data',
   'blood_pressure_records',
+  'china_calendar_days',
+  'china_calendar_years',
   'fitness_data',
   'sport_records',
   'training_exercises',
@@ -46,7 +48,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1, 2, 3, 4, 5]
+      [1, 2, 3, 4, 5, 6]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -132,7 +134,7 @@ test('adds equipment fields to existing version 2 exercise data', () => {
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [3, 4, 5]
+      [3, 4, 5, 6]
     );
     assert.deepEqual(
       { ...row },
@@ -193,7 +195,7 @@ test('moves existing training sessions from phases to their training plans', () 
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [5]
+      [5, 6]
     );
     assert.deepEqual(
       { ...db.prepare('SELECT plan_id, scheduled_date, name FROM training_sessions').get() },

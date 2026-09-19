@@ -19,5 +19,11 @@ export const config = {
   cacheTTL: {
     dates: parseInt(process.env.CACHE_TTL_DATES) || 86400, // 24 hours
     summary: parseInt(process.env.CACHE_TTL_SUMMARY) || 3600 // 1 hour
+  },
+  chinaCalendar: {
+    source: 'holiday-calendar',
+    urlTemplate: process.env.CHINA_CALENDAR_URL_TEMPLATE || 'https://unpkg.com/holiday-calendar/data/CN/{year}.json',
+    syncIntervalMs: parseInt(process.env.CHINA_CALENDAR_SYNC_INTERVAL_MS, 10) || 30 * 24 * 60 * 60 * 1000,
+    requestTimeoutMs: parseInt(process.env.CHINA_CALENDAR_REQUEST_TIMEOUT_MS, 10) || 8000
   }
 };

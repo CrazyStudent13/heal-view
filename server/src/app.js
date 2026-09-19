@@ -3,6 +3,7 @@ import cors from 'cors';
 import compression from 'compression';
 import { config } from './config/index.js';
 import { databaseService } from './services/database.js';
+import { initializeChinaWorkdayCalendar } from './services/chinaWorkdayCalendar.js';
 import apiRoutes from './routes/api.js';
 
 const app = express();
@@ -32,6 +33,11 @@ async function startServer() {
   try {
     // Initialize database
     await databaseService.initialize();
+
+    // Calendar refreshes are advisory and must never delay the API becoming available.
+    void initializeChinaWorkdayCalendar().catch((error) => {
+      console.warn(`China calendar initialization failed: ${error.message}`);
+    });
 
     app.listen(config.port, () => {
       console.log(`Server running on http://localhost:${config.port}`);

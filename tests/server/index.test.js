@@ -1,5 +1,6 @@
 import './jsonParser.test.js';
 import './databaseMigrations.test.js';
+import './chinaWorkdayCalendar.test.js';
 import './requestValidation.test.js';
 import './trainingExerciseValidation.test.js';
 import './trainingExerciseDeletion.test.js';

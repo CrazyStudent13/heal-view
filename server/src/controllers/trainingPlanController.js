@@ -147,6 +147,10 @@ function serializePlan(row) {
     notes: row.notes || '',
     phaseCount: row.phase_count == null ? undefined : Number(row.phase_count),
     sessionCount: row.session_count == null ? undefined : Number(row.session_count),
+    trainingDayCount: row.training_day_count == null ? undefined : Number(row.training_day_count),
+    completedTrainingDayCount:
+      row.completed_training_day_count == null ? undefined : Number(row.completed_training_day_count),
+    phaseName: row.phase_name || '',
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at)
   };
@@ -258,7 +262,24 @@ export function listTrainingPlans(req, res) {
     const rows = queryRows(`
       SELECT p.*,
         COUNT(DISTINCT ph.id) AS phase_count,
-        COUNT(DISTINCT s.id) AS session_count
+        COUNT(DISTINCT s.id) AS session_count,
+        COUNT(DISTINCT s.scheduled_date) AS training_day_count,
+        COUNT(DISTINCT CASE WHEN s.status IN ('achieved', 'partial') THEN s.scheduled_date END) AS completed_training_day_count,
+        (
+          SELECT phase.name
+          FROM training_phases phase
+          WHERE phase.plan_id = p.id
+          ORDER BY
+            CASE
+              WHEN date('now') BETWEEN phase.start_date AND phase.end_date THEN 0
+              WHEN phase.start_date > date('now') THEN 1
+              ELSE 2
+            END,
+            phase.position,
+            phase.start_date,
+            phase.id
+          LIMIT 1
+        ) AS phase_name
       FROM training_plans p
       LEFT JOIN training_phases ph ON ph.plan_id = p.id
       LEFT JOIN training_sessions s ON s.plan_id = p.id
@@ -487,6 +508,19 @@ export function updateTrainingPlan(req, res) {
   } catch (error) {
     console.error('Error updating training plan:', error);
     return res.status(500).json({ error: 'Failed to update training plan' });
+  }
+}
+
+export function deleteTrainingPlan(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!getPlan(id)) return res.status(404).json({ error: 'Training plan not found' });
+    // Foreign-key cascades remove phases, training sessions, and their items atomically.
+    databaseService.getDb().run('DELETE FROM training_plans WHERE id = ?', [id]);
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting training plan:', error);
+    return res.status(500).json({ error: 'Failed to delete training plan' });
   }
 }
 

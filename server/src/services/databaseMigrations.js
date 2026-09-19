@@ -251,6 +251,35 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionFiveRequiredColumns);
     }
+  },
+  {
+    version: 6,
+    name: 'china workday calendar',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS china_calendar_days (
+          date TEXT PRIMARY KEY,
+          type TEXT NOT NULL CHECK (type IN ('public_holiday', 'transfer_workday')),
+          name TEXT NOT NULL DEFAULT '',
+          source TEXT NOT NULL DEFAULT 'embedded',
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_china_calendar_days_type
+          ON china_calendar_days(type);
+
+        CREATE TABLE IF NOT EXISTS china_calendar_years (
+          year INTEGER PRIMARY KEY,
+          source TEXT NOT NULL DEFAULT 'embedded',
+          last_attempted_at INTEGER NOT NULL DEFAULT 0,
+          last_success_at INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionSixRequiredColumns);
+    }
   }
 ];
 
@@ -345,6 +374,11 @@ const versionFiveRequiredColumns = {
     'created_at',
     'updated_at'
   ]
+};
+
+const versionSixRequiredColumns = {
+  china_calendar_days: ['date', 'type', 'name', 'source', 'updated_at'],
+  china_calendar_years: ['year', 'source', 'last_attempted_at', 'last_success_at', 'updated_at']
 };
 
 function validateVersionFourSchema(db) {

@@ -9,8 +9,11 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
+  deleteTrainingPlan,
   deleteTrainingPhase,
-  getTrainingPlan
+  deleteTrainingSession,
+  getTrainingPlan,
+  listTrainingPlans
 } from '../../server/src/controllers/trainingPlanController.js';
 import { databaseService } from '../../server/src/services/database.js';
 
@@ -91,6 +94,25 @@ test('creates and reads a plan with phases and dated training sessions', async (
     );
     assert.equal(sessionResponse.statusCode, 201);
 
+    const deletedSessionResponse = responseRecorder();
+    deleteTrainingSession({ params: { id: sessionResponse.body.id } }, deletedSessionResponse);
+    assert.equal(deletedSessionResponse.statusCode, 204);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_sessions')[0].values[0][0], 0);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_session_items')[0].values[0][0], 0);
+
+    createTrainingSession(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          scheduledDate: '2026-09-17',
+          name: 'Easy aerobic day',
+          items: [{ exerciseId, targets: { duration: 40, distance: 4 } }]
+        }
+      },
+      sessionResponse
+    );
+    assert.equal(sessionResponse.statusCode, 201);
+
     const detailResponse = responseRecorder();
     getTrainingPlan({ params: { id: planResponse.body.id } }, detailResponse);
     assert.equal(detailResponse.statusCode, 200);
@@ -151,6 +173,50 @@ test('creates and reads a plan with phases and dated training sessions', async (
       ['2026-10-03', '2026-10-05']
     );
 
+    const sameDaySessionResponse = responseRecorder();
+    createTrainingSession(
+      {
+        params: { planId: composedResponse.body.id },
+        body: {
+          scheduledDate: '2026-10-03',
+          sequence: 2,
+          items: [{ exerciseId, targets: { duration: 20 } }]
+        }
+      },
+      sameDaySessionResponse
+    );
+    assert.equal(sameDaySessionResponse.statusCode, 201);
+
+    const listResponse = responseRecorder();
+    listTrainingPlans({}, listResponse);
+    const listedComposedPlan = listResponse.body.plans.find((plan) => plan.id === composedResponse.body.id);
+    assert.equal(listedComposedPlan.sessionCount, 3);
+    assert.equal(listedComposedPlan.trainingDayCount, 2);
+    assert.equal(listedComposedPlan.completedTrainingDayCount, 0);
+
+    const composedPhaseResponse = responseRecorder();
+    createTrainingPhase(
+      {
+        params: { planId: composedResponse.body.id },
+        body: { name: 'Reset', startDate: '2026-10-01', endDate: '2026-10-31' }
+      },
+      composedPhaseResponse
+    );
+    assert.equal(composedPhaseResponse.statusCode, 201);
+
+    const listWithPhaseResponse = responseRecorder();
+    listTrainingPlans({}, listWithPhaseResponse);
+    const listedPlanWithPhase = listWithPhaseResponse.body.plans.find((plan) => plan.id === composedResponse.body.id);
+    assert.equal(listedPlanWithPhase.phaseName, 'Reset');
+
+    const deletePlanResponse = responseRecorder();
+    deleteTrainingPlan({ params: { id: composedResponse.body.id } }, deletePlanResponse);
+    assert.equal(deletePlanResponse.statusCode, 204);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_plans')[0].values[0][0], 1);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_phases')[0].values[0][0], 0);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_sessions')[0].values[0][0], 1);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_session_items')[0].values[0][0], 1);
+
     const rejectedResponse = responseRecorder();
     createTrainingPlanWithSessions(
       {
@@ -162,7 +228,7 @@ test('creates and reads a plan with phases and dated training sessions', async (
       rejectedResponse
     );
     assert.equal(rejectedResponse.statusCode, 400);
-    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_plans')[0].values[0][0], 2);
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_plans')[0].values[0][0], 1);
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

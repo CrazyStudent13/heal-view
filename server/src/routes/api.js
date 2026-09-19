@@ -33,6 +33,7 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
+  deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
   getTrainingPlan,
@@ -42,6 +43,7 @@ import {
   updateTrainingPlan,
   updateTrainingSession
 } from '../controllers/trainingPlanController.js';
+import { getChinaWorkdayCalendar } from '../controllers/chinaCalendarController.js';
 
 const router = express.Router();
 
@@ -88,11 +90,13 @@ router.patch('/training-exercises/:id/enabled', updateTrainingExerciseEnabled);
 router.delete('/training-exercises/:id', deleteTrainingExercise);
 
 // Training plans, phases, and dated training sessions
+router.get('/china-workday-calendar', getChinaWorkdayCalendar);
 router.get('/training-plans', listTrainingPlans);
 router.post('/training-plans', createTrainingPlan);
 router.post('/training-plans/with-sessions', createTrainingPlanWithSessions);
 router.get('/training-plans/:id', getTrainingPlan);
 router.put('/training-plans/:id', updateTrainingPlan);
+router.delete('/training-plans/:id', deleteTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);
 router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
