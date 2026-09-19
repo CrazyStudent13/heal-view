@@ -33,6 +33,7 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
+  createTrainingSessionsBatch,
   deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
@@ -102,6 +103,7 @@ router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
 router.delete('/training-phases/:id', deleteTrainingPhase);
 router.post('/training-plans/:planId/sessions', createTrainingSession);
+router.post('/training-plans/:planId/sessions/batch', createTrainingSessionsBatch);
 router.put('/training-sessions/:id', updateTrainingSession);
 router.delete('/training-sessions/:id', deleteTrainingSession);
 

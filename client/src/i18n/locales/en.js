@@ -110,6 +110,8 @@ export default {
       generateSessions: 'Generate sessions',
       batchConflict: '{count} dates already have sessions. Resolve the duplicate dates first.',
       batchGenerated: '{count} training sessions generated',
+      batchPreview: '{count} training sessions will be generated',
+      batchNoDates: 'No training dates match the current conditions',
       batchFrequencies: {
         daily: 'Every day',
         china_workdays: 'China statutory workdays',

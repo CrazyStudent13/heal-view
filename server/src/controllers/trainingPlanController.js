@@ -651,6 +651,96 @@ export function createTrainingSession(req, res) {
   }
 }
 
+export function createTrainingSessionsBatch(req, res) {
+  const planId = Number(req.params.planId);
+  const plan = getPlan(planId);
+  if (!plan) return res.status(404).json({ error: 'Training plan not found' });
+
+  const rawSessions = Array.isArray(req.body?.sessions) ? req.body.sessions : [];
+  if (rawSessions.length === 0) {
+    return res.status(400).json({ error: 'Add at least one training session' });
+  }
+
+  const sessionValues = [];
+  const fields = {};
+  const sessionSlots = new Set();
+  rawSessions.forEach((session, index) => {
+    const validation = validateSessionPayload(session);
+    if (validation.errors) {
+      Object.entries(validation.errors).forEach(([field, message]) => {
+        fields[`sessions.${index}.${field}`] = message;
+      });
+      return;
+    }
+    const value = validation.value;
+    if (value.scheduledDate < plan.startDate || value.scheduledDate > plan.endDate) {
+      fields[`sessions.${index}.scheduledDate`] = 'Training session date must be within the plan';
+      return;
+    }
+    const slot = `${value.scheduledDate}:${value.sequence}`;
+    if (sessionSlots.has(slot)) {
+      fields[`sessions.${index}.scheduledDate`] = 'Only one training session is allowed for this date';
+      return;
+    }
+    sessionSlots.add(slot);
+    sessionValues.push(value);
+  });
+
+  if (Object.keys(fields).length > 0) {
+    return res.status(400).json({ error: 'Invalid training sessions', fields });
+  }
+
+  const exerciseValues = [];
+  for (const [index, session] of sessionValues.entries()) {
+    const exerciseValidation = validateExercises(session.items);
+    if (exerciseValidation.error) {
+      return res.status(400).json({
+        error: 'Invalid training sessions',
+        fields: { [`sessions.${index}.items`]: exerciseValidation.error }
+      });
+    }
+    exerciseValues.push(exerciseValidation.items);
+  }
+
+  const existing = queryRows(
+    `SELECT scheduled_date, sequence FROM training_sessions
+     WHERE plan_id = ? AND scheduled_date IN (${sessionValues.map(() => '?').join(', ')})`,
+    [planId, ...sessionValues.map((session) => session.scheduledDate)]
+  );
+  const existingSlots = new Set(existing.map((session) => `${session.scheduled_date}:${session.sequence}`));
+  const conflicts = sessionValues.filter((session) =>
+    existingSlots.has(`${session.scheduledDate}:${session.sequence}`)
+  );
+  if (conflicts.length > 0) {
+    return respondConflict(res, 'SESSION_DATE_EXISTS', `${conflicts.length} training session dates already exist`);
+  }
+
+  const db = databaseService.getDb();
+  let transactionOpen = false;
+  try {
+    const now = Date.now();
+    db.run('BEGIN IMMEDIATE');
+    transactionOpen = true;
+    sessionValues.forEach((session, index) => {
+      db.run(
+        `INSERT INTO training_sessions
+          (plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [planId, session.scheduledDate, session.sequence, session.name, session.notes, session.status, now, now]
+      );
+      const id = Number(queryRow('SELECT last_insert_rowid() AS id').id);
+      saveSessionItems(db, id, exerciseValues[index], now);
+    });
+    db.run('COMMIT');
+    transactionOpen = false;
+    return res.status(201).json({ count: sessionValues.length, plan: getPlan(planId) });
+  } catch (error) {
+    if (transactionOpen) db.run('ROLLBACK');
+    console.error('Error creating training sessions in batch:', error);
+    return res.status(500).json({ error: 'Failed to create training sessions' });
+  }
+}
+
 export function updateTrainingSession(req, res) {
   const validation = validateSessionPayload(req.body);
   if (validation.errors) return res.status(400).json({ error: 'Invalid training session', fields: validation.errors });

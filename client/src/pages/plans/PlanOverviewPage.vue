@@ -90,7 +90,7 @@
             </div>
             <div class="plan-detail-actions">
               <el-button :icon="EditPen" @click="openPlanDialog(planDetail)">{{ t('common.edit') }}</el-button>
-              <el-button type="primary" :icon="Plus" @click="openSessionDialog()">{{
+              <el-button type="primary" :icon="Plus" @click="openBatchSessionDialog()">{{
                 t('plans.manager.addSession')
               }}</el-button>
               <el-popconfirm
@@ -619,11 +619,151 @@
         <el-button type="primary" :loading="saving" @click="saveSession">{{ t('common.save') }}</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="batchSessionDialogVisible"
+      class="session-dialog batch-session-dialog"
+      :title="t('plans.manager.batchTitle')"
+      width="min(900px, calc(100vw - 32px))"
+      top="5vh"
+      destroy-on-close
+    >
+      <p class="batch-session-dialog__description">{{ t('plans.manager.batchDescription') }}</p>
+      <el-form label-position="top" @submit.prevent>
+        <div class="session-form-grid">
+          <el-form-item :label="t('plans.manager.dateRange')" required>
+            <el-date-picker
+              v-model="batchSessionForm.dates"
+              class="full-width"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              :disabled-date="batchSessionDateDisabled"
+            />
+          </el-form-item>
+          <el-form-item :label="t('plans.manager.status')">
+            <el-select v-model="batchSessionForm.status" class="full-width">
+              <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
+            </el-select>
+          </el-form-item>
+        </div>
+
+        <div class="batch-session-dialog__frequency">
+          <el-form-item>
+            <template #label>
+              <span class="batch-frequency-label">
+                <span>{{ t('plans.manager.batchFrequency') }}</span>
+                <span class="batch-frequency-count">
+                  {{ t('plans.manager.batchPreview', { count: batchSessionDates.length }) }}
+                </span>
+              </span>
+            </template>
+            <el-select v-model="batchSessionForm.frequency" class="full-width">
+              <el-option
+                v-for="frequency in batchFrequencies"
+                :key="frequency"
+                :label="t(`plans.manager.batchFrequencies.${frequency}`)"
+                :value="frequency"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item v-if="batchSessionForm.frequency === 'weekdays'" :label="t('plans.manager.batchWeekdays')">
+            <el-checkbox-group v-model="batchSessionForm.weekdays" class="weekday-options">
+              <el-checkbox v-for="day in weekdayOptions" :key="day.value" :label="day.value">
+                {{ day.label }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+        </div>
+        <p v-if="batchSessionForm.frequency === 'china_workdays' && chinaCalendarLoading" class="calendar-notice">
+          {{ t('plans.manager.chinaCalendarLoading') }}
+        </p>
+        <p
+          v-else-if="batchSessionForm.frequency === 'china_workdays' && chinaCalendarUnavailableYears.length"
+          class="calendar-notice calendar-notice--warning"
+        >
+          {{
+            t('plans.manager.chinaCalendarUnavailable', {
+              years: chinaCalendarUnavailableYears.join(t('common.listSeparator'))
+            })
+          }}
+        </p>
+
+        <div class="training-items-heading">
+          <span>{{ t('plans.manager.trainingItems') }}</span>
+          <el-button :icon="Plus" :disabled="!canAddBatchSessionExercise" @click="addBatchSessionItem">
+            {{ t('plans.manager.addTrainingItem') }}
+          </el-button>
+        </div>
+        <div class="session-items-table-wrap">
+          <el-table :data="batchSessionItems" border class="session-items-table">
+            <el-table-column :label="t('plans.manager.trainingItems')" min-width="220">
+              <template #default="{ row: item }">
+                <el-select
+                  v-model="item.exerciseId"
+                  class="exercise-select"
+                  filterable
+                  :placeholder="t('plans.manager.selectExercise')"
+                  @change="resetItemTargets(item)"
+                >
+                  <el-option
+                    v-for="exercise in batchSessionExerciseOptionsFor(item)"
+                    :key="exercise.id"
+                    :label="exercise.name"
+                    :value="exercise.id"
+                    :disabled="!exercise.enabled"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('plans.manager.targets')" min-width="460">
+              <template #default="{ row: item }">
+                <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
+                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                    <span>{{ metricLabel(metric) }}</span>
+                    <el-input-number
+                      v-model="item.targets[metric]"
+                      :min="0"
+                      :precision="metricPrecision(metric)"
+                      controls-position="right"
+                    />
+                    <small>{{ unitLabel(metric) }}</small>
+                  </label>
+                </div>
+                <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('plans.sessions.actions')" width="72" align="center">
+              <template #default="{ $index }">
+                <el-tooltip :content="t('common.delete')" placement="top">
+                  <el-button
+                    link
+                    type="danger"
+                    :icon="Delete"
+                    :aria-label="t('common.delete')"
+                    @click="removeBatchSessionItem($index)"
+                  />
+                </el-tooltip>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <el-form-item :label="t('plans.manager.sessionNotes')">
+          <el-input v-model="batchSessionForm.notes" type="textarea" :rows="3" maxlength="2000" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchSessionDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="saveBatchSessions">
+          {{ t('plans.manager.generateSessions') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, ArrowRight, Delete, EditPen, MagicStick, Plus, QuestionFilled } from '@element-plus/icons-vue';
@@ -634,6 +774,7 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
+  createTrainingSessionsBatch,
   deleteTrainingPlan,
   deleteTrainingSession,
   getTrainingExercises,
@@ -658,6 +799,7 @@ const planDetail = ref(null);
 const detailDrawerVisible = ref(false);
 const planDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
+const batchSessionDialogVisible = ref(false);
 const editingPlanId = ref(null);
 const editingSessionId = ref(null);
 const editingDraftSessionKey = ref(null);
@@ -674,6 +816,14 @@ const planStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
 const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
 const planForm = reactive({ name: '', phaseName: '', dates: [], status: 'draft', goal: '', notes: '' });
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
+const batchSessionForm = reactive({
+  dates: [],
+  frequency: 'china_workdays',
+  weekdays: [1, 2, 3, 4, 5],
+  status: 'planned',
+  notes: ''
+});
+const batchSessionItems = ref([]);
 const batchRule = reactive({ frequency: 'china_workdays', weekdays: [1, 2, 3, 4, 5] });
 const batchFrequencies = ['daily', 'china_workdays', 'weekdays', 'odd', 'even'];
 const weekdayOptions = computed(() => [
@@ -696,6 +846,11 @@ const canAddBatchExercise = computed(() =>
     (exercise) => exercise.enabled && !batchItems.value.some((item) => item.exerciseId === exercise.id)
   )
 );
+const canAddBatchSessionExercise = computed(() =>
+  exercises.value.some(
+    (exercise) => exercise.enabled && !batchSessionItems.value.some((item) => item.exerciseId === exercise.id)
+  )
+);
 
 const isCreatingPlan = computed(() => !editingPlanId.value && planDialogVisible.value && planCreationStep.value === 1);
 const isEditingSession = computed(() => Boolean(editingSessionId.value || editingDraftSessionKey.value));
@@ -703,6 +858,15 @@ const sessionDialogTitle = computed(() =>
   isEditingSession.value
     ? t('plans.manager.editSessionWithDate', { date: sessionForm.scheduledDate })
     : t('plans.manager.addSession')
+);
+const batchSessionDates = computed(() =>
+  getBatchDates(batchSessionForm.dates, batchSessionForm.frequency, batchSessionForm.weekdays)
+);
+watch(
+  () => batchSessionForm.dates.slice(),
+  (dates) => {
+    if (batchSessionDialogVisible.value && dates.length === 2) loadChinaCalendarForRange(dates);
+  }
 );
 const calendarMonth = ref('');
 const calendarSelectedDate = ref('');
@@ -1109,7 +1273,12 @@ function removeBatchItem(index) {
 }
 
 function batchDates() {
-  const [startDate, endDate] = planForm.dates;
+  return getBatchDates(planForm.dates, batchRule.frequency, batchRule.weekdays);
+}
+
+function getBatchDates(dateRange, frequency, weekdays) {
+  const [startDate, endDate] = dateRange || [];
+  if (!startDate || !endDate || startDate > endDate) return [];
   const dates = [];
   const cursor = new Date(`${startDate}T00:00:00Z`);
   const end = new Date(`${endDate}T00:00:00Z`);
@@ -1119,15 +1288,26 @@ function batchDates() {
     const date = cursor.toISOString().slice(0, 10);
     const calendarDay = chinaCalendar.value.get(date);
     const matches =
-      batchRule.frequency === 'daily' ||
-      (batchRule.frequency === 'china_workdays' && isChinaWorkday(date, calendarDay)) ||
-      (batchRule.frequency === 'weekdays' && batchRule.weekdays.includes(day)) ||
-      (batchRule.frequency === 'odd' && dayOfMonth % 2 === 1) ||
-      (batchRule.frequency === 'even' && dayOfMonth % 2 === 0);
+      frequency === 'daily' ||
+      (frequency === 'china_workdays' && isChinaWorkday(date, calendarDay)) ||
+      (frequency === 'weekdays' && weekdays.includes(day)) ||
+      (frequency === 'odd' && dayOfMonth % 2 === 1) ||
+      (frequency === 'even' && dayOfMonth % 2 === 0);
     if (matches) dates.push(date);
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return dates;
+}
+
+function batchSessionDateDisabled(date) {
+  const plan = planDetail.value;
+  if (!plan) return true;
+  const dateKey = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+  return dateKey < plan.startDate || dateKey > plan.endDate;
 }
 
 function generateBatchSessions() {
@@ -1162,6 +1342,117 @@ function isChinaWorkday(date, override) {
   if (override?.type === 'public_holiday') return false;
   const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
   return weekday >= 1 && weekday <= 5;
+}
+
+function batchSessionExerciseOptionsFor(currentItem) {
+  const selectedIds = new Set(
+    batchSessionItems.value.filter((item) => item !== currentItem).map((item) => item.exerciseId)
+  );
+  return exercises.value.filter(
+    (exercise) => !selectedIds.has(exercise.id) && (exercise.enabled || exercise.id === currentItem.exerciseId)
+  );
+}
+
+function addBatchSessionItem() {
+  const exercise = exercises.value.find(
+    (candidate) => candidate.enabled && !batchSessionItems.value.some((item) => item.exerciseId === candidate.id)
+  );
+  if (!exercise) return;
+  const item = createItem(exercise.id);
+  batchSessionItems.value.push(item);
+  resetItemTargets(item);
+}
+
+function removeBatchSessionItem(index) {
+  batchSessionItems.value.splice(index, 1);
+}
+
+async function openBatchSessionDialog() {
+  const plan = planDetail.value;
+  if (!plan) return;
+  Object.assign(batchSessionForm, {
+    dates: [plan.startDate, plan.endDate],
+    frequency: 'china_workdays',
+    weekdays: [1, 2, 3, 4, 5],
+    status: 'planned',
+    notes: ''
+  });
+  batchSessionItems.value = [];
+  addBatchSessionItem();
+  batchSessionDialogVisible.value = true;
+}
+
+async function loadChinaCalendarForRange(dateRange) {
+  chinaCalendarLoading.value = true;
+  chinaCalendarUnavailableYears.value = [];
+  try {
+    const response = await getChinaWorkdayCalendar({ startDate: dateRange[0], endDate: dateRange[1] });
+    chinaCalendar.value = new Map(response.overrides.map((day) => [day.date, day]));
+    chinaCalendarUnavailableYears.value = response.unavailableYears || [];
+  } catch (requestError) {
+    chinaCalendar.value = new Map();
+    const startYear = Number(dateRange[0]?.slice(0, 4));
+    const endYear = Number(dateRange[1]?.slice(0, 4));
+    chinaCalendarUnavailableYears.value = Array.from(
+      { length: endYear - startYear + 1 },
+      (_, index) => startYear + index
+    ).filter(Number.isInteger);
+    ElMessage.warning(normalizeRequestError(requestError, t) || t('plans.manager.chinaCalendarLoadFailed'));
+  } finally {
+    chinaCalendarLoading.value = false;
+  }
+}
+
+async function saveBatchSessions() {
+  if (batchSessionForm.dates.length !== 2) return ElMessage.warning(t('plans.manager.datesRequired'));
+  if (chinaCalendarLoading.value && batchSessionForm.frequency === 'china_workdays') {
+    return ElMessage.warning(t('plans.manager.chinaCalendarLoading'));
+  }
+  if (batchSessionForm.frequency === 'weekdays' && batchSessionForm.weekdays.length === 0) {
+    return ElMessage.warning(t('plans.manager.batchWeekdaysRequired'));
+  }
+  if (batchSessionForm.frequency === 'china_workdays' && chinaCalendarUnavailableYears.value.length > 0) {
+    return ElMessage.warning(
+      t('plans.manager.chinaCalendarUnavailable', {
+        years: chinaCalendarUnavailableYears.value.join(t('common.listSeparator'))
+      })
+    );
+  }
+  if (batchSessionItems.value.length === 0) return ElMessage.warning(t('plans.manager.itemsRequired'));
+  if (batchSessionItems.value.some((item) => !item.exerciseId)) {
+    return ElMessage.warning(t('plans.manager.exerciseRequired'));
+  }
+  const dates = batchSessionDates.value;
+  if (dates.length === 0) return ElMessage.warning(t('plans.manager.batchNoDates'));
+  const existingDates = new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate));
+  const conflicts = dates.filter((date) => existingDates.has(date));
+  if (conflicts.length > 0) return ElMessage.warning(t('plans.manager.batchConflict', { count: conflicts.length }));
+
+  const items = batchSessionItems.value.map((item) => ({
+    exerciseId: item.exerciseId,
+    targets: Object.fromEntries(
+      Object.entries(item.targets).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
+    )
+  }));
+  saving.value = true;
+  try {
+    await createTrainingSessionsBatch(
+      planDetail.value.id,
+      dates.map((scheduledDate) => ({
+        scheduledDate,
+        notes: batchSessionForm.notes,
+        status: batchSessionForm.status,
+        items
+      }))
+    );
+    batchSessionDialogVisible.value = false;
+    await loadPlans(planDetail.value.id);
+    ElMessage.success(t('plans.manager.batchGenerated', { count: dates.length }));
+  } catch (requestError) {
+    ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
+  } finally {
+    saving.value = false;
+  }
 }
 
 function openSessionDialog(session = null, scheduledDate = '') {
@@ -1335,6 +1626,28 @@ h2 {
 }
 .plan-dialog :deep(.el-dialog__footer) {
   padding: 10px 20px 16px;
+}
+.batch-session-dialog__description {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.batch-session-dialog__frequency {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(320px, 1.25fr);
+  gap: 16px;
+}
+.batch-frequency-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+.batch-frequency-count {
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 500;
 }
 .plan-creation-steps {
   margin: 0 0 16px;

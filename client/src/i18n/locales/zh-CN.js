@@ -109,6 +109,8 @@ export default {
       generateSessions: '生成训练单元',
       batchConflict: '有 {count} 个日期已存在训练单元，请先处理重复日期',
       batchGenerated: '已生成 {count} 个训练单元',
+      batchPreview: '将生成 {count} 个训练单元',
+      batchNoDates: '当前条件没有匹配的训练日期',
       batchFrequencies: {
         daily: '每天',
         china_workdays: '中国法定工作日',

@@ -190,6 +190,10 @@ export function createTrainingSession(planId, session) {
   return apiClient.post(`/training-plans/${planId}/sessions`, session);
 }
 
+export function createTrainingSessionsBatch(planId, sessions) {
+  return apiClient.post(`/training-plans/${planId}/sessions/batch`, { sessions });
+}
+
 export function updateTrainingSession(id, session) {
   return apiClient.put(`/training-sessions/${id}`, session);
 }
