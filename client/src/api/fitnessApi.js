@@ -154,6 +154,10 @@ export function getTrainingSessions(params = {}, config = {}) {
   return apiClient.get('/training-sessions', { ...config, params });
 }
 
+export function getChinaWorkdayCalendar(params, config = {}) {
+  return apiClient.get('/china-workday-calendar', { ...config, params });
+}
+
 export function createTrainingPlan(plan) {
   return apiClient.post('/training-plans', plan);
 }
@@ -164,6 +168,10 @@ export function createTrainingPlanWithSessions(payload) {
 
 export function updateTrainingPlan(id, plan) {
   return apiClient.put(`/training-plans/${id}`, plan);
+}
+
+export function deleteTrainingPlan(id) {
+  return apiClient.delete(`/training-plans/${id}`);
 }
 
 export function createTrainingPhase(planId, phase) {

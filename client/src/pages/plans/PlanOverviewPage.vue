@@ -20,7 +20,11 @@
       >
         <el-table-column :label="t('plans.manager.planName')" min-width="180">
           <template #default="{ row }">
-            <div class="plan-cell-name">{{ row.name }}</div>
+            <div class="plan-cell-name" :class="planProgressClass(row)">
+              {{ row.name }}-{{ row.phaseName || t('plans.manager.noPhase') }}（{{
+                row.completedTrainingDayCount || 0
+              }}/{{ row.trainingDayCount || 0 }}）
+            </div>
           </template>
         </el-table-column>
         <el-table-column :label="t('plans.manager.planGoal')" min-width="240">
@@ -28,20 +32,34 @@
             <span class="plan-cell-goal">{{ row.goal || t('common.empty') }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('nav.startDate')" width="118" prop="startDate" />
-        <el-table-column :label="t('nav.endDate')" width="118" prop="endDate" />
+        <el-table-column :label="t('plans.manager.planPeriod')" width="208">
+          <template #default="{ row }">
+            <span class="plan-period">{{ row.startDate }} - {{ row.endDate }}</span>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('plans.manager.status')" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('plans.manager.phases')" width="92" align="center" prop="phaseCount" />
         <el-table-column :label="t('plans.sessions.title')" width="104" align="center" prop="sessionCount" />
-        <el-table-column :label="t('plans.sessions.actions')" width="104" fixed="right">
+        <el-table-column :label="t('plans.sessions.actions')" width="152" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click.stop="selectPlan(row.id)">{{
               t('plans.sessions.viewPlan')
             }}</el-button>
+            <el-popconfirm
+              :title="t('plans.manager.confirmDeletePlan', { name: row.name })"
+              :width="360"
+              confirm-button-type="danger"
+              :confirm-button-text="t('common.delete')"
+              :cancel-button-text="t('common.cancel')"
+              @confirm="removePlan(row)"
+            >
+              <template #reference>
+                <el-button link type="danger" @click.stop>{{ t('common.delete') }}</el-button>
+              </template>
+            </el-popconfirm>
           </template>
         </el-table-column>
         <template #empty>
@@ -50,7 +68,13 @@
       </el-table>
     </div>
 
-    <el-drawer v-model="detailDrawerVisible" size="min(960px, 94vw)" :with-header="false" destroy-on-close>
+    <el-drawer
+      v-model="detailDrawerVisible"
+      class="plan-detail-drawer"
+      size="min(1280px, 96vw)"
+      :with-header="false"
+      destroy-on-close
+    >
       <main v-loading="detailLoading" class="plan-detail">
         <template v-if="planDetail">
           <header class="plan-detail-header">
@@ -60,103 +84,193 @@
                 <el-tag :type="statusTagType(planDetail.status)">{{ statusLabel(planDetail.status) }}</el-tag>
               </div>
               <p>{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
+              <p v-if="planDetail.phases?.[0]?.name" class="plan-phase-label">
+                {{ t('plans.manager.phaseName') }}：{{ planDetail.phases[0].name }}
+              </p>
               <p v-if="planDetail.goal" class="plan-goal">{{ planDetail.goal }}</p>
             </div>
             <div class="plan-detail-actions">
               <el-button :icon="EditPen" @click="openPlanDialog(planDetail)">{{ t('common.edit') }}</el-button>
-              <el-button :icon="Plus" @click="openPhaseDialog()">{{ t('plans.manager.addPhase') }}</el-button>
               <el-button type="primary" :icon="Plus" @click="openSessionDialog()">{{
                 t('plans.manager.addSession')
               }}</el-button>
+              <el-popconfirm
+                :title="t('plans.manager.confirmDeletePlan', { name: planDetail.name })"
+                :width="360"
+                confirm-button-type="danger"
+                :confirm-button-text="t('common.delete')"
+                :cancel-button-text="t('common.cancel')"
+                @confirm="removePlan(planDetail)"
+              >
+                <template #reference>
+                  <el-button type="danger" plain :icon="Delete">{{ t('common.delete') }}</el-button>
+                </template>
+              </el-popconfirm>
             </div>
           </header>
 
-          <div v-if="planDetail.phases.length === 0" class="phase-empty">
-            <el-empty :description="t('plans.manager.noPhases')" :image-size="96">
-              <el-button type="primary" :icon="Plus" @click="openPhaseDialog()">{{
-                t('plans.manager.addPhase')
-              }}</el-button>
-            </el-empty>
-          </div>
+          <section class="plan-calendar-section">
+            <header class="calendar-header">
+              <div class="calendar-title">
+                <h4>{{ t('plans.manager.calendarTitle') }}</h4>
+                <el-tooltip :content="t('plans.manager.calendarDescription')" placement="top">
+                  <el-icon class="calendar-help-icon" :aria-label="t('plans.manager.calendarDescription')" tabindex="0">
+                    <QuestionFilled />
+                  </el-icon>
+                </el-tooltip>
+              </div>
+              <div class="calendar-navigation">
+                <el-tooltip :content="t('plans.manager.previousMonth')" placement="top">
+                  <el-button
+                    circle
+                    :icon="ArrowLeft"
+                    :aria-label="t('plans.manager.previousMonth')"
+                    @click="shiftCalendarMonth(-1)"
+                  />
+                </el-tooltip>
+                <strong>{{ calendarMonthLabel }}</strong>
+                <el-tooltip :content="t('plans.manager.nextMonth')" placement="top">
+                  <el-button
+                    circle
+                    :icon="ArrowRight"
+                    :aria-label="t('plans.manager.nextMonth')"
+                    @click="shiftCalendarMonth(1)"
+                  />
+                </el-tooltip>
+              </div>
+            </header>
 
-          <div v-else class="phase-list">
-            <section v-for="phase in planDetail.phases" :key="phase.id" class="phase-section">
-              <header class="phase-header">
-                <div>
-                  <div class="phase-title-line">
-                    <h4>{{ phase.name }}</h4>
-                    <el-tag size="small" :type="statusTagType(phase.status)">{{ statusLabel(phase.status) }}</el-tag>
-                  </div>
-                  <p>{{ phase.startDate }} - {{ phase.endDate }}</p>
-                  <p v-if="phase.description" class="phase-description">{{ phase.description }}</p>
-                </div>
-                <div class="phase-actions">
-                  <el-tooltip :content="t('plans.manager.editPhase')" placement="top">
-                    <el-button
-                      circle
-                      :icon="EditPen"
-                      :aria-label="t('plans.manager.editPhase')"
-                      @click="openPhaseDialog(phase)"
-                    />
-                  </el-tooltip>
-                  <el-popconfirm
-                    :title="t('plans.manager.confirmDeletePhase', { name: phase.name })"
-                    :width="280"
-                    confirm-button-type="danger"
-                    :confirm-button-text="t('common.delete')"
-                    :cancel-button-text="t('common.cancel')"
-                    @confirm="removePhase(phase)"
-                  >
-                    <template #reference>
-                      <el-button circle type="danger" plain :icon="Delete" :aria-label="t('common.delete')" />
-                    </template>
-                  </el-popconfirm>
-                </div>
-              </header>
-            </section>
-          </div>
-
-          <section class="plan-sessions-section">
-            <h4>{{ t('plans.sessions.title') }}</h4>
-            <div v-if="planDetail.sessions.length === 0" class="session-empty">
-              <span>{{ t('plans.manager.noSessions') }}</span>
+            <div class="calendar-summary">
+              <span>{{ t('plans.manager.calendarPlanDays') }}：{{ plannedCalendarDays }}</span>
+              <span class="calendar-summary__completed"
+                >{{ t('plans.manager.calendarCompletedDays') }}：{{ completedCalendarDays }}</span
+              >
+              <span class="calendar-legend"
+                ><i class="calendar-dot calendar-dot--planned"></i>{{ t('plans.manager.statuses.planned') }}</span
+              >
+              <span class="calendar-legend"
+                ><i class="calendar-dot calendar-dot--completed"></i>{{ t('plans.manager.statuses.achieved') }}</span
+              >
             </div>
 
-            <div v-else class="session-list">
-              <article v-for="session in planDetail.sessions" :key="session.id" class="session-row">
-                <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
-                <div class="session-main">
-                  <div class="session-items">
-                    <div v-for="item in session.items" :key="item.id" class="session-item">
-                      <span>{{ item.exercise.name }}</span>
-                      <small>{{ targetsText(item) }}</small>
-                    </div>
-                  </div>
-                  <p v-if="session.notes" class="session-notes">{{ session.notes }}</p>
+            <div class="calendar-workspace">
+              <div class="calendar-overview">
+                <div class="calendar-weekdays" aria-hidden="true">
+                  <span v-for="day in weekdayOptions" :key="day.value">{{ day.label }}</span>
                 </div>
-                <div class="session-actions">
-                  <el-tooltip :content="t('plans.manager.editSession')" placement="top">
-                    <el-button
-                      circle
-                      :icon="EditPen"
-                      :aria-label="t('plans.manager.editSession')"
-                      @click="openSessionDialog(session)"
-                    />
-                  </el-tooltip>
-                  <el-popconfirm
-                    :title="t('plans.manager.confirmDeleteSession', { date: session.scheduledDate })"
-                    :width="250"
-                    confirm-button-type="danger"
-                    :confirm-button-text="t('common.delete')"
-                    :cancel-button-text="t('common.cancel')"
-                    @confirm="removeSession(session)"
+                <div class="training-calendar-grid">
+                  <div
+                    v-for="day in calendarDays"
+                    :key="day.key"
+                    class="calendar-day"
+                    :class="calendarDayClass(day)"
+                    role="button"
+                    tabindex="0"
+                    @click="day.date && selectCalendarDate(day.date)"
+                    @keydown.enter="day.date && selectCalendarDate(day.date)"
                   >
-                    <template #reference>
-                      <el-button circle type="danger" plain :icon="Delete" :aria-label="t('common.delete')" />
+                    <template v-if="day.date">
+                      <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
+                      <div v-if="day.sessions.length" class="calendar-day__sessions">
+                        <span
+                          v-for="session in day.sessions.slice(0, 2)"
+                          :key="session.id"
+                          class="calendar-session-chip"
+                          :class="calendarSessionClass(session)"
+                        >
+                          {{ sessionExercisesText(session) }}
+                        </span>
+                        <small v-if="day.sessions.length > 2">+{{ day.sessions.length - 2 }}</small>
+                      </div>
+                      <span v-else-if="day.inPlan" class="calendar-day__empty">{{
+                        t('plans.manager.calendarNoSession')
+                      }}</span>
                     </template>
-                  </el-popconfirm>
+                  </div>
                 </div>
-              </article>
+              </div>
+
+              <div v-if="calendarSelectedDate" class="calendar-day-detail-stack">
+                <section class="calendar-day-detail">
+                  <header class="calendar-day-detail__header">
+                    <div>
+                      <div class="calendar-day-detail__title">
+                        <h5>{{ calendarSelectedDate }}</h5>
+                        <el-tag
+                          v-if="selectedCalendarSession"
+                          size="small"
+                          :type="statusTagType(selectedCalendarSession.status)"
+                        >
+                          {{ statusLabel(selectedCalendarSession.status) }}
+                        </el-tag>
+                      </div>
+                      <p v-if="selectedCalendarSessions.length === 0">{{ t('plans.manager.calendarNoSession') }}</p>
+                    </div>
+                    <div class="calendar-day-detail__actions">
+                      <el-tooltip
+                        :content="
+                          selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
+                        "
+                        placement="top"
+                      >
+                        <el-button
+                          circle
+                          class="calendar-action-button"
+                          type="primary"
+                          :icon="selectedCalendarSession ? EditPen : Plus"
+                          :disabled="!selectedCalendarDateInPlan"
+                          :aria-label="
+                            selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
+                          "
+                          @click="openSessionDialog(selectedCalendarSession, calendarSelectedDate)"
+                        />
+                      </el-tooltip>
+                      <el-popconfirm
+                        v-if="selectedCalendarSession"
+                        :title="
+                          t('plans.manager.confirmDeleteSession', { date: selectedCalendarSession.scheduledDate })
+                        "
+                        :width="250"
+                        confirm-button-type="danger"
+                        :confirm-button-text="t('common.delete')"
+                        :cancel-button-text="t('common.cancel')"
+                        @confirm="removeSession(selectedCalendarSession)"
+                      >
+                        <template #reference>
+                          <el-button
+                            circle
+                            class="calendar-action-button"
+                            type="danger"
+                            plain
+                            :icon="Delete"
+                            :aria-label="t('common.delete')"
+                          />
+                        </template>
+                      </el-popconfirm>
+                    </div>
+                  </header>
+                  <div v-if="selectedCalendarSessions.length" class="calendar-session-list">
+                    <article
+                      v-for="session in selectedCalendarSessions"
+                      :key="session.id"
+                      class="calendar-session-detail"
+                    >
+                      <div class="calendar-session-detail__body">
+                        <div class="session-items">
+                          <div v-for="item in session.items" :key="item.id" class="session-item">
+                            <span>{{ item.exercise.name }}</span>
+                            <small>{{ targetsText(item) }}</small>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <div v-if="selectedCalendarSession?.notes" class="calendar-session-notes">
+                  <span>{{ t('plans.manager.sessionNotes') }}</span>
+                  <p class="session-notes">{{ selectedCalendarSession.notes }}</p>
+                </div>
+              </div>
             </div>
           </section>
         </template>
@@ -166,7 +280,8 @@
     <el-dialog
       v-model="planDialogVisible"
       :title="editingPlanId ? t('plans.manager.editPlan') : t('plans.manager.addPlan')"
-      width="min(820px, calc(100vw - 32px))"
+      width="min(960px, calc(100vw - 32px))"
+      class="plan-dialog"
       destroy-on-close
     >
       <el-steps
@@ -180,7 +295,7 @@
         <el-step :title="t('plans.manager.creationSessions')" />
       </el-steps>
 
-      <el-form v-if="editingPlanId || planCreationStep === 0" label-position="top" @submit.prevent>
+      <el-form v-if="editingPlanId || planCreationStep === 0" class="plan-form" label-position="top" @submit.prevent>
         <el-form-item :label="t('plans.manager.planName')" required>
           <el-input
             v-model="planForm.name"
@@ -189,35 +304,148 @@
             :placeholder="t('plans.manager.planNamePlaceholder')"
           />
         </el-form-item>
-        <el-form-item :label="t('plans.manager.dateRange')" required>
-          <el-date-picker v-model="planForm.dates" class="full-width" type="daterange" value-format="YYYY-MM-DD" />
+        <el-form-item :label="t('plans.manager.phaseName')">
+          <el-input
+            v-model="planForm.phaseName"
+            maxlength="100"
+            show-word-limit
+            :placeholder="t('plans.manager.phaseNamePlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="t('plans.manager.status')">
-          <el-select v-model="planForm.status" class="full-width">
-            <el-option v-for="status in planStatuses" :key="status" :label="statusLabel(status)" :value="status" />
-          </el-select>
-        </el-form-item>
+        <div class="plan-form-grid" style="display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 12px">
+          <el-form-item :label="t('plans.manager.dateRange')" required>
+            <el-date-picker v-model="planForm.dates" class="full-width" type="daterange" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item :label="t('plans.manager.status')">
+            <el-select v-model="planForm.status" class="full-width">
+              <el-option v-for="status in planStatuses" :key="status" :label="statusLabel(status)" :value="status" />
+            </el-select>
+          </el-form-item>
+        </div>
         <el-form-item :label="t('plans.manager.planGoal')">
           <el-input
             v-model="planForm.goal"
             type="textarea"
-            :rows="3"
+            :rows="2"
             maxlength="1000"
             show-word-limit
             :placeholder="t('plans.manager.planGoalPlaceholder')"
           />
         </el-form-item>
         <el-form-item :label="t('plans.manager.planNotes')">
-          <el-input v-model="planForm.notes" type="textarea" :rows="3" maxlength="2000" show-word-limit />
+          <el-input v-model="planForm.notes" type="textarea" :rows="2" maxlength="2000" show-word-limit />
         </el-form-item>
       </el-form>
 
       <section v-else class="plan-draft-sessions">
+        <section class="batch-rule">
+          <header class="batch-rule__header">
+            <div>
+              <h3>{{ t('plans.manager.batchTitle') }}</h3>
+              <p>{{ t('plans.manager.batchDescription') }}</p>
+            </div>
+            <el-tag type="info" effect="plain">{{ t('plans.manager.batchHint') }}</el-tag>
+          </header>
+
+          <div class="batch-rule__controls">
+            <el-form-item :label="t('plans.manager.batchFrequency')">
+              <el-select v-model="batchRule.frequency" class="full-width">
+                <el-option
+                  v-for="frequency in batchFrequencies"
+                  :key="frequency"
+                  :label="t(`plans.manager.batchFrequencies.${frequency}`)"
+                  :value="frequency"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item v-if="batchRule.frequency === 'weekdays'" :label="t('plans.manager.batchWeekdays')">
+              <el-checkbox-group v-model="batchRule.weekdays" class="weekday-options">
+                <el-checkbox v-for="day in weekdayOptions" :key="day.value" :label="day.value">
+                  {{ day.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </div>
+          <p v-if="batchRule.frequency === 'china_workdays' && chinaCalendarLoading" class="calendar-notice">
+            {{ t('plans.manager.chinaCalendarLoading') }}
+          </p>
+          <p
+            v-else-if="batchRule.frequency === 'china_workdays' && chinaCalendarUnavailableYears.length"
+            class="calendar-notice calendar-notice--warning"
+          >
+            {{
+              t('plans.manager.chinaCalendarUnavailable', {
+                years: chinaCalendarUnavailableYears.join(t('common.listSeparator'))
+              })
+            }}
+          </p>
+
+          <div class="training-items-heading batch-rule__items-heading">
+            <span>{{ t('plans.manager.trainingItems') }}</span>
+            <el-button :icon="Plus" :disabled="!canAddBatchExercise" @click="addBatchItem">
+              {{ t('plans.manager.addTrainingItem') }}
+            </el-button>
+          </div>
+          <div class="training-item-list batch-rule__items">
+            <div v-for="(item, index) in batchItems" :key="item.key" class="training-item-editor">
+              <div class="training-item-editor__row">
+                <el-select
+                  v-model="item.exerciseId"
+                  class="exercise-select"
+                  filterable
+                  :placeholder="t('plans.manager.selectExercise')"
+                  @change="resetItemTargets(item)"
+                >
+                  <el-option
+                    v-for="exercise in batchExerciseOptionsFor(item)"
+                    :key="exercise.id"
+                    :label="exercise.name"
+                    :value="exercise.id"
+                  />
+                </el-select>
+                <div v-if="metricsFor(item).length > 0" class="target-grid">
+                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                    <span>{{ metricLabel(metric) }}</span>
+                    <el-input-number
+                      v-model="item.targets[metric]"
+                      :min="0"
+                      :precision="metricPrecision(metric)"
+                      controls-position="right"
+                    />
+                    <small>{{ unitLabel(metric) }}</small>
+                  </label>
+                </div>
+                <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
+                <el-tooltip :content="t('common.delete')" placement="top">
+                  <el-button
+                    circle
+                    type="danger"
+                    plain
+                    :icon="Delete"
+                    :aria-label="t('common.delete')"
+                    @click="removeBatchItem(index)"
+                  />
+                </el-tooltip>
+              </div>
+            </div>
+          </div>
+
+          <el-button
+            type="primary"
+            :icon="MagicStick"
+            :disabled="batchItems.length === 0 || (batchRule.frequency === 'china_workdays' && chinaCalendarLoading)"
+            @click="generateBatchSessions"
+          >
+            {{ t('plans.manager.generateSessions') }}
+          </el-button>
+        </section>
+
         <header class="plan-draft-sessions__header">
-          <h3>{{ t('plans.sessions.title') }}</h3>
-          <el-button type="primary" :icon="Plus" @click="openSessionDialog()">{{
-            t('plans.manager.addSession')
-          }}</el-button>
+          <div>
+            <h3>{{ t('plans.sessions.title') }}</h3>
+            <p class="draft-count">{{ t('plans.manager.draftSessionsCount', { count: draftSessions.length }) }}</p>
+          </div>
+          <el-button :icon="Plus" @click="openSessionDialog()">{{ t('plans.manager.addSession') }}</el-button>
         </header>
 
         <el-empty
@@ -228,8 +456,14 @@
 
         <div v-else class="session-list plan-draft-sessions__list">
           <article v-for="session in draftSessionsSorted" :key="session.key" class="session-row">
-            <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
+            <div class="session-date-block">
+              <time class="session-date" :datetime="session.scheduledDate">{{ session.scheduledDate }}</time>
+              <span class="session-sequence">#1</span>
+            </div>
             <div class="session-main">
+              <div class="session-status-line">
+                <el-tag size="small" :type="statusTagType(session.status)">{{ statusLabel(session.status) }}</el-tag>
+              </div>
               <div class="session-items">
                 <div v-for="item in session.items" :key="item.key" class="session-item">
                   <span>{{ exerciseFor(item.exerciseId)?.name }}</span>
@@ -283,71 +517,29 @@
     </el-dialog>
 
     <el-dialog
-      v-model="phaseDialogVisible"
-      :title="editingPhaseId ? t('plans.manager.editPhase') : t('plans.manager.addPhase')"
-      width="min(620px, calc(100vw - 32px))"
-      destroy-on-close
-    >
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item :label="t('plans.manager.phaseName')" required>
-          <el-input
-            v-model="phaseForm.name"
-            maxlength="100"
-            show-word-limit
-            :placeholder="t('plans.manager.phaseNamePlaceholder')"
-          />
-        </el-form-item>
-        <el-form-item :label="t('plans.manager.dateRange')" required>
-          <el-date-picker v-model="phaseForm.dates" class="full-width" type="daterange" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item :label="t('plans.manager.status')">
-          <el-select v-model="phaseForm.status" class="full-width">
-            <el-option v-for="status in phaseStatuses" :key="status" :label="statusLabel(status)" :value="status" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('plans.manager.phaseDescription')">
-          <el-input
-            v-model="phaseForm.description"
-            type="textarea"
-            :rows="3"
-            maxlength="2000"
-            show-word-limit
-            :placeholder="t('plans.manager.phaseDescriptionPlaceholder')"
-          />
-        </el-form-item>
-        <el-form-item :label="t('plans.manager.adjustmentReason')">
-          <el-input
-            v-model="phaseForm.adjustmentReason"
-            type="textarea"
-            :rows="2"
-            maxlength="1000"
-            show-word-limit
-            :placeholder="t('plans.manager.adjustmentReasonPlaceholder')"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="phaseDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="savePhase">{{ t('common.save') }}</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog
       v-model="sessionDialogVisible"
+      class="session-dialog"
       :title="sessionDialogTitle"
       width="min(820px, calc(100vw - 32px))"
       top="6vh"
       destroy-on-close
     >
       <el-form label-position="top" @submit.prevent>
-        <el-form-item :label="t('plans.manager.sessionDate')" required>
-          <el-date-picker
-            v-model="sessionForm.scheduledDate"
-            class="session-date-input"
-            type="date"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
+        <div class="session-form-grid" :class="{ 'session-form-grid--editing': isEditingSession }">
+          <el-form-item v-if="!isEditingSession" :label="t('plans.manager.sessionDate')" required>
+            <el-date-picker
+              v-model="sessionForm.scheduledDate"
+              class="full-width"
+              type="date"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+          <el-form-item :label="t('plans.manager.status')">
+            <el-select v-model="sessionForm.status" class="full-width">
+              <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
+            </el-select>
+          </el-form-item>
+        </div>
 
         <div class="training-items-heading">
           <span>{{ t('plans.manager.trainingItems') }}</span>
@@ -356,49 +548,58 @@
           }}</el-button>
         </div>
 
-        <div class="training-item-list">
-          <div v-for="(item, index) in sessionForm.items" :key="item.key" class="training-item-editor">
-            <div class="training-item-editor__top">
-              <el-select
-                v-model="item.exerciseId"
-                class="exercise-select"
-                filterable
-                :placeholder="t('plans.manager.selectExercise')"
-                @change="resetItemTargets(item)"
-              >
-                <el-option
-                  v-for="exercise in exerciseOptionsFor(item)"
-                  :key="exercise.id"
-                  :label="exercise.name"
-                  :value="exercise.id"
-                  :disabled="!exercise.enabled"
-                />
-              </el-select>
-              <el-tooltip :content="t('common.delete')" placement="top">
-                <el-button
-                  circle
-                  type="danger"
-                  plain
-                  :icon="Delete"
-                  :aria-label="t('common.delete')"
-                  @click="removeSessionItem(index)"
-                />
-              </el-tooltip>
-            </div>
-            <div v-if="metricsFor(item).length > 0" class="target-grid">
-              <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
-                <span>{{ metricLabel(metric) }}</span>
-                <el-input-number
-                  v-model="item.targets[metric]"
-                  :min="0"
-                  :precision="metricPrecision(metric)"
-                  controls-position="right"
-                />
-                <small>{{ unitLabel(metric) }}</small>
-              </label>
-            </div>
-            <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
-          </div>
+        <div class="session-items-table-wrap">
+          <el-table :data="sessionForm.items" border class="session-items-table">
+            <el-table-column :label="t('plans.manager.trainingItems')" min-width="220">
+              <template #default="{ row: item }">
+                <el-select
+                  v-model="item.exerciseId"
+                  class="exercise-select"
+                  filterable
+                  :placeholder="t('plans.manager.selectExercise')"
+                  @change="resetItemTargets(item)"
+                >
+                  <el-option
+                    v-for="exercise in exerciseOptionsFor(item)"
+                    :key="exercise.id"
+                    :label="exercise.name"
+                    :value="exercise.id"
+                    :disabled="!exercise.enabled"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('plans.manager.targets')" min-width="460">
+              <template #default="{ row: item }">
+                <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
+                  <label v-for="metric in metricsFor(item)" :key="metric" class="target-field">
+                    <span>{{ metricLabel(metric) }}</span>
+                    <el-input-number
+                      v-model="item.targets[metric]"
+                      :min="0"
+                      :precision="metricPrecision(metric)"
+                      controls-position="right"
+                    />
+                    <small>{{ unitLabel(metric) }}</small>
+                  </label>
+                </div>
+                <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('plans.sessions.actions')" width="72" align="center">
+              <template #default="{ $index }">
+                <el-tooltip :content="t('common.delete')" placement="top">
+                  <el-button
+                    link
+                    type="danger"
+                    :icon="Delete"
+                    :aria-label="t('common.delete')"
+                    @click="removeSessionItem($index)"
+                  />
+                </el-tooltip>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
 
         <el-form-item :label="t('plans.manager.sessionNotes')">
@@ -417,7 +618,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Delete, EditPen, Plus } from '@element-plus/icons-vue';
+import { ArrowLeft, ArrowRight, Delete, EditPen, MagicStick, Plus, QuestionFilled } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
 import {
@@ -425,9 +626,10 @@ import {
   createTrainingPlan,
   createTrainingPlanWithSessions,
   createTrainingSession,
-  deleteTrainingPhase,
+  deleteTrainingPlan,
   deleteTrainingSession,
   getTrainingExercises,
+  getChinaWorkdayCalendar,
   getTrainingPlan,
   getTrainingPlans,
   updateTrainingPhase,
@@ -447,35 +649,108 @@ const selectedPlanId = ref(null);
 const planDetail = ref(null);
 const detailDrawerVisible = ref(false);
 const planDialogVisible = ref(false);
-const phaseDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
 const editingPlanId = ref(null);
-const editingPhaseId = ref(null);
 const editingSessionId = ref(null);
 const editingDraftSessionKey = ref(null);
 const planCreationStep = ref(0);
 const draftSessions = ref([]);
+const batchItems = ref([]);
+const chinaCalendar = ref(new Map());
+const chinaCalendarUnavailableYears = ref([]);
+const chinaCalendarLoading = ref(false);
 let itemKey = 0;
 let draftSessionKey = 0;
 
 const planStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
-const phaseStatuses = ['planned', 'active', 'paused', 'completed', 'cancelled'];
-const planForm = reactive({ name: '', dates: [], status: 'draft', goal: '', notes: '' });
-const phaseForm = reactive({ name: '', dates: [], status: 'planned', description: '', adjustmentReason: '' });
+const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
+const planForm = reactive({ name: '', phaseName: '', dates: [], status: 'draft', goal: '', notes: '' });
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
+const batchRule = reactive({ frequency: 'china_workdays', weekdays: [1, 2, 3, 4, 5] });
+const batchFrequencies = ['daily', 'china_workdays', 'weekdays', 'odd', 'even'];
+const weekdayOptions = computed(() => [
+  { value: 1, label: t('plans.manager.weekdays.mon') },
+  { value: 2, label: t('plans.manager.weekdays.tue') },
+  { value: 3, label: t('plans.manager.weekdays.wed') },
+  { value: 4, label: t('plans.manager.weekdays.thu') },
+  { value: 5, label: t('plans.manager.weekdays.fri') },
+  { value: 6, label: t('plans.manager.weekdays.sat') },
+  { value: 0, label: t('plans.manager.weekdays.sun') }
+]);
 
 const canAddExercise = computed(() =>
   exercises.value.some(
     (exercise) => exercise.enabled && !sessionForm.items.some((item) => item.exerciseId === exercise.id)
   )
 );
+const canAddBatchExercise = computed(() =>
+  exercises.value.some(
+    (exercise) => exercise.enabled && !batchItems.value.some((item) => item.exerciseId === exercise.id)
+  )
+);
 
 const isCreatingPlan = computed(() => !editingPlanId.value && planDialogVisible.value && planCreationStep.value === 1);
+const isEditingSession = computed(() => Boolean(editingSessionId.value || editingDraftSessionKey.value));
 const sessionDialogTitle = computed(() =>
-  editingSessionId.value || editingDraftSessionKey.value
-    ? t('plans.manager.editSession')
+  isEditingSession.value
+    ? t('plans.manager.editSessionWithDate', { date: sessionForm.scheduledDate })
     : t('plans.manager.addSession')
 );
+const calendarMonth = ref('');
+const calendarSelectedDate = ref('');
+const calendarMonthLabel = computed(() => calendarMonth.value.replace('-', ' / '));
+const selectedCalendarSessions = computed(() =>
+  (planDetail.value?.sessions || []).filter((session) => session.scheduledDate === calendarSelectedDate.value)
+);
+const selectedCalendarSession = computed(() => selectedCalendarSessions.value[0] || null);
+const selectedCalendarDateInPlan = computed(() => {
+  const plan = planDetail.value;
+  return Boolean(
+    plan &&
+      calendarSelectedDate.value &&
+      calendarSelectedDate.value >= plan.startDate &&
+      calendarSelectedDate.value <= plan.endDate
+  );
+});
+const plannedCalendarDays = computed(
+  () => new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate)).size
+);
+const completedCalendarDays = computed(
+  () =>
+    new Set(
+      (planDetail.value?.sessions || [])
+        .filter((session) => ['achieved', 'partial'].includes(session.status))
+        .map((session) => session.scheduledDate)
+    ).size
+);
+const calendarDays = computed(() => {
+  if (!calendarMonth.value) return [];
+  const [year, month] = calendarMonth.value.split('-').map(Number);
+  const firstDay = new Date(Date.UTC(year, month - 1, 1));
+  const leadingDays = (firstDay.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const totalCells = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
+  const sessionsByDate = new Map();
+  for (const session of planDetail.value?.sessions || []) {
+    const daySessions = sessionsByDate.get(session.scheduledDate) || [];
+    daySessions.push(session);
+    sessionsByDate.set(session.scheduledDate, daySessions);
+  }
+  return Array.from({ length: totalCells }, (_, index) => {
+    const dayNumber = index - leadingDays + 1;
+    if (dayNumber < 1 || dayNumber > daysInMonth) {
+      return { key: 'empty-' + index, date: '', day: '', sessions: [], inPlan: false };
+    }
+    const date = calendarMonth.value + '-' + String(dayNumber).padStart(2, '0');
+    return {
+      key: date,
+      date,
+      day: dayNumber,
+      sessions: sessionsByDate.get(date) || [],
+      inPlan: date >= planDetail.value.startDate && date <= planDetail.value.endDate
+    };
+  });
+});
 const draftSessionsSorted = computed(() =>
   [...draftSessions.value].sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))
 );
@@ -489,6 +764,24 @@ function statusTagType(status) {
   if (['paused', 'partial'].includes(status)) return 'warning';
   if (['cancelled', 'skipped'].includes(status)) return 'danger';
   return 'info';
+}
+
+function planProgressClass(plan) {
+  const plannedDays = Number(plan.trainingDayCount || 0);
+  const completedDays = Number(plan.completedTrainingDayCount || 0);
+  if (plan.status === 'completed' || (plannedDays > 0 && completedDays >= plannedDays)) {
+    return 'plan-cell-name--completed';
+  }
+
+  const now = new Date();
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0')
+  ].join('-');
+  if (today >= plan.startDate && today <= plan.endDate) return 'plan-cell-name--active';
+  if (today > plan.endDate && completedDays < plannedDays) return 'plan-cell-name--incomplete';
+  return '';
 }
 
 function metricLabel(metric) {
@@ -514,11 +807,15 @@ function targetsText(item) {
 async function loadPlanDetail(id) {
   if (!id) {
     planDetail.value = null;
+    calendarMonth.value = '';
+    calendarSelectedDate.value = '';
     return;
   }
   detailLoading.value = true;
   try {
     planDetail.value = await getTrainingPlan(id);
+    calendarMonth.value = planDetail.value.startDate.slice(0, 7);
+    calendarSelectedDate.value = planDetail.value.sessions?.[0]?.scheduledDate || planDetail.value.startDate || '';
   } catch (requestError) {
     error.value = normalizeRequestError(requestError, t) || t('plans.manager.loadFailed');
   } finally {
@@ -551,7 +848,10 @@ async function loadWorkspace() {
 }
 
 async function selectPlan(id) {
-  if (id === selectedPlanId.value) return;
+  if (id === selectedPlanId.value) {
+    if (planDetail.value) detailDrawerVisible.value = true;
+    return;
+  }
   selectedPlanId.value = id;
   error.value = '';
   await loadPlanDetail(id);
@@ -562,15 +862,59 @@ function openPlanDialog(plan = null) {
   editingPlanId.value = plan?.id || null;
   planCreationStep.value = 0;
   draftSessions.value = [];
+  batchItems.value = [];
+  Object.assign(batchRule, { frequency: 'china_workdays', weekdays: [1, 2, 3, 4, 5] });
+  chinaCalendar.value = new Map();
+  chinaCalendarUnavailableYears.value = [];
   editingDraftSessionKey.value = null;
   Object.assign(planForm, {
     name: plan?.name || '',
+    phaseName: plan?.phases?.[0]?.name || plan?.phaseName || '',
     dates: plan ? [plan.startDate, plan.endDate] : [],
     status: plan?.status || 'draft',
     goal: plan?.goal || '',
     notes: plan?.notes || ''
   });
   planDialogVisible.value = true;
+}
+
+function shiftCalendarMonth(offset) {
+  if (!calendarMonth.value) return;
+  const [year, month] = calendarMonth.value.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1 + offset, 1));
+  calendarMonth.value = next.toISOString().slice(0, 7);
+}
+
+function selectCalendarDate(date) {
+  if (!date) return;
+  calendarSelectedDate.value = date;
+}
+
+function calendarDayClass(day) {
+  const today = new Date();
+  const todayKey = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0')
+  ].join('-');
+  const hasCompleted = day.sessions.some((session) => ['achieved', 'partial'].includes(session.status));
+  return {
+    'calendar-day--empty': !day.date,
+    'calendar-day--outside-plan': day.date && !day.inPlan,
+    'calendar-day--in-plan': day.inPlan,
+    'calendar-day--today': day.date === todayKey,
+    'calendar-day--selected': day.date === calendarSelectedDate.value,
+    'calendar-day--completed': hasCompleted
+  };
+}
+
+function calendarSessionClass(session) {
+  return 'calendar-session-chip--' + (session.status || 'planned');
+}
+
+function sessionExercisesText(session) {
+  const names = (session.items || []).map((item) => item.exercise?.name).filter(Boolean);
+  return names.join('、') || t('plans.manager.calendarNoSession');
 }
 
 function planPayload() {
@@ -596,9 +940,49 @@ function validatePlanForm() {
   return true;
 }
 
-function nextPlanCreationStep() {
+async function nextPlanCreationStep() {
   if (!validatePlanForm()) return;
   planCreationStep.value = 1;
+  await loadChinaCalendar();
+}
+
+async function loadChinaCalendar() {
+  chinaCalendarLoading.value = true;
+  chinaCalendarUnavailableYears.value = [];
+  try {
+    const response = await getChinaWorkdayCalendar({
+      startDate: planForm.dates[0],
+      endDate: planForm.dates[1]
+    });
+    chinaCalendar.value = new Map(response.overrides.map((day) => [day.date, day]));
+    chinaCalendarUnavailableYears.value = response.unavailableYears || [];
+  } catch (requestError) {
+    chinaCalendar.value = new Map();
+    const startYear = Number(planForm.dates[0]?.slice(0, 4));
+    const endYear = Number(planForm.dates[1]?.slice(0, 4));
+    chinaCalendarUnavailableYears.value = Array.from(
+      { length: endYear - startYear + 1 },
+      (_, index) => startYear + index
+    ).filter(Number.isInteger);
+    ElMessage.warning(normalizeRequestError(requestError, t) || t('plans.manager.chinaCalendarLoadFailed'));
+  } finally {
+    chinaCalendarLoading.value = false;
+  }
+}
+
+async function syncPlanPhase(planId, existingPhase = null) {
+  const name = planForm.phaseName.trim();
+  if (!name) return;
+  const payload = {
+    name,
+    startDate: planForm.dates[0],
+    endDate: planForm.dates[1],
+    status: existingPhase?.status || 'planned',
+    description: existingPhase?.description || '',
+    adjustmentReason: existingPhase?.adjustmentReason || ''
+  };
+  if (existingPhase?.id) await updateTrainingPhase(existingPhase.id, payload);
+  else await createTrainingPhase(planId, payload);
 }
 
 async function savePlan() {
@@ -606,6 +990,7 @@ async function savePlan() {
   saving.value = true;
   try {
     const saved = await updateTrainingPlan(editingPlanId.value, planPayload());
+    await syncPlanPhase(saved.id, planDetail.value?.phases?.[0] || null);
     planDialogVisible.value = false;
     await loadPlans(saved.id);
     detailDrawerVisible.value = true;
@@ -622,6 +1007,7 @@ async function savePlanOnly() {
   saving.value = true;
   try {
     const saved = await createTrainingPlan(planPayload());
+    await syncPlanPhase(saved.id);
     planDialogVisible.value = false;
     await loadPlans(saved.id);
     detailDrawerVisible.value = true;
@@ -647,6 +1033,7 @@ async function savePlanWithSessions() {
         items: session.items.map((item) => ({ exerciseId: item.exerciseId, targets: item.targets }))
       }))
     });
+    await syncPlanPhase(saved.id);
     planDialogVisible.value = false;
     await loadPlans(saved.id);
     detailDrawerVisible.value = true;
@@ -674,48 +1061,14 @@ function validateDraftSessions() {
   return true;
 }
 
-function openPhaseDialog(phase = null) {
-  editingPhaseId.value = phase?.id || null;
-  Object.assign(phaseForm, {
-    name: phase?.name || '',
-    dates: phase ? [phase.startDate, phase.endDate] : [planDetail.value.startDate, planDetail.value.endDate],
-    status: phase?.status || 'planned',
-    description: phase?.description || '',
-    adjustmentReason: phase?.adjustmentReason || ''
-  });
-  phaseDialogVisible.value = true;
-}
-
-async function savePhase() {
-  if (!phaseForm.name.trim()) return ElMessage.warning(t('plans.manager.nameRequired'));
-  if (phaseForm.dates.length !== 2) return ElMessage.warning(t('plans.manager.datesRequired'));
-  saving.value = true;
+async function removePlan(plan) {
   try {
-    const payload = {
-      name: phaseForm.name,
-      startDate: phaseForm.dates[0],
-      endDate: phaseForm.dates[1],
-      status: phaseForm.status,
-      description: phaseForm.description,
-      adjustmentReason: phaseForm.adjustmentReason
-    };
-    if (editingPhaseId.value) await updateTrainingPhase(editingPhaseId.value, payload);
-    else await createTrainingPhase(planDetail.value.id, payload);
-    phaseDialogVisible.value = false;
-    await loadPlans(planDetail.value.id);
-    ElMessage.success(t('plans.manager.saved'));
-  } catch (requestError) {
-    ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function removePhase(phase) {
-  try {
-    await deleteTrainingPhase(phase.id);
-    await loadPlans(planDetail.value.id);
-    ElMessage.success(t('plans.manager.phaseDeleted'));
+    await deleteTrainingPlan(plan.id);
+    detailDrawerVisible.value = false;
+    selectedPlanId.value = null;
+    planDetail.value = null;
+    await loadPlans();
+    ElMessage.success(t('plans.manager.planDeleted'));
   } catch (requestError) {
     ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.deleteFailed'));
   }
@@ -726,14 +1079,94 @@ function createItem(exerciseId = null, targets = {}) {
   return { key: itemKey, exerciseId, targets: { ...targets } };
 }
 
-function openSessionDialog(session = null) {
+function batchExerciseOptionsFor(currentItem) {
+  const selectedIds = new Set(batchItems.value.filter((item) => item !== currentItem).map((item) => item.exerciseId));
+  return exercises.value.filter(
+    (exercise) => !selectedIds.has(exercise.id) && (exercise.enabled || exercise.id === currentItem.exerciseId)
+  );
+}
+
+function addBatchItem() {
+  const exercise = exercises.value.find(
+    (candidate) => candidate.enabled && !batchItems.value.some((item) => item.exerciseId === candidate.id)
+  );
+  if (!exercise) return;
+  const item = createItem(exercise.id);
+  batchItems.value.push(item);
+  resetItemTargets(item);
+}
+
+function removeBatchItem(index) {
+  batchItems.value.splice(index, 1);
+}
+
+function batchDates() {
+  const [startDate, endDate] = planForm.dates;
+  const dates = [];
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  while (cursor <= end) {
+    const day = cursor.getUTCDay();
+    const dayOfMonth = cursor.getUTCDate();
+    const date = cursor.toISOString().slice(0, 10);
+    const calendarDay = chinaCalendar.value.get(date);
+    const matches =
+      batchRule.frequency === 'daily' ||
+      (batchRule.frequency === 'china_workdays' && isChinaWorkday(date, calendarDay)) ||
+      (batchRule.frequency === 'weekdays' && batchRule.weekdays.includes(day)) ||
+      (batchRule.frequency === 'odd' && dayOfMonth % 2 === 1) ||
+      (batchRule.frequency === 'even' && dayOfMonth % 2 === 0);
+    if (matches) dates.push(date);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function generateBatchSessions() {
+  if (batchRule.frequency === 'weekdays' && batchRule.weekdays.length === 0) {
+    return ElMessage.warning(t('plans.manager.batchWeekdaysRequired'));
+  }
+  if (batchRule.frequency === 'china_workdays' && chinaCalendarUnavailableYears.value.length > 0) {
+    return ElMessage.warning(
+      t('plans.manager.chinaCalendarUnavailable', {
+        years: chinaCalendarUnavailableYears.value.join(t('common.listSeparator'))
+      })
+    );
+  }
+  const dates = batchDates();
+  const existingDates = new Set(draftSessions.value.map((session) => session.scheduledDate));
+  const conflicts = dates.filter((date) => existingDates.has(date));
+  if (conflicts.length > 0) return ElMessage.warning(t('plans.manager.batchConflict', { count: conflicts.length }));
+  dates.forEach((scheduledDate) => {
+    draftSessions.value.push({
+      key: ++draftSessionKey,
+      scheduledDate,
+      notes: '',
+      status: 'planned',
+      items: batchItems.value.map((item) => createItem(item.exerciseId, item.targets))
+    });
+  });
+  ElMessage.success(t('plans.manager.batchGenerated', { count: dates.length }));
+}
+
+function isChinaWorkday(date, override) {
+  if (override?.type === 'transfer_workday') return true;
+  if (override?.type === 'public_holiday') return false;
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return weekday >= 1 && weekday <= 5;
+}
+
+function openSessionDialog(session = null, scheduledDate = '') {
   editingSessionId.value = isCreatingPlan.value ? null : session?.id || null;
   editingDraftSessionKey.value = isCreatingPlan.value ? session?.key || null : null;
   Object.assign(sessionForm, {
-    scheduledDate: session?.scheduledDate || (isCreatingPlan.value ? planForm.dates[0] : planDetail.value.startDate),
+    scheduledDate:
+      scheduledDate ||
+      session?.scheduledDate ||
+      (isCreatingPlan.value ? planForm.dates[0] : planDetail.value.startDate),
     notes: session?.notes || '',
     status: session?.status || 'planned',
-    items: session?.items.map((item) => createItem(item.exerciseId, item.targets)) || []
+    items: session?.items?.map((item) => createItem(item.exerciseId, item.targets)) || []
   });
   if (sessionForm.items.length === 0) addSessionItem();
   sessionDialogVisible.value = true;
@@ -879,8 +1312,34 @@ h2 {
 .plan-alert {
   margin-top: 16px;
 }
+.plan-dialog :deep(.el-dialog__body) {
+  max-height: calc(100vh - 180px);
+  padding: 12px 20px 16px;
+  overflow-y: auto;
+}
+.plan-dialog :deep(.el-dialog__header) {
+  padding: 16px 20px 8px;
+}
+.plan-dialog :deep(.el-dialog__title) {
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 24px;
+}
+.plan-dialog :deep(.el-dialog__footer) {
+  padding: 10px 20px 16px;
+}
 .plan-creation-steps {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
+}
+.plan-form :deep(.el-form-item) {
+  margin-bottom: 14px;
+}
+.plan-form-grid {
+  align-items: start;
+}
+.plan-form-grid :deep(.el-form-item) {
+  width: auto;
+  min-width: 0;
 }
 .plan-draft-sessions {
   min-height: 280px;
@@ -895,6 +1354,56 @@ h2 {
   color: var(--text-primary);
   font-size: 16px;
   letter-spacing: 0;
+}
+.draft-count,
+.batch-rule__header p {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.batch-rule {
+  margin-bottom: 22px;
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--app-bg);
+}
+.batch-rule__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.batch-rule__header h3 {
+  color: var(--text-primary);
+  font-size: 15px;
+  letter-spacing: 0;
+}
+.batch-rule__controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(300px, 1.3fr);
+  gap: 16px;
+}
+.weekday-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.calendar-notice {
+  margin: -4px 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.calendar-notice--warning {
+  color: var(--el-color-warning);
+}
+.batch-rule__items-heading {
+  margin-top: 2px;
+}
+.batch-rule__items {
+  margin-bottom: 14px;
 }
 .plan-draft-sessions__list {
   margin-bottom: 20px;
@@ -931,10 +1440,293 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.plan-period {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.plan-calendar-section {
+  padding: 20px 0 4px;
+  border-top: 1px solid var(--card-border);
+}
+.calendar-header,
+.calendar-day-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.calendar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.calendar-help-icon {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: help;
+}
+.calendar-help-icon:hover,
+.calendar-help-icon:focus-visible {
+  color: var(--primary-color);
+  outline: none;
+}
+.calendar-day-detail__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.calendar-day-detail__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.calendar-action-button {
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+}
+.calendar-action-button :deep(.el-icon) {
+  font-size: 14px;
+}
+.calendar-header h4,
+.calendar-day-detail h5 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.calendar-header p,
+.calendar-day-detail p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.calendar-navigation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.calendar-navigation strong {
+  min-width: 88px;
+  text-align: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 18px 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.calendar-summary__completed {
+  color: var(--el-color-success);
+}
+.calendar-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  align-items: start;
+  gap: 20px;
+}
+.calendar-overview {
+  min-width: 0;
+}
+.calendar-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.calendar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--el-color-info);
+}
+.calendar-dot--planned {
+  background: var(--el-color-warning);
+}
+.calendar-dot--completed {
+  background: var(--el-color-success);
+}
+.calendar-weekdays,
+.training-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.calendar-weekdays {
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+.training-calendar-grid {
+  gap: 6px;
+}
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 92px;
+  padding: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.calendar-day[role='button']:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+  cursor: pointer;
+}
+.calendar-day--empty {
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
+}
+.calendar-day--outside-plan {
+  background: var(--app-bg);
+  color: var(--text-secondary);
+  opacity: 0.72;
+}
+.calendar-day--today .calendar-day__number {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+.calendar-day--selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+.calendar-day--completed {
+  background: color-mix(in srgb, var(--el-color-success) 7%, var(--card-bg));
+}
+.calendar-day__number {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-day__sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 7px;
+}
+.calendar-session-chip {
+  display: block;
+  overflow: hidden;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--primary-light);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-session-chip--achieved {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, var(--card-bg));
+}
+.calendar-session-chip--partial {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
+}
+.calendar-session-chip--skipped {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, var(--card-bg));
+}
+.calendar-day__sessions small {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.calendar-day__empty {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.calendar-day-detail {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+  min-height: 226px;
+  margin-top: 0;
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--app-bg);
+}
+.calendar-day-detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.calendar-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.calendar-session-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--card-border);
+}
+.calendar-session-detail__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.calendar-session-detail__body .session-items {
+  flex: 1;
+}
+.calendar-session-notes {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--app-bg);
+}
+.calendar-session-notes > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.calendar-session-notes .session-notes {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .plan-detail {
   min-width: 0;
   overflow: auto;
   padding: 20px;
+}
+.plan-detail-drawer :deep(.el-drawer__body) {
+  padding: 0;
 }
 .plan-detail-header,
 .phase-header {
@@ -1013,17 +1805,40 @@ h2 {
   gap: 16px;
   padding: 14px 4px;
   border-bottom: 1px solid var(--card-border);
+  transition: background-color 0.2s ease;
+}
+.session-row:hover {
+  background: color-mix(in srgb, var(--primary-light) 42%, transparent);
 }
 .session-row:last-child {
   border-bottom: 0;
+}
+.session-date-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .session-date {
   color: var(--text-secondary);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+.session-sequence {
+  color: var(--text-tertiary, var(--text-secondary));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 .session-main {
   min-width: 0;
+}
+.session-status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
 }
 .session-items {
   display: flex;
@@ -1051,13 +1866,17 @@ h2 {
 .full-width {
   width: 100%;
 }
-.session-date-input {
-  width: min(280px, 100%);
+.session-dialog :deep(.el-dialog__body) {
+  max-height: calc(88vh - 130px);
+  overflow-y: auto;
 }
 .session-form-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 0.7fr) minmax(240px, 1.3fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+.session-form-grid--editing {
+  grid-template-columns: minmax(220px, 320px);
 }
 .training-items-heading {
   justify-content: space-between;
@@ -1072,50 +1891,99 @@ h2 {
   gap: 12px;
   margin-bottom: 18px;
 }
+.session-items-table-wrap {
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.session-items-table {
+  min-width: 752px;
+}
+.session-items-table :deep(.el-table__cell) {
+  padding: 8px 0;
+}
+.session-items-table :deep(th.el-table__cell) {
+  color: var(--text-secondary);
+  background: var(--app-bg);
+  font-weight: 600;
+}
+.session-items-table :deep(.cell) {
+  padding: 0 12px;
+}
 .training-item-editor {
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--card-border);
   border-radius: 6px;
   background: var(--app-bg);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
-.training-item-editor__top {
-  gap: 10px;
+.training-item-editor:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+.training-item-editor__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.25fr) minmax(0, 2.4fr) auto;
+  align-items: center;
+  gap: 12px;
 }
 .exercise-select {
-  flex: 1;
+  width: 100%;
 }
 .target-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 12px;
+  min-width: 0;
+}
+.session-target-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 .target-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
   color: var(--text-secondary);
   font-size: 12px;
+  white-space: nowrap;
 }
-.target-field > span {
-  grid-column: 1 / -1;
+.target-field > span,
+.target-field small {
+  flex: none;
 }
 .target-field :deep(.el-input-number) {
-  width: 100%;
+  width: auto;
+  min-width: 72px;
+  flex: 1;
 }
 .target-field small {
-  min-width: 34px;
+  min-width: 0;
 }
 .no-targets {
-  margin-top: 12px;
+  margin: 0;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
   .plan-table-region {
     overflow: auto;
+  }
+  .calendar-workspace {
+    grid-template-columns: 1fr;
+  }
+  .calendar-day-detail {
+    position: static;
+    margin-top: 18px;
+  }
+  .training-item-editor__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .target-grid,
+  .no-targets {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1123,7 +1991,9 @@ h2 {
   .plan-content-header,
   .plan-detail-header,
   .phase-header,
-  .plan-draft-sessions__header {
+  .plan-draft-sessions__header,
+  .calendar-header,
+  .calendar-day-detail__header {
     flex-direction: column;
   }
   .plan-content-header > .el-button,
@@ -1136,12 +2006,35 @@ h2 {
   .session-row {
     grid-template-columns: 1fr auto;
   }
-  .session-date {
+  .session-date-block {
     grid-column: 1 / -1;
   }
   .session-form-grid,
-  .target-grid {
-    grid-template-columns: 1fr;
+  .target-grid,
+  .batch-rule__controls,
+  .plan-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .batch-rule__header {
+    flex-direction: column;
+  }
+  .calendar-navigation {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .calendar-day {
+    min-height: 68px;
+    padding: 5px;
+  }
+  .calendar-day__empty {
+    display: none;
+  }
+  .calendar-session-chip {
+    padding: 2px 3px;
+    font-size: 10px;
+  }
+  .calendar-session-detail {
+    flex-direction: column;
   }
 }
 </style>

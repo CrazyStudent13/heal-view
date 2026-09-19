@@ -25,6 +25,15 @@
         <el-option :label="t('plans.sessions.allPlans')" value="" />
         <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
       </el-select>
+      <el-select v-model="status" clearable :placeholder="t('plans.sessions.filterStatus')" @change="loadSessions">
+        <el-option :label="t('plans.sessions.allStatuses')" value="" />
+        <el-option
+          v-for="sessionStatus in sessionStatuses"
+          :key="sessionStatus"
+          :label="statusLabel(sessionStatus)"
+          :value="sessionStatus"
+        />
+      </el-select>
     </div>
 
     <el-alert v-if="error" class="sessions-alert" type="error" :title="error" show-icon :closable="false" />
@@ -37,6 +46,11 @@
           >
         </el-table-column>
         <el-table-column :label="t('plans.sessions.plan')" min-width="150" prop="planName" />
+        <el-table-column :label="t('plans.manager.status')" width="110">
+          <template #default="{ row }">
+            <el-tag size="small" :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('plans.sessions.exercises')" min-width="300">
           <template #default="{ row }">
             <div class="session-exercises">
@@ -74,6 +88,19 @@ const sessions = ref([]);
 const plans = ref([]);
 const dateRange = ref([]);
 const planId = ref('');
+const status = ref('');
+const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
+
+function statusLabel(value) {
+  return t(`plans.manager.statuses.${value}`);
+}
+
+function statusTagType(value) {
+  if (['achieved'].includes(value)) return 'success';
+  if (['partial'].includes(value)) return 'warning';
+  if (['skipped'].includes(value)) return 'danger';
+  return 'info';
+}
 
 function metricLabel(metric) {
   return t(`plans.exercise.metricOptions.${metric}`);
@@ -98,7 +125,8 @@ async function loadSessions() {
     const response = await getTrainingSessions({
       startDate: dateRange.value?.[0],
       endDate: dateRange.value?.[1],
-      planId: planId.value || undefined
+      planId: planId.value || undefined,
+      status: status.value || undefined
     });
     sessions.value = response.sessions;
   } catch (requestError) {
