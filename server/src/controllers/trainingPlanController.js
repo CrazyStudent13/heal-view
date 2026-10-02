@@ -3,6 +3,7 @@ import { databaseService } from '../services/database.js';
 const PLAN_STATUSES = new Set(['draft', 'active', 'paused', 'completed', 'archived']);
 const PHASE_STATUSES = new Set(['planned', 'active', 'paused', 'completed', 'cancelled']);
 const SESSION_STATUSES = new Set(['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped']);
+const MAX_FATIGUE_LEVEL = 10;
 const TARGET_METRICS = new Set([
   'duration',
   'durationSeconds',
@@ -139,6 +140,34 @@ function validateSessionPayload(payload = {}) {
   return Object.keys(errors).length > 0 ? { errors } : { value };
 }
 
+function validatePhaseReviewPayload(payload = {}) {
+  const rawFatigue = payload.fatigueLevel;
+  const rawWeightChange = payload.weightChange;
+  const fatigueLevel = rawFatigue === '' || rawFatigue == null ? null : Number(rawFatigue);
+  const weightChange = rawWeightChange === '' || rawWeightChange == null ? null : Number(rawWeightChange);
+  const value = {
+    summary: text(payload.summary, 4000),
+    fatigueLevel,
+    discomfort: text(payload.discomfort, 2000),
+    weightChange,
+    adjustment: text(payload.adjustment, 2000)
+  };
+  const errors = {};
+  if (value.summary === null) errors.summary = 'Summary must be 4000 characters or fewer';
+  if (value.discomfort === null) errors.discomfort = 'Discomfort must be 2000 characters or fewer';
+  if (value.adjustment === null) errors.adjustment = 'Adjustment must be 2000 characters or fewer';
+  if (
+    fatigueLevel !== null &&
+    (!Number.isInteger(fatigueLevel) || fatigueLevel < 0 || fatigueLevel > MAX_FATIGUE_LEVEL)
+  ) {
+    errors.fatigueLevel = 'Fatigue level must be an integer from 0 to 10';
+  }
+  if (weightChange !== null && (!Number.isFinite(weightChange) || weightChange < -100 || weightChange > 100)) {
+    errors.weightChange = 'Weight change must be between -100 and 100';
+  }
+  return Object.keys(errors).length > 0 ? { errors } : { value };
+}
+
 function serializePlan(row) {
   return {
     id: Number(row.id),
@@ -160,6 +189,7 @@ function serializePlan(row) {
 }
 
 function serializePhase(row) {
+  const executionSummary = getPhaseExecutionSummary(Number(row.id), Number(row.plan_id), row.start_date, row.end_date);
   return {
     id: Number(row.id),
     planId: Number(row.plan_id),
@@ -170,8 +200,53 @@ function serializePhase(row) {
     adjustmentReason: row.adjustment_reason || '',
     status: row.status,
     position: Number(row.position),
+    review: serializePhaseReview(queryRow('SELECT * FROM training_phase_reviews WHERE phase_id = ?', [row.id])),
+    executionSummary,
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at)
+  };
+}
+
+function serializePhaseReview(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    phaseId: Number(row.phase_id),
+    summary: row.summary || '',
+    fatigueLevel: row.fatigue_level == null ? null : Number(row.fatigue_level),
+    discomfort: row.discomfort || '',
+    weightChange: row.weight_change == null ? null : Number(row.weight_change),
+    adjustment: row.adjustment || '',
+    createdAt: Number(row.created_at),
+    updatedAt: Number(row.updated_at)
+  };
+}
+
+function getPhaseExecutionSummary(phaseId, planId, startDate, endDate) {
+  if (!phaseId || !planId || !startDate || !endDate) {
+    return { total: 0, achieved: 0, partial: 0, noData: 0, unverifiable: 0, planned: 0, skipped: 0 };
+  }
+  const row = queryRow(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(CASE WHEN status = 'achieved' THEN 1 ELSE 0 END) AS achieved,
+       SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) AS partial,
+       SUM(CASE WHEN status = 'no_data' THEN 1 ELSE 0 END) AS no_data,
+       SUM(CASE WHEN status = 'unverifiable' THEN 1 ELSE 0 END) AS unverifiable,
+       SUM(CASE WHEN status = 'planned' THEN 1 ELSE 0 END) AS planned,
+       SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) AS skipped
+     FROM training_sessions
+     WHERE plan_id = ? AND scheduled_date >= ? AND scheduled_date <= ?`,
+    [planId, startDate, endDate]
+  );
+  return {
+    total: Number(row?.total || 0),
+    achieved: Number(row?.achieved || 0),
+    partial: Number(row?.partial || 0),
+    noData: Number(row?.no_data || 0),
+    unverifiable: Number(row?.unverifiable || 0),
+    planned: Number(row?.planned || 0),
+    skipped: Number(row?.skipped || 0)
   };
 }
 
@@ -619,6 +694,58 @@ export function updateTrainingPhase(req, res) {
   }
 }
 
+export function getTrainingPhaseReview(req, res) {
+  try {
+    const phase = getPhase(Number(req.params.id));
+    if (!phase) return res.status(404).json({ error: 'Training phase not found' });
+    return res.json({
+      phaseId: phase.id,
+      review: phase.review,
+      executionSummary: phase.executionSummary
+    });
+  } catch (error) {
+    console.error('Error getting training phase review:', error);
+    return res.status(500).json({ error: 'Failed to fetch training phase review' });
+  }
+}
+
+export function saveTrainingPhaseReview(req, res) {
+  const validation = validatePhaseReviewPayload(req.body);
+  if (validation.errors) {
+    return res.status(400).json({ error: 'Invalid training phase review', fields: validation.errors });
+  }
+  try {
+    const phase = getPhase(Number(req.params.id));
+    if (!phase) return res.status(404).json({ error: 'Training phase not found' });
+    const value = validation.value;
+    const now = Date.now();
+    databaseService.getDb().run(
+      `INSERT INTO training_phase_reviews
+        (phase_id, summary, fatigue_level, discomfort, weight_change, adjustment, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(phase_id) DO UPDATE SET
+         summary = excluded.summary,
+         fatigue_level = excluded.fatigue_level,
+         discomfort = excluded.discomfort,
+         weight_change = excluded.weight_change,
+         adjustment = excluded.adjustment,
+         updated_at = excluded.updated_at`,
+      [phase.id, value.summary, value.fatigueLevel, value.discomfort, value.weightChange, value.adjustment, now, now]
+    );
+    const review = serializePhaseReview(
+      queryRow('SELECT * FROM training_phase_reviews WHERE phase_id = ?', [phase.id])
+    );
+    return res.json({
+      phaseId: phase.id,
+      review,
+      executionSummary: getPhaseExecutionSummary(phase.id, phase.planId, phase.startDate, phase.endDate)
+    });
+  } catch (error) {
+    console.error('Error saving training phase review:', error);
+    return res.status(500).json({ error: 'Failed to save training phase review' });
+  }
+}
+
 function saveSessionItems(db, sessionId, items, now, startPosition = 0) {
   items.forEach((item, index) => {
     db.run(
@@ -864,5 +991,6 @@ export const trainingPlanValidation = {
   isValidDate,
   validatePlanPayload,
   validatePhasePayload,
-  validateSessionPayload
+  validateSessionPayload,
+  validatePhaseReviewPayload
 };

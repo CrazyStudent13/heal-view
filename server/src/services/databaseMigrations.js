@@ -280,6 +280,30 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionSixRequiredColumns);
     }
+  },
+  {
+    version: 7,
+    name: 'training phase reviews',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS training_phase_reviews (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          phase_id INTEGER NOT NULL UNIQUE REFERENCES training_phases(id) ON DELETE CASCADE,
+          summary TEXT NOT NULL DEFAULT '',
+          fatigue_level INTEGER CHECK (fatigue_level IS NULL OR (fatigue_level >= 0 AND fatigue_level <= 10)),
+          discomfort TEXT NOT NULL DEFAULT '',
+          weight_change REAL,
+          adjustment TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_training_phase_reviews_phase ON training_phase_reviews(phase_id);
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionSevenRequiredColumns);
+    }
   }
 ];
 
@@ -379,6 +403,20 @@ const versionFiveRequiredColumns = {
 const versionSixRequiredColumns = {
   china_calendar_days: ['date', 'type', 'name', 'source', 'updated_at'],
   china_calendar_years: ['year', 'source', 'last_attempted_at', 'last_success_at', 'updated_at']
+};
+
+const versionSevenRequiredColumns = {
+  training_phase_reviews: [
+    'id',
+    'phase_id',
+    'summary',
+    'fatigue_level',
+    'discomfort',
+    'weight_change',
+    'adjustment',
+    'created_at',
+    'updated_at'
+  ]
 };
 
 function validateVersionFourSchema(db) {

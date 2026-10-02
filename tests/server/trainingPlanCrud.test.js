@@ -14,8 +14,10 @@ import {
   deleteTrainingPhase,
   deleteTrainingSession,
   getTrainingPlan,
+  getTrainingPhaseReview,
   listTrainingPlans,
-  listTrainingSessions
+  listTrainingSessions,
+  saveTrainingPhaseReview
 } from '../../server/src/controllers/trainingPlanController.js';
 import { databaseService } from '../../server/src/services/database.js';
 
@@ -330,6 +332,88 @@ test('appends batch exercises to existing training dates', async () => {
       appendedSession.items.map((item) => item.exerciseId).sort((a, b) => a - b),
       [walkingId, plankId].sort((a, b) => a - b)
     );
+  } finally {
+    databaseService.close();
+    config.dbPath = originalDbPath;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('saves one phase review and returns its execution summary', async () => {
+  const originalDbPath = config.dbPath;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-review-'));
+  config.dbPath = path.join(directory, 'health_data.db');
+
+  try {
+    await databaseService.initialize();
+    const planResponse = responseRecorder();
+    createTrainingPlan(
+      {
+        body: { name: 'Review plan', startDate: '2026-09-01', endDate: '2026-09-30', status: 'active' }
+      },
+      planResponse
+    );
+    const phaseResponse = responseRecorder();
+    createTrainingPhase(
+      {
+        params: { planId: planResponse.body.id },
+        body: { name: 'Foundation', startDate: '2026-09-01', endDate: '2026-09-15' }
+      },
+      phaseResponse
+    );
+
+    const firstSessionId = databaseService.getDb().run(
+      `INSERT INTO training_sessions
+        (plan_id, scheduled_date, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [planResponse.body.id, '2026-09-03', 'achieved', Date.now(), Date.now()]
+    );
+    assert.ok(firstSessionId === undefined);
+    databaseService.getDb().run(
+      `INSERT INTO training_sessions
+        (plan_id, scheduled_date, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [planResponse.body.id, '2026-09-10', 'partial', Date.now(), Date.now()]
+    );
+
+    const saveResponse = responseRecorder();
+    saveTrainingPhaseReview(
+      {
+        params: { id: phaseResponse.body.id },
+        body: {
+          summary: 'Good consistency',
+          fatigueLevel: 6,
+          discomfort: 'Mild knee tightness',
+          weightChange: -0.8,
+          adjustment: 'Keep the same volume next phase'
+        }
+      },
+      saveResponse
+    );
+    assert.equal(saveResponse.statusCode, 200);
+    assert.equal(saveResponse.body.review.phaseId, phaseResponse.body.id);
+    assert.equal(saveResponse.body.executionSummary.achieved, 1);
+    assert.equal(saveResponse.body.executionSummary.partial, 1);
+
+    const updateResponse = responseRecorder();
+    saveTrainingPhaseReview(
+      { params: { id: phaseResponse.body.id }, body: { summary: 'Updated summary', fatigueLevel: 4 } },
+      updateResponse
+    );
+    assert.equal(updateResponse.statusCode, 200);
+    assert.equal(updateResponse.body.review.summary, 'Updated summary');
+    assert.equal(databaseService.query('SELECT COUNT(*) AS count FROM training_phase_reviews')[0].values[0][0], 1);
+
+    const invalidResponse = responseRecorder();
+    saveTrainingPhaseReview({ params: { id: phaseResponse.body.id }, body: { fatigueLevel: 11 } }, invalidResponse);
+    assert.equal(invalidResponse.statusCode, 400);
+    assert.ok(invalidResponse.body.fields.fatigueLevel);
+
+    const getResponse = responseRecorder();
+    getTrainingPhaseReview({ params: { id: phaseResponse.body.id } }, getResponse);
+    assert.equal(getResponse.statusCode, 200);
+    assert.equal(getResponse.body.review.summary, 'Updated summary');
+    assert.equal(getResponse.body.executionSummary.total, 2);
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

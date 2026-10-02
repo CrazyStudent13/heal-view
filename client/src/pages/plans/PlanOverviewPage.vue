@@ -281,6 +281,62 @@
               </div>
             </div>
           </section>
+
+          <section v-if="planDetail.phases?.length" class="phase-review-section">
+            <header class="section-heading">
+              <div>
+                <h4>{{ t('plans.manager.phaseReviews') }}</h4>
+                <p>{{ t('plans.manager.phaseReviewsDescription') }}</p>
+              </div>
+            </header>
+            <div class="phase-review-list">
+              <article v-for="phase in planDetail.phases" :key="phase.id" class="phase-review-card">
+                <header class="phase-review-card__header">
+                  <div>
+                    <div class="phase-review-card__title">
+                      <h5>{{ phase.name }}</h5>
+                      <el-tag size="small" :type="statusTagType(phase.status)">{{ statusLabel(phase.status) }}</el-tag>
+                    </div>
+                    <p>{{ phase.startDate }} - {{ phase.endDate }}</p>
+                  </div>
+                  <el-button :icon="EditPen" @click="openPhaseReviewDialog(phase)">
+                    {{ phase.review ? t('plans.manager.editReview') : t('plans.manager.addReview') }}
+                  </el-button>
+                </header>
+                <div class="phase-review-summary">
+                  <span>{{ t('plans.manager.reviewTotal') }}：{{ phase.executionSummary?.total || 0 }}</span>
+                  <span class="phase-review-summary__success"
+                    >{{ t('plans.manager.reviewAchieved') }}：{{ phase.executionSummary?.achieved || 0 }}</span
+                  >
+                  <span>{{ t('plans.manager.reviewPartial') }}：{{ phase.executionSummary?.partial || 0 }}</span>
+                  <span
+                    >{{ t('plans.manager.reviewUnverifiable') }}：{{ phase.executionSummary?.unverifiable || 0 }}</span
+                  >
+                </div>
+                <div v-if="phase.review" class="phase-review-content">
+                  <p v-if="phase.review.summary">
+                    <strong>{{ t('plans.manager.reviewSummary') }}</strong
+                    >{{ phase.review.summary }}
+                  </p>
+                  <p v-if="phase.review.discomfort">
+                    <strong>{{ t('plans.manager.reviewDiscomfort') }}</strong
+                    >{{ phase.review.discomfort }}
+                  </p>
+                  <p v-if="phase.review.adjustment">
+                    <strong>{{ t('plans.manager.reviewAdjustment') }}</strong
+                    >{{ phase.review.adjustment }}
+                  </p>
+                  <span v-if="phase.review.fatigueLevel !== null && phase.review.fatigueLevel !== undefined">
+                    {{ t('plans.manager.reviewFatigue') }}：{{ phase.review.fatigueLevel }}/10
+                  </span>
+                  <span v-if="phase.review.weightChange !== null && phase.review.weightChange !== undefined">
+                    {{ t('plans.manager.reviewWeightChange') }}：{{ phase.review.weightChange }} kg
+                  </span>
+                </div>
+                <el-empty v-else :description="t('plans.manager.noReview')" :image-size="52" />
+              </article>
+            </div>
+          </section>
         </template>
       </main>
     </el-drawer>
@@ -861,6 +917,50 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="phaseReviewDialogVisible"
+      class="phase-review-dialog"
+      :title="phaseReviewDialogTitle"
+      width="min(640px, calc(100vw - 32px))"
+      destroy-on-close
+    >
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item :label="t('plans.manager.reviewSummary')">
+          <el-input v-model="phaseReviewForm.summary" type="textarea" :rows="3" maxlength="4000" show-word-limit />
+        </el-form-item>
+        <div class="phase-review-form-grid">
+          <el-form-item :label="t('plans.manager.reviewFatigue')">
+            <el-input-number
+              v-model="phaseReviewForm.fatigueLevel"
+              :min="0"
+              :max="10"
+              :precision="0"
+              controls-position="right"
+            />
+          </el-form-item>
+          <el-form-item :label="t('plans.manager.reviewWeightChange')">
+            <el-input-number
+              v-model="phaseReviewForm.weightChange"
+              :min="-100"
+              :max="100"
+              :precision="2"
+              controls-position="right"
+            />
+          </el-form-item>
+        </div>
+        <el-form-item :label="t('plans.manager.reviewDiscomfort')">
+          <el-input v-model="phaseReviewForm.discomfort" type="textarea" :rows="2" maxlength="2000" show-word-limit />
+        </el-form-item>
+        <el-form-item :label="t('plans.manager.reviewAdjustment')">
+          <el-input v-model="phaseReviewForm.adjustment" type="textarea" :rows="2" maxlength="2000" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="phaseReviewDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="savePhaseReview">{{ t('common.save') }}</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -883,6 +983,7 @@ import {
   getChinaWorkdayCalendar,
   getTrainingPlan,
   getTrainingPlans,
+  saveTrainingPhaseReview,
   updateTrainingPhase,
   updateTrainingPlan,
   updateTrainingSession
@@ -902,6 +1003,7 @@ const detailDrawerVisible = ref(false);
 const planDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
 const batchSessionDialogVisible = ref(false);
+const phaseReviewDialogVisible = ref(false);
 const editingPlanId = ref(null);
 const editingSessionId = ref(null);
 const editingDraftSessionKey = ref(null);
@@ -918,6 +1020,15 @@ const planStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
 const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
 const planForm = reactive({ name: '', phaseName: '', dates: [], status: 'draft', goal: '', notes: '' });
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
+const phaseReviewForm = reactive({
+  phaseId: null,
+  phaseName: '',
+  summary: '',
+  fatigueLevel: null,
+  discomfort: '',
+  weightChange: null,
+  adjustment: ''
+});
 const batchSessionForm = reactive({
   dates: [],
   frequency: 'china_workdays',
@@ -961,6 +1072,11 @@ const sessionDialogTitle = computed(() =>
   isEditingSession.value
     ? t('plans.manager.editSessionWithDate', { date: sessionForm.scheduledDate })
     : t('plans.manager.addSession')
+);
+const phaseReviewDialogTitle = computed(() =>
+  phaseReviewForm.phaseName
+    ? t('plans.manager.reviewDialogTitle', { name: phaseReviewForm.phaseName })
+    : t('plans.manager.phaseReviews')
 );
 const batchSessionDates = computed(() =>
   getBatchDates(batchSessionForm.dates, batchSessionForm.frequency, batchSessionForm.weekdays)
@@ -1160,6 +1276,40 @@ async function selectPlan(id) {
   error.value = '';
   await loadPlanDetail(id);
   if (planDetail.value) detailDrawerVisible.value = true;
+}
+
+function openPhaseReviewDialog(phase) {
+  Object.assign(phaseReviewForm, {
+    phaseId: phase.id,
+    phaseName: phase.name,
+    summary: phase.review?.summary || '',
+    fatigueLevel: phase.review?.fatigueLevel ?? null,
+    discomfort: phase.review?.discomfort || '',
+    weightChange: phase.review?.weightChange ?? null,
+    adjustment: phase.review?.adjustment || ''
+  });
+  phaseReviewDialogVisible.value = true;
+}
+
+async function savePhaseReview() {
+  if (!phaseReviewForm.phaseId) return;
+  saving.value = true;
+  try {
+    await saveTrainingPhaseReview(phaseReviewForm.phaseId, {
+      summary: phaseReviewForm.summary,
+      fatigueLevel: phaseReviewForm.fatigueLevel,
+      discomfort: phaseReviewForm.discomfort,
+      weightChange: phaseReviewForm.weightChange,
+      adjustment: phaseReviewForm.adjustment
+    });
+    phaseReviewDialogVisible.value = false;
+    await loadPlanDetail(planDetail.value?.id);
+    ElMessage.success(t('plans.manager.reviewSaved'));
+  } catch (requestError) {
+    ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
+  } finally {
+    saving.value = false;
+  }
 }
 
 function openPlanDialog(plan = null) {
@@ -2339,6 +2489,105 @@ h2 {
   font-size: 16px;
   letter-spacing: 0;
 }
+.phase-review-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--card-border);
+}
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.section-heading h4 {
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.section-heading p {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.phase-review-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.phase-review-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--app-bg);
+}
+.phase-review-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.phase-review-card__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.phase-review-card__title h5 {
+  color: var(--text-primary);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.phase-review-card__header p {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.phase-review-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.phase-review-summary__success {
+  color: var(--el-color-success);
+}
+.phase-review-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.phase-review-content p {
+  flex: 0 0 100%;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.phase-review-content strong {
+  margin-right: 5px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.phase-review-card > .el-empty {
+  padding: 16px 0 4px;
+}
+.phase-review-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.phase-review-form-grid .el-input-number {
+  width: 100%;
+}
 .phase-header h4 {
   color: var(--text-primary);
   font-size: 16px;
@@ -2581,6 +2830,7 @@ h2 {
   .plan-content-header,
   .plan-detail-header,
   .phase-header,
+  .phase-review-card__header,
   .plan-draft-sessions__header,
   .calendar-header,
   .calendar-day-detail__header {
@@ -2626,6 +2876,9 @@ h2 {
   }
   .calendar-session-detail {
     flex-direction: column;
+  }
+  .phase-review-form-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

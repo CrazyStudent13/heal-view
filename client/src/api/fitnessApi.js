@@ -182,6 +182,14 @@ export function updateTrainingPhase(id, phase) {
   return apiClient.put(`/training-phases/${id}`, phase);
 }
 
+export function getTrainingPhaseReview(id, config = {}) {
+  return apiClient.get(`/training-phases/${id}/review`, config);
+}
+
+export function saveTrainingPhaseReview(id, review) {
+  return apiClient.put(`/training-phases/${id}/review`, review);
+}
+
 export function deleteTrainingPhase(id) {
   return apiClient.delete(`/training-phases/${id}`);
 }

@@ -38,8 +38,10 @@ import {
   deleteTrainingPhase,
   deleteTrainingSession,
   getTrainingPlan,
+  getTrainingPhaseReview,
   listTrainingPlans,
   listTrainingSessions,
+  saveTrainingPhaseReview,
   updateTrainingPhase,
   updateTrainingPlan,
   updateTrainingSession
@@ -101,6 +103,8 @@ router.delete('/training-plans/:id', deleteTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);
 router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
+router.get('/training-phases/:id/review', getTrainingPhaseReview);
+router.put('/training-phases/:id/review', saveTrainingPhaseReview);
 router.delete('/training-phases/:id', deleteTrainingPhase);
 router.post('/training-plans/:planId/sessions', createTrainingSession);
 router.post('/training-plans/:planId/sessions/batch', createTrainingSessionsBatch);
