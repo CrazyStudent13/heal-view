@@ -117,6 +117,67 @@
             </div>
           </header>
 
+          <section v-if="planReviewPhase" class="plan-review-section">
+            <header class="section-heading">
+              <div>
+                <h4>{{ t('plans.manager.phaseReviews') }}</h4>
+                <p>{{ t('plans.manager.phaseReviewsDescription') }}</p>
+              </div>
+              <el-button type="primary" plain :icon="EditPen" @click="openPlanReviewDialog">
+                {{ planReviewPhase.review ? t('plans.manager.editReview') : t('plans.manager.addReview') }}
+              </el-button>
+            </header>
+
+            <article class="plan-review-card">
+              <div class="plan-review-card__meta">
+                <div>
+                  <h5>{{ planDetail.name }}</h5>
+                  <p>{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
+                </div>
+                <el-tag size="small" :type="statusTagType(planDetail.status)">{{
+                  statusLabel(planDetail.status)
+                }}</el-tag>
+              </div>
+              <div class="phase-review-summary plan-review-summary">
+                <span>{{ t('plans.manager.reviewTotal') }}：{{ planReviewSummary.total }}</span>
+                <span class="phase-review-summary__success"
+                  >{{ t('plans.manager.reviewAchieved') }}：{{ planReviewSummary.achieved }}</span
+                >
+                <span>{{ t('plans.manager.reviewPartial') }}：{{ planReviewSummary.partial }}</span>
+                <span>{{ t('plans.manager.reviewUnverifiable') }}：{{ planReviewSummary.unverifiable }}</span>
+              </div>
+              <div v-if="planReviewPhase.review" class="phase-review-content plan-review-content">
+                <p v-if="planReviewPhase.review.summary">
+                  <strong>{{ t('plans.manager.reviewSummary') }}</strong
+                  >{{ planReviewPhase.review.summary }}
+                </p>
+                <p v-if="planReviewPhase.review.discomfort">
+                  <strong>{{ t('plans.manager.reviewDiscomfort') }}</strong
+                  >{{ planReviewPhase.review.discomfort }}
+                </p>
+                <p v-if="planReviewPhase.review.adjustment">
+                  <strong>{{ t('plans.manager.reviewAdjustment') }}</strong
+                  >{{ planReviewPhase.review.adjustment }}
+                </p>
+                <span
+                  v-if="
+                    planReviewPhase.review.fatigueLevel !== null && planReviewPhase.review.fatigueLevel !== undefined
+                  "
+                >
+                  {{ t('plans.manager.reviewFatigue') }}：{{ planReviewPhase.review.fatigueLevel }}/10
+                </span>
+                <span
+                  v-if="
+                    planReviewPhase.review.weightChange !== null && planReviewPhase.review.weightChange !== undefined
+                  "
+                >
+                  {{ t('plans.manager.reviewWeightChange') }}：{{ planReviewPhase.review.weightChange }} kg
+                </span>
+              </div>
+              <el-empty v-else :description="t('plans.manager.noReview')" :image-size="52" />
+            </article>
+          </section>
+
           <section class="plan-calendar-section">
             <header class="calendar-header">
               <div class="calendar-title">
@@ -279,62 +340,6 @@
                   <p class="session-notes">{{ selectedCalendarSession.notes }}</p>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section v-if="planDetail.phases?.length" class="phase-review-section">
-            <header class="section-heading">
-              <div>
-                <h4>{{ t('plans.manager.phaseReviews') }}</h4>
-                <p>{{ t('plans.manager.phaseReviewsDescription') }}</p>
-              </div>
-            </header>
-            <div class="phase-review-list">
-              <article v-for="phase in planDetail.phases" :key="phase.id" class="phase-review-card">
-                <header class="phase-review-card__header">
-                  <div>
-                    <div class="phase-review-card__title">
-                      <h5>{{ phase.name }}</h5>
-                      <el-tag size="small" :type="statusTagType(phase.status)">{{ statusLabel(phase.status) }}</el-tag>
-                    </div>
-                    <p>{{ phase.startDate }} - {{ phase.endDate }}</p>
-                  </div>
-                  <el-button :icon="EditPen" @click="openPhaseReviewDialog(phase)">
-                    {{ phase.review ? t('plans.manager.editReview') : t('plans.manager.addReview') }}
-                  </el-button>
-                </header>
-                <div class="phase-review-summary">
-                  <span>{{ t('plans.manager.reviewTotal') }}：{{ phase.executionSummary?.total || 0 }}</span>
-                  <span class="phase-review-summary__success"
-                    >{{ t('plans.manager.reviewAchieved') }}：{{ phase.executionSummary?.achieved || 0 }}</span
-                  >
-                  <span>{{ t('plans.manager.reviewPartial') }}：{{ phase.executionSummary?.partial || 0 }}</span>
-                  <span
-                    >{{ t('plans.manager.reviewUnverifiable') }}：{{ phase.executionSummary?.unverifiable || 0 }}</span
-                  >
-                </div>
-                <div v-if="phase.review" class="phase-review-content">
-                  <p v-if="phase.review.summary">
-                    <strong>{{ t('plans.manager.reviewSummary') }}</strong
-                    >{{ phase.review.summary }}
-                  </p>
-                  <p v-if="phase.review.discomfort">
-                    <strong>{{ t('plans.manager.reviewDiscomfort') }}</strong
-                    >{{ phase.review.discomfort }}
-                  </p>
-                  <p v-if="phase.review.adjustment">
-                    <strong>{{ t('plans.manager.reviewAdjustment') }}</strong
-                    >{{ phase.review.adjustment }}
-                  </p>
-                  <span v-if="phase.review.fatigueLevel !== null && phase.review.fatigueLevel !== undefined">
-                    {{ t('plans.manager.reviewFatigue') }}：{{ phase.review.fatigueLevel }}/10
-                  </span>
-                  <span v-if="phase.review.weightChange !== null && phase.review.weightChange !== undefined">
-                    {{ t('plans.manager.reviewWeightChange') }}：{{ phase.review.weightChange }} kg
-                  </span>
-                </div>
-                <el-empty v-else :description="t('plans.manager.noReview')" :image-size="52" />
-              </article>
             </div>
           </section>
         </template>
@@ -1022,7 +1027,6 @@ const planForm = reactive({ name: '', phaseName: '', dates: [], status: 'draft',
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
 const phaseReviewForm = reactive({
   phaseId: null,
-  phaseName: '',
   summary: '',
   fatigueLevel: null,
   discomfort: '',
@@ -1074,8 +1078,8 @@ const sessionDialogTitle = computed(() =>
     : t('plans.manager.addSession')
 );
 const phaseReviewDialogTitle = computed(() =>
-  phaseReviewForm.phaseName
-    ? t('plans.manager.reviewDialogTitle', { name: phaseReviewForm.phaseName })
+  planDetail.value?.name
+    ? t('plans.manager.reviewDialogTitle', { name: planDetail.value.name })
     : t('plans.manager.phaseReviews')
 );
 const batchSessionDates = computed(() =>
@@ -1102,6 +1106,18 @@ const selectedCalendarDateInPlan = computed(() => {
       calendarSelectedDate.value >= plan.startDate &&
       calendarSelectedDate.value <= plan.endDate
   );
+});
+const planReviewPhase = computed(() => {
+  const phases = planDetail.value?.phases || [];
+  return phases.find((phase) => phase.review) || phases[0] || null;
+});
+const planReviewSummary = computed(() => {
+  const summary = { total: 0, achieved: 0, partial: 0, unverifiable: 0 };
+  for (const session of planDetail.value?.sessions || []) {
+    summary.total += 1;
+    if (Object.prototype.hasOwnProperty.call(summary, session.status)) summary[session.status] += 1;
+  }
+  return summary;
 });
 const plannedCalendarDays = computed(
   () => new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate)).size
@@ -1278,10 +1294,11 @@ async function selectPlan(id) {
   if (planDetail.value) detailDrawerVisible.value = true;
 }
 
-function openPhaseReviewDialog(phase) {
+function openPlanReviewDialog() {
+  const phase = planReviewPhase.value;
+  if (!phase) return;
   Object.assign(phaseReviewForm, {
     phaseId: phase.id,
-    phaseName: phase.name,
     summary: phase.review?.summary || '',
     fatigueLevel: phase.review?.fatigueLevel ?? null,
     discomfort: phase.review?.discomfort || '',
@@ -2119,7 +2136,6 @@ h2 {
 }
 .plan-calendar-section {
   padding: 20px 0 4px;
-  border-top: 1px solid var(--card-border);
 }
 .calendar-header,
 .calendar-day-detail__header {
@@ -2489,8 +2505,8 @@ h2 {
   font-size: 16px;
   letter-spacing: 0;
 }
-.phase-review-section {
-  padding: 20px 0;
+.plan-review-section {
+  padding: 18px 0 20px;
   border-top: 1px solid var(--card-border);
 }
 .section-heading {
@@ -2509,41 +2525,37 @@ h2 {
   color: var(--text-secondary);
   font-size: 13px;
 }
-.phase-review-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
+.plan-review-card {
   margin-top: 14px;
-}
-.phase-review-card {
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--card-border);
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 26%, var(--card-border));
+  border-left: 3px solid var(--primary-color);
   border-radius: 6px;
-  background: var(--app-bg);
+  background: color-mix(in srgb, var(--primary-color) 4%, var(--card-bg));
 }
-.phase-review-card__header {
+.plan-review-card__meta {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
-.phase-review-card__title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.phase-review-card__title h5 {
+.plan-review-card__meta h5 {
   color: var(--text-primary);
   font-size: 14px;
   letter-spacing: 0;
 }
-.phase-review-card__header p {
+.plan-review-card__meta p {
   margin-top: 5px;
   color: var(--text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+.plan-review-card .phase-review-summary {
+  margin-top: 12px;
+}
+.plan-review-card .phase-review-content {
+  margin-top: 12px;
+  padding-top: 12px;
 }
 .phase-review-summary {
   display: flex;
@@ -2577,7 +2589,7 @@ h2 {
   color: var(--text-primary);
   font-weight: 600;
 }
-.phase-review-card > .el-empty {
+.plan-review-card > .el-empty {
   padding: 16px 0 4px;
 }
 .phase-review-form-grid {
@@ -2830,7 +2842,7 @@ h2 {
   .plan-content-header,
   .plan-detail-header,
   .phase-header,
-  .phase-review-card__header,
+  .plan-review-card__meta,
   .plan-draft-sessions__header,
   .calendar-header,
   .calendar-day-detail__header {
