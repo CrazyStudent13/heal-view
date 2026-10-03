@@ -117,231 +117,258 @@
             </div>
           </header>
 
-          <section v-if="planReviewPhase" class="plan-review-section">
-            <header class="section-heading">
-              <div>
-                <h4>{{ t('plans.manager.phaseReviews') }}</h4>
-                <p>{{ t('plans.manager.phaseReviewsDescription') }}</p>
-              </div>
-              <el-button type="primary" plain :icon="EditPen" @click="openPlanReviewDialog">
-                {{ planReviewPhase.review ? t('plans.manager.editReview') : t('plans.manager.addReview') }}
-              </el-button>
-            </header>
+          <el-tabs v-model="planDetailTab" class="plan-detail-tabs">
+            <el-tab-pane name="calendar">
+              <template #label>
+                <span class="plan-tab-label">{{ t('plans.manager.calendarTitle') }}</span>
+              </template>
+              <section class="plan-calendar-section">
+                <header class="calendar-header">
+                  <div class="calendar-title">
+                    <h4>{{ t('plans.manager.calendarTitle') }}</h4>
+                    <el-tooltip :content="t('plans.manager.calendarDescription')" placement="top">
+                      <el-icon
+                        class="calendar-help-icon"
+                        :aria-label="t('plans.manager.calendarDescription')"
+                        tabindex="0"
+                      >
+                        <QuestionFilled />
+                      </el-icon>
+                    </el-tooltip>
+                  </div>
+                  <div class="calendar-navigation">
+                    <el-tooltip :content="t('plans.manager.previousMonth')" placement="top">
+                      <el-button
+                        circle
+                        :icon="ArrowLeft"
+                        :aria-label="t('plans.manager.previousMonth')"
+                        @click="shiftCalendarMonth(-1)"
+                      />
+                    </el-tooltip>
+                    <strong>{{ calendarMonthLabel }}</strong>
+                    <el-tooltip :content="t('plans.manager.nextMonth')" placement="top">
+                      <el-button
+                        circle
+                        :icon="ArrowRight"
+                        :aria-label="t('plans.manager.nextMonth')"
+                        @click="shiftCalendarMonth(1)"
+                      />
+                    </el-tooltip>
+                  </div>
+                </header>
 
-            <article class="plan-review-card">
-              <div class="plan-review-card__meta">
-                <div>
-                  <h5>{{ planDetail.name }}</h5>
-                  <p>{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
-                </div>
-                <el-tag size="small" :type="statusTagType(planDetail.status)">{{
-                  statusLabel(planDetail.status)
-                }}</el-tag>
-              </div>
-              <div class="phase-review-summary plan-review-summary">
-                <span>{{ t('plans.manager.reviewTotal') }}：{{ planReviewSummary.total }}</span>
-                <span class="phase-review-summary__success"
-                  >{{ t('plans.manager.reviewAchieved') }}：{{ planReviewSummary.achieved }}</span
-                >
-                <span>{{ t('plans.manager.reviewPartial') }}：{{ planReviewSummary.partial }}</span>
-                <span>{{ t('plans.manager.reviewUnverifiable') }}：{{ planReviewSummary.unverifiable }}</span>
-              </div>
-              <div v-if="planReviewPhase.review" class="phase-review-content plan-review-content">
-                <p v-if="planReviewPhase.review.summary">
-                  <strong>{{ t('plans.manager.reviewSummary') }}</strong
-                  >{{ planReviewPhase.review.summary }}
-                </p>
-                <p v-if="planReviewPhase.review.discomfort">
-                  <strong>{{ t('plans.manager.reviewDiscomfort') }}</strong
-                  >{{ planReviewPhase.review.discomfort }}
-                </p>
-                <p v-if="planReviewPhase.review.adjustment">
-                  <strong>{{ t('plans.manager.reviewAdjustment') }}</strong
-                  >{{ planReviewPhase.review.adjustment }}
-                </p>
-                <span
-                  v-if="
-                    planReviewPhase.review.fatigueLevel !== null && planReviewPhase.review.fatigueLevel !== undefined
-                  "
-                >
-                  {{ t('plans.manager.reviewFatigue') }}：{{ planReviewPhase.review.fatigueLevel }}/10
-                </span>
-                <span
-                  v-if="
-                    planReviewPhase.review.weightChange !== null && planReviewPhase.review.weightChange !== undefined
-                  "
-                >
-                  {{ t('plans.manager.reviewWeightChange') }}：{{ planReviewPhase.review.weightChange }} kg
-                </span>
-              </div>
-              <el-empty v-else :description="t('plans.manager.noReview')" :image-size="52" />
-            </article>
-          </section>
-
-          <section class="plan-calendar-section">
-            <header class="calendar-header">
-              <div class="calendar-title">
-                <h4>{{ t('plans.manager.calendarTitle') }}</h4>
-                <el-tooltip :content="t('plans.manager.calendarDescription')" placement="top">
-                  <el-icon class="calendar-help-icon" :aria-label="t('plans.manager.calendarDescription')" tabindex="0">
-                    <QuestionFilled />
-                  </el-icon>
-                </el-tooltip>
-              </div>
-              <div class="calendar-navigation">
-                <el-tooltip :content="t('plans.manager.previousMonth')" placement="top">
-                  <el-button
-                    circle
-                    :icon="ArrowLeft"
-                    :aria-label="t('plans.manager.previousMonth')"
-                    @click="shiftCalendarMonth(-1)"
-                  />
-                </el-tooltip>
-                <strong>{{ calendarMonthLabel }}</strong>
-                <el-tooltip :content="t('plans.manager.nextMonth')" placement="top">
-                  <el-button
-                    circle
-                    :icon="ArrowRight"
-                    :aria-label="t('plans.manager.nextMonth')"
-                    @click="shiftCalendarMonth(1)"
-                  />
-                </el-tooltip>
-              </div>
-            </header>
-
-            <div class="calendar-summary">
-              <span>{{ t('plans.manager.calendarPlanDays') }}：{{ plannedCalendarDays }}</span>
-              <span class="calendar-summary__completed"
-                >{{ t('plans.manager.calendarCompletedDays') }}：{{ completedCalendarDays }}</span
-              >
-              <span class="calendar-legend"
-                ><i class="calendar-dot calendar-dot--planned"></i>{{ t('plans.manager.statuses.planned') }}</span
-              >
-              <span class="calendar-legend"
-                ><i class="calendar-dot calendar-dot--completed"></i>{{ t('plans.manager.statuses.achieved') }}</span
-              >
-            </div>
-
-            <div class="calendar-workspace">
-              <div class="calendar-overview">
-                <div class="calendar-weekdays" aria-hidden="true">
-                  <span v-for="day in weekdayOptions" :key="day.value">{{ day.label }}</span>
-                </div>
-                <div class="training-calendar-grid">
-                  <div
-                    v-for="day in calendarDays"
-                    :key="day.key"
-                    class="calendar-day"
-                    :class="calendarDayClass(day)"
-                    role="button"
-                    tabindex="0"
-                    @click="day.date && selectCalendarDate(day.date)"
-                    @keydown.enter="day.date && selectCalendarDate(day.date)"
+                <div class="calendar-summary">
+                  <span>{{ t('plans.manager.calendarPlanDays') }}：{{ plannedCalendarDays }}</span>
+                  <span class="calendar-summary__completed"
+                    >{{ t('plans.manager.calendarCompletedDays') }}：{{ completedCalendarDays }}</span
                   >
-                    <template v-if="day.date">
-                      <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
-                      <div v-if="day.sessions.length" class="calendar-day__sessions">
-                        <span
-                          v-for="session in day.sessions.slice(0, 2)"
-                          :key="session.id"
-                          class="calendar-session-chip"
-                          :class="calendarSessionClass(session)"
-                        >
-                          {{ sessionExercisesText(session) }}
-                        </span>
-                        <small v-if="day.sessions.length > 2">+{{ day.sessions.length - 2 }}</small>
-                      </div>
-                      <span v-else-if="day.inPlan" class="calendar-day__empty">{{
-                        t('plans.manager.calendarNoSession')
-                      }}</span>
-                    </template>
-                  </div>
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--planned"></i>{{ t('plans.manager.statuses.planned') }}</span
+                  >
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--completed"></i
+                    >{{ t('plans.manager.statuses.achieved') }}</span
+                  >
                 </div>
-              </div>
 
-              <div v-if="calendarSelectedDate" class="calendar-day-detail-stack">
-                <section class="calendar-day-detail">
-                  <header class="calendar-day-detail__header">
-                    <div>
-                      <div class="calendar-day-detail__title">
-                        <h5>{{ calendarSelectedDate }}</h5>
-                        <el-tag
-                          v-if="selectedCalendarSession"
-                          size="small"
-                          :type="statusTagType(selectedCalendarSession.status)"
-                        >
-                          {{ statusLabel(selectedCalendarSession.status) }}
-                        </el-tag>
-                      </div>
-                      <p v-if="selectedCalendarSessions.length === 0">{{ t('plans.manager.calendarNoSession') }}</p>
+                <div class="calendar-workspace">
+                  <div class="calendar-overview">
+                    <div class="calendar-weekdays" aria-hidden="true">
+                      <span v-for="day in weekdayOptions" :key="day.value">{{ day.label }}</span>
                     </div>
-                    <div class="calendar-day-detail__actions">
-                      <el-tooltip
-                        :content="
-                          selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
-                        "
-                        placement="top"
+                    <div class="training-calendar-grid">
+                      <div
+                        v-for="day in calendarDays"
+                        :key="day.key"
+                        class="calendar-day"
+                        :class="calendarDayClass(day)"
+                        role="button"
+                        tabindex="0"
+                        @click="day.date && selectCalendarDate(day.date)"
+                        @keydown.enter="day.date && selectCalendarDate(day.date)"
                       >
-                        <el-button
-                          circle
-                          class="calendar-action-button"
-                          type="primary"
-                          :icon="selectedCalendarSession ? EditPen : Plus"
-                          :disabled="!selectedCalendarDateInPlan"
-                          :aria-label="
-                            selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
-                          "
-                          @click="openSessionDialog(selectedCalendarSession, calendarSelectedDate)"
-                        />
-                      </el-tooltip>
-                      <el-popconfirm
-                        v-if="selectedCalendarSession"
-                        :title="
-                          t('plans.manager.confirmDeleteSession', { date: selectedCalendarSession.scheduledDate })
-                        "
-                        :width="250"
-                        confirm-button-type="danger"
-                        :confirm-button-text="t('common.delete')"
-                        :cancel-button-text="t('common.cancel')"
-                        @confirm="removeSession(selectedCalendarSession)"
-                      >
-                        <template #reference>
-                          <el-button
-                            circle
-                            class="calendar-action-button"
-                            type="danger"
-                            plain
-                            :icon="Delete"
-                            :aria-label="t('common.delete')"
-                          />
-                        </template>
-                      </el-popconfirm>
-                    </div>
-                  </header>
-                  <div v-if="selectedCalendarSessions.length" class="calendar-session-list">
-                    <article
-                      v-for="session in selectedCalendarSessions"
-                      :key="session.id"
-                      class="calendar-session-detail"
-                    >
-                      <div class="calendar-session-detail__body">
-                        <div class="session-items">
-                          <div v-for="item in session.items" :key="item.id" class="session-item">
-                            <span>{{ item.exercise.name }}</span>
-                            <small>{{ targetsText(item) }}</small>
+                        <template v-if="day.date">
+                          <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
+                          <div v-if="day.sessions.length" class="calendar-day__sessions">
+                            <span
+                              v-for="session in day.sessions.slice(0, 2)"
+                              :key="session.id"
+                              class="calendar-session-chip"
+                              :class="calendarSessionClass(session)"
+                            >
+                              {{ sessionExercisesText(session) }}
+                            </span>
+                            <small v-if="day.sessions.length > 2">+{{ day.sessions.length - 2 }}</small>
                           </div>
-                        </div>
+                          <span v-else-if="day.inPlan" class="calendar-day__empty">{{
+                            t('plans.manager.calendarNoSession')
+                          }}</span>
+                        </template>
                       </div>
-                    </article>
+                    </div>
                   </div>
-                </section>
-                <div v-if="selectedCalendarSession?.notes" class="calendar-session-notes">
-                  <span>{{ t('plans.manager.sessionNotes') }}</span>
-                  <p class="session-notes">{{ selectedCalendarSession.notes }}</p>
+
+                  <div v-if="calendarSelectedDate" class="calendar-day-detail-stack">
+                    <section class="calendar-day-detail">
+                      <header class="calendar-day-detail__header">
+                        <div>
+                          <div class="calendar-day-detail__title">
+                            <h5>{{ calendarSelectedDate }}</h5>
+                            <el-tag
+                              v-if="selectedCalendarSession"
+                              size="small"
+                              :type="statusTagType(selectedCalendarSession.status)"
+                            >
+                              {{ statusLabel(selectedCalendarSession.status) }}
+                            </el-tag>
+                          </div>
+                          <p v-if="selectedCalendarSessions.length === 0">{{ t('plans.manager.calendarNoSession') }}</p>
+                        </div>
+                        <div class="calendar-day-detail__actions">
+                          <el-tooltip
+                            :content="
+                              selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
+                            "
+                            placement="top"
+                          >
+                            <el-button
+                              circle
+                              class="calendar-action-button"
+                              type="primary"
+                              :icon="selectedCalendarSession ? EditPen : Plus"
+                              :disabled="!selectedCalendarDateInPlan"
+                              :aria-label="
+                                selectedCalendarSession ? t('plans.manager.editSession') : t('plans.manager.addSession')
+                              "
+                              @click="openSessionDialog(selectedCalendarSession, calendarSelectedDate)"
+                            />
+                          </el-tooltip>
+                          <el-popconfirm
+                            v-if="selectedCalendarSession"
+                            :title="
+                              t('plans.manager.confirmDeleteSession', { date: selectedCalendarSession.scheduledDate })
+                            "
+                            :width="250"
+                            confirm-button-type="danger"
+                            :confirm-button-text="t('common.delete')"
+                            :cancel-button-text="t('common.cancel')"
+                            @confirm="removeSession(selectedCalendarSession)"
+                          >
+                            <template #reference>
+                              <el-button
+                                circle
+                                class="calendar-action-button"
+                                type="danger"
+                                plain
+                                :icon="Delete"
+                                :aria-label="t('common.delete')"
+                              />
+                            </template>
+                          </el-popconfirm>
+                        </div>
+                      </header>
+                      <div v-if="selectedCalendarSessions.length" class="calendar-session-list">
+                        <article
+                          v-for="session in selectedCalendarSessions"
+                          :key="session.id"
+                          class="calendar-session-detail"
+                        >
+                          <div class="calendar-session-detail__body">
+                            <div class="session-items">
+                              <div v-for="item in session.items" :key="item.id" class="session-item">
+                                <span>{{ item.exercise.name }}</span>
+                                <small>{{ targetsText(item) }}</small>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      </div>
+                    </section>
+                    <div v-if="selectedCalendarSession?.notes" class="calendar-session-notes">
+                      <span>{{ t('plans.manager.sessionNotes') }}</span>
+                      <p class="session-notes">{{ selectedCalendarSession.notes }}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </section>
+              </section>
+            </el-tab-pane>
+            <el-tab-pane name="review">
+              <template #label>
+                <span class="plan-tab-label">
+                  {{ t('plans.manager.phaseReviews') }}
+                  <el-tag size="small" effect="plain" :type="planReviewPhase?.review ? 'success' : 'info'">
+                    {{
+                      planReviewPhase?.review
+                        ? t('plans.manager.reviewStatusFilled')
+                        : t('plans.manager.reviewStatusPending')
+                    }}
+                  </el-tag>
+                </span>
+              </template>
+              <section v-if="planReviewPhase" class="plan-review-section">
+                <header class="section-heading">
+                  <div>
+                    <h4 class="plan-review-heading">
+                      <span>{{ t('plans.manager.phaseReviews') }}</span>
+                      <el-tooltip :content="planWeightHint" placement="top">
+                        <el-tag size="small" effect="plain" :type="planWeightChangeTagType">
+                          {{ t('plans.manager.reviewWeightChange') }}：{{ planWeightChangeLabel }}
+                        </el-tag>
+                      </el-tooltip>
+                    </h4>
+                    <p>{{ t('plans.manager.phaseReviewsDescription') }}</p>
+                  </div>
+                  <el-button type="primary" plain :icon="EditPen" @click="openPlanReviewDialog">
+                    {{ planReviewPhase.review ? t('plans.manager.editReview') : t('plans.manager.addReview') }}
+                  </el-button>
+                </header>
+
+                <article class="plan-review-card">
+                  <div class="plan-review-card__meta">
+                    <div>
+                      <h5>{{ planDetail.name }}</h5>
+                      <p>{{ planDetail.startDate }} - {{ planDetail.endDate }}</p>
+                    </div>
+                    <el-tag size="small" :type="statusTagType(planDetail.status)">{{
+                      statusLabel(planDetail.status)
+                    }}</el-tag>
+                  </div>
+                  <div class="phase-review-summary plan-review-summary">
+                    <span>{{ t('plans.manager.reviewTotal') }}：{{ planReviewSummary.total }}</span>
+                    <span class="phase-review-summary__success"
+                      >{{ t('plans.manager.reviewAchieved') }}：{{ planReviewSummary.achieved }}</span
+                    >
+                    <span>{{ t('plans.manager.reviewPartial') }}：{{ planReviewSummary.partial }}</span>
+                    <span>{{ t('plans.manager.reviewUnverifiable') }}：{{ planReviewSummary.unverifiable }}</span>
+                  </div>
+                  <div v-if="planReviewPhase.review" class="phase-review-content plan-review-content">
+                    <p v-if="planReviewPhase.review.summary">
+                      <strong>{{ t('plans.manager.reviewSummary') }}</strong
+                      >{{ planReviewPhase.review.summary }}
+                    </p>
+                    <p v-if="planReviewPhase.review.discomfort">
+                      <strong>{{ t('plans.manager.reviewDiscomfort') }}</strong
+                      >{{ planReviewPhase.review.discomfort }}
+                    </p>
+                    <p v-if="planReviewPhase.review.adjustment">
+                      <strong>{{ t('plans.manager.reviewAdjustment') }}</strong
+                      >{{ planReviewPhase.review.adjustment }}
+                    </p>
+                    <span
+                      v-if="
+                        planReviewPhase.review.fatigueLevel !== null &&
+                        planReviewPhase.review.fatigueLevel !== undefined
+                      "
+                    >
+                      {{ t('plans.manager.reviewFatigue') }}：{{ planReviewPhase.review.fatigueLevel }}/10
+                    </span>
+                  </div>
+                  <el-empty v-else :description="t('plans.manager.noReview')" :image-size="52" />
+                </article>
+              </section>
+              <el-empty v-else :description="t('plans.manager.noPhases')" :image-size="64" />
+            </el-tab-pane>
+          </el-tabs>
         </template>
       </main>
     </el-drawer>
@@ -934,30 +961,31 @@
         <el-form-item :label="t('plans.manager.reviewSummary')">
           <el-input v-model="phaseReviewForm.summary" type="textarea" :rows="3" maxlength="4000" show-word-limit />
         </el-form-item>
-        <div class="phase-review-form-grid">
-          <el-form-item :label="t('plans.manager.reviewFatigue')">
-            <el-input-number
-              v-model="phaseReviewForm.fatigueLevel"
-              :min="0"
-              :max="10"
-              :precision="0"
-              controls-position="right"
+        <el-form-item :label="t('plans.manager.reviewFatigue')">
+          <div class="fatigue-rating-field">
+            <div class="fatigue-rating-control">
+              <el-rate v-model="phaseReviewForm.fatigueLevel" :max="10" :texts="fatigueRatingTexts" show-text />
+              <el-tooltip :content="t('plans.manager.reviewFatigueHint')" placement="top">
+                <el-icon class="fatigue-help-icon" :aria-label="t('plans.manager.reviewFatigueHint')" tabindex="0">
+                  <QuestionFilled />
+                </el-icon>
+              </el-tooltip>
+            </div>
+            <p class="fatigue-rating-hint">{{ t('plans.manager.reviewFatigueHint') }}</p>
+            <el-alert
+              v-if="highFatigue"
+              class="fatigue-high-alert"
+              type="warning"
+              :title="t('plans.manager.reviewHighFatigueHint')"
+              :closable="false"
+              show-icon
             />
-          </el-form-item>
-          <el-form-item :label="t('plans.manager.reviewWeightChange')">
-            <el-input-number
-              v-model="phaseReviewForm.weightChange"
-              :min="-100"
-              :max="100"
-              :precision="2"
-              controls-position="right"
-            />
-          </el-form-item>
-        </div>
-        <el-form-item :label="t('plans.manager.reviewDiscomfort')">
+          </div>
+        </el-form-item>
+        <el-form-item :required="highFatigue" :label="t('plans.manager.reviewDiscomfort')">
           <el-input v-model="phaseReviewForm.discomfort" type="textarea" :rows="2" maxlength="2000" show-word-limit />
         </el-form-item>
-        <el-form-item :label="t('plans.manager.reviewAdjustment')">
+        <el-form-item :required="highFatigue" :label="t('plans.manager.reviewAdjustment')">
           <el-input v-model="phaseReviewForm.adjustment" type="textarea" :rows="2" maxlength="2000" show-word-limit />
         </el-form-item>
       </el-form>
@@ -984,6 +1012,7 @@ import {
   createTrainingSessionsBatch,
   deleteTrainingPlan,
   deleteTrainingSession,
+  getWeightData,
   getTrainingExercises,
   getChinaWorkdayCalendar,
   getTrainingPlan,
@@ -1004,7 +1033,9 @@ const plans = ref([]);
 const exercises = ref([]);
 const selectedPlanId = ref(null);
 const planDetail = ref(null);
+const planWeightData = ref(null);
 const detailDrawerVisible = ref(false);
+const planDetailTab = ref('calendar');
 const planDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
 const batchSessionDialogVisible = ref(false);
@@ -1030,7 +1061,6 @@ const phaseReviewForm = reactive({
   summary: '',
   fatigueLevel: null,
   discomfort: '',
-  weightChange: null,
   adjustment: ''
 });
 const batchSessionForm = reactive({
@@ -1082,6 +1112,12 @@ const phaseReviewDialogTitle = computed(() =>
     ? t('plans.manager.reviewDialogTitle', { name: planDetail.value.name })
     : t('plans.manager.phaseReviews')
 );
+const fatigueRatingTexts = computed(() => [
+  t('plans.manager.fatigueRatingLow'),
+  t('plans.manager.fatigueRatingMedium'),
+  t('plans.manager.fatigueRatingHigh')
+]);
+const highFatigue = computed(() => Number(phaseReviewForm.fatigueLevel) > 6);
 const batchSessionDates = computed(() =>
   getBatchDates(batchSessionForm.dates, batchSessionForm.frequency, batchSessionForm.weekdays)
 );
@@ -1118,6 +1154,42 @@ const planReviewSummary = computed(() => {
     if (Object.prototype.hasOwnProperty.call(summary, session.status)) summary[session.status] += 1;
   }
   return summary;
+});
+const planWeightSummary = computed(() => {
+  const dailyData = planWeightData.value?.dailyData || [];
+  if (dailyData.length === 0) return null;
+  const firstItem = dailyData[0];
+  const lastItem = dailyData[dailyData.length - 1];
+  const first = Number(firstItem?.avgWeight);
+  const last = Number(lastItem?.avgWeight);
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+  return {
+    first,
+    last,
+    firstDate: firstItem.date,
+    lastDate: lastItem.date,
+    change: dailyData.length >= 2 ? Number((last - first).toFixed(1)) : null
+  };
+});
+const planWeightChange = computed(() => planWeightSummary.value?.change ?? null);
+const planWeightChangeLabel = computed(() => {
+  const summary = planWeightSummary.value;
+  if (!summary) return t('plans.manager.reviewWeightUnavailable');
+  if (summary.change === null) return `${summary.first.toFixed(1)} kg`;
+  const prefix = planWeightChange.value > 0 ? '+' : '';
+  return `${summary.first.toFixed(1)} → ${summary.last.toFixed(1)} kg (${prefix}${summary.change.toFixed(1)} kg)`;
+});
+const planWeightHint = computed(() => {
+  const summary = planWeightSummary.value;
+  if (!summary) return t('plans.manager.reviewWeightUnavailable');
+  if (summary.change === null) {
+    return t('plans.manager.reviewWeightSingleHint', { date: summary.firstDate });
+  }
+  return t('plans.manager.reviewWeightHint', { startDate: summary.firstDate, endDate: summary.lastDate });
+});
+const planWeightChangeTagType = computed(() => {
+  if (planWeightChange.value === null || planWeightChange.value === 0) return 'info';
+  return planWeightChange.value < 0 ? 'success' : 'warning';
 });
 const plannedCalendarDays = computed(
   () => new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate)).size
@@ -1243,16 +1315,27 @@ function formatDurationText(totalSeconds) {
 async function loadPlanDetail(id) {
   if (!id) {
     planDetail.value = null;
+    planWeightData.value = null;
     calendarMonth.value = '';
     calendarSelectedDate.value = '';
     return;
   }
   detailLoading.value = true;
   try {
-    planDetail.value = await getTrainingPlan(id);
+    const loadedPlan = await getTrainingPlan(id);
+    planDetail.value = loadedPlan;
     calendarMonth.value = planDetail.value.startDate.slice(0, 7);
     calendarSelectedDate.value = planDetail.value.sessions?.[0]?.scheduledDate || planDetail.value.startDate || '';
+    try {
+      planWeightData.value = await getWeightData({
+        startDate: loadedPlan.startDate,
+        endDate: loadedPlan.endDate
+      });
+    } catch {
+      planWeightData.value = null;
+    }
   } catch (requestError) {
+    planWeightData.value = null;
     error.value = normalizeRequestError(requestError, t) || t('plans.manager.loadFailed');
   } finally {
     detailLoading.value = false;
@@ -1289,6 +1372,7 @@ async function selectPlan(id) {
     return;
   }
   selectedPlanId.value = id;
+  planDetailTab.value = 'calendar';
   error.value = '';
   await loadPlanDetail(id);
   if (planDetail.value) detailDrawerVisible.value = true;
@@ -1302,7 +1386,6 @@ function openPlanReviewDialog() {
     summary: phase.review?.summary || '',
     fatigueLevel: phase.review?.fatigueLevel ?? null,
     discomfort: phase.review?.discomfort || '',
-    weightChange: phase.review?.weightChange ?? null,
     adjustment: phase.review?.adjustment || ''
   });
   phaseReviewDialogVisible.value = true;
@@ -1310,13 +1393,20 @@ function openPlanReviewDialog() {
 
 async function savePhaseReview() {
   if (!phaseReviewForm.phaseId) return;
+  if (highFatigue.value && !phaseReviewForm.discomfort.trim()) {
+    ElMessage.warning(t('plans.manager.reviewDiscomfortRequired'));
+    return;
+  }
+  if (highFatigue.value && !phaseReviewForm.adjustment.trim()) {
+    ElMessage.warning(t('plans.manager.reviewAdjustmentRequired'));
+    return;
+  }
   saving.value = true;
   try {
     await saveTrainingPhaseReview(phaseReviewForm.phaseId, {
       summary: phaseReviewForm.summary,
       fatigueLevel: phaseReviewForm.fatigueLevel,
       discomfort: phaseReviewForm.discomfort,
-      weightChange: phaseReviewForm.weightChange,
       adjustment: phaseReviewForm.adjustment
     });
     phaseReviewDialogVisible.value = false;
@@ -2485,6 +2575,38 @@ h2 {
   flex: none;
   gap: 8px;
 }
+.plan-detail-tabs {
+  margin-top: 4px;
+}
+.plan-detail-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+.plan-detail-tabs :deep(.el-tabs__nav-wrap::after) {
+  background-color: var(--card-border);
+}
+.plan-detail-tabs :deep(.el-tabs__item) {
+  height: 42px;
+  padding: 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.plan-detail-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.plan-detail-tabs :deep(.el-tabs__content) {
+  overflow: visible;
+}
+.plan-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.plan-tab-label :deep(.el-tag) {
+  height: 20px;
+  line-height: 18px;
+}
 .phase-list {
   display: flex;
   flex-direction: column;
@@ -2507,7 +2629,6 @@ h2 {
 }
 .plan-review-section {
   padding: 18px 0 20px;
-  border-top: 1px solid var(--card-border);
 }
 .section-heading {
   display: flex;
@@ -2519,6 +2640,18 @@ h2 {
   color: var(--text-primary);
   font-size: 16px;
   letter-spacing: 0;
+}
+.plan-review-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.plan-review-heading :deep(.el-tag) {
+  font-weight: 500;
+}
+.plan-review-heading :deep(.el-tooltip__trigger) {
+  display: inline-flex;
 }
 .section-heading p {
   margin-top: 6px;
@@ -2599,6 +2732,51 @@ h2 {
 }
 .phase-review-form-grid .el-input-number {
   width: 100%;
+}
+.fatigue-rating-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fatigue-rating-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fatigue-rating-control :deep(.el-rate) {
+  height: 32px;
+}
+.fatigue-rating-control :deep(.el-rate__icon) {
+  margin-right: 3px;
+  font-size: 24px;
+}
+.fatigue-rating-control :deep(.el-rate__text) {
+  min-width: 66px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.fatigue-help-icon {
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: help;
+}
+.fatigue-help-icon:hover,
+.fatigue-help-icon:focus-visible {
+  color: var(--primary-color);
+  outline: none;
+}
+.fatigue-rating-hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.fatigue-high-alert {
+  max-width: 520px;
+  margin-top: 4px;
+}
+.fatigue-high-alert :deep(.el-alert__title) {
+  font-size: 12px;
+  line-height: 1.5;
 }
 .phase-header h4 {
   color: var(--text-primary);
@@ -2841,6 +3019,7 @@ h2 {
 @media (max-width: 640px) {
   .plan-content-header,
   .plan-detail-header,
+  .section-heading,
   .phase-header,
   .plan-review-card__meta,
   .plan-draft-sessions__header,

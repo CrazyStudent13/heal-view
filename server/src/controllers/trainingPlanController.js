@@ -162,6 +162,10 @@ function validatePhaseReviewPayload(payload = {}) {
   ) {
     errors.fatigueLevel = 'Fatigue level must be an integer from 0 to 10';
   }
+  if (fatigueLevel !== null && fatigueLevel > 6) {
+    if (!value.discomfort) errors.discomfort = 'Discomfort is required above fatigue level 6';
+    if (!value.adjustment) errors.adjustment = 'Adjustment is required above fatigue level 6';
+  }
   if (weightChange !== null && (!Number.isFinite(weightChange) || weightChange < -100 || weightChange > 100)) {
     errors.weightChange = 'Weight change must be between -100 and 100';
   }
