@@ -1,0 +1,22 @@
+# Shell 脚本必须始终以 LF 存储并检出，否则在 Linux 服务器上会因 CRLF 报
+# "bad interpreter: /usr/bin/env: 'bash\r'" 而无法执行。
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Dockerfile 内的续行反斜杠同样不能被写成 CRLF。
+Dockerfile text eol=lf
+
+# Windows 专用的批处理文件保持 CRLF。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不做任何行尾转换。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+*.woff binary
+*.woff2 binary

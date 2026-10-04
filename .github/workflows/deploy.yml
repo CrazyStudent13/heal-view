@@ -1,22 +1,42 @@
-name: Build and Deploy Docker Image
+name: Build and Deploy
 
+# 只有 master 的推送才触发生产部署。
+# 也支持手动触发：留空 image_tag 会重新构建并部署当前 ref；填入历史 commit SHA
+# 则跳过构建、直接部署那个已存在的镜像，用于回滚。
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '要部署的镜像标签。留空 = 重建并部署；填历史 commit SHA = 回滚到该版本。'
+        required: false
+        type: string
+        default: ''
 
+# 生产部署绝不并发执行，也绝不允许取消进行中的部署，
+# 否则容器可能停在「已拉取新镜像但未完成切换」的半更新状态。
 concurrency:
   group: heal-view-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  REGISTRY: ghcr.io
 
 jobs:
-  image:
+  # 复用 quality.yml 的格式化 / ESLint / i18n / 测试 / 构建检查。
+  # 回滚场景（指定了 image_tag）不跑检查：回滚要快，而且此时 master 的代码
+  # 可能正处于出问题的状态，跑检查反而会挡住回滚。
+  quality:
+    if: ${{ !inputs.image_tag }}
+    uses: ./.github/workflows/quality.yml
+
+  deploy:
+    needs: [quality]
+    # quality 被跳过（回滚）或成功都继续；只要它失败或取消就停止。
+    if: ${{ always() && needs.quality.result != 'failure' && needs.quality.result != 'cancelled' }}
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -24,47 +44,163 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Normalize image name
+      # 缺少 Secrets 时必须显式失败。
+      # 旧版本用 `if: env.DEPLOY_HOST != ''` 静默跳过部署，会让人误以为已经发布成功。
+      - name: Check required secrets
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          missing=""
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_PATH GHCR_TOKEN; do
+            if [ -z "${!name:-}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::缺少必需的仓库 Secrets:$missing （Settings → Secrets and variables → Actions → New repository secret）"
+            exit 1
+          fi
+          echo "Secrets 检查通过。"
+
+      - name: Resolve image name and tag
         id: image
         shell: bash
-        run: echo "name=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+        run: |
+          # GHCR 要求镜像名全小写，而 github.repository 会保留用户名的大小写。
+          name="$(echo '${{ env.REGISTRY }}/${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            # 手动回滚：部署指定标签，不重新构建。
+            tag='${{ inputs.image_tag }}'
+            build=false
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # 正常发布：用不可变的 commit SHA 作为标签，便于追溯与回滚。
+            tag='${{ github.sha }}'
+            build=true
+          else
+            # 手动触发不填标签：重建并部署 latest。
+            tag='latest'
+            build=true
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "将部署：$name:$tag（构建镜像：$build）"
+
+      - name: Set up Buildx
+        if: steps.image.outputs.build == 'true'
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: steps.image.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push image
+        if: steps.image.outputs.build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
             ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy on server
-        if: ${{ env.DEPLOY_HOST != '' }}
         uses: appleboy/ssh-action@v1.2.0
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          IMAGE_REF: ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          IMAGE_NAME: ${{ steps.image.outputs.name }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: DEPLOY_PATH,GHCR_USERNAME,GHCR_TOKEN,IMAGE_NAME
+          port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
+          envs: DEPLOY_PATH,IMAGE_REF,GHCR_USERNAME,GHCR_TOKEN
           script_stop: true
+          command_timeout: 15m
           script: |
             set -eu
+
+            : "${DEPLOY_PATH:?DEPLOY_PATH 未配置}"
+            : "${IMAGE_REF:?IMAGE_REF 未配置}"
+            : "${GHCR_USERNAME:?GHCR_USERNAME 未配置}"
+            : "${GHCR_TOKEN:?GHCR_TOKEN 未配置}"
+
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              echo "ERROR: $DEPLOY_PATH 不是 git 仓库。请先在服务器上执行一次 deploy/setup-server.sh。" >&2
+              exit 1
+            fi
+
             cd "$DEPLOY_PATH"
+
+            echo "==> 同步 compose 文件到最新 master"
+            # deploy/.env、deploy/data、deploy/uploads 都被 .gitignore 忽略，
+            # 因此强制对齐 master 不会动到配置和数据库。
+            git fetch --prune origin master
+            git checkout -f -B master origin/master
+
+            if [ ! -f deploy/.env ]; then
+              echo "==> 首次部署：由模板生成 deploy/.env"
+              cp deploy/.env.example deploy/.env
+            fi
+
+            echo "==> 登录 GHCR"
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            sed -i "s#^HEAL_VIEW_IMAGE=.*#HEAL_VIEW_IMAGE=$IMAGE_NAME:latest#" deploy/.env
+
+            echo "==> 固定镜像版本：$IMAGE_REF"
+            if grep -q '^HEAL_VIEW_IMAGE=' deploy/.env; then
+              sed -i "s#^HEAL_VIEW_IMAGE=.*#HEAL_VIEW_IMAGE=$IMAGE_REF#" deploy/.env
+            else
+              echo "HEAL_VIEW_IMAGE=$IMAGE_REF" >> deploy/.env
+            fi
+
+            echo "==> 拉取镜像"
             docker compose --env-file deploy/.env pull heal-view
+
+            echo "==> 启动容器"
             docker compose --env-file deploy/.env up -d --remove-orphans heal-view
+
+            cid="$(docker compose --env-file deploy/.env ps -q heal-view)"
+            if [ -z "$cid" ]; then
+              echo "ERROR: 容器没有启动。" >&2
+              docker compose --env-file deploy/.env logs --tail=120 heal-view || true
+              exit 1
+            fi
+
+            echo "==> 等待健康检查通过"
+            status="starting"
+            i=0
+            while [ "$i" -lt 40 ]; do
+              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || echo unknown)"
+              if [ "$status" = "healthy" ] || [ "$status" = "unhealthy" ] || [ "$status" = "exited" ]; then
+                break
+              fi
+              i=$((i + 1))
+              sleep 3
+            done
+
             docker compose --env-file deploy/.env ps
+
+            if [ "$status" != "healthy" ]; then
+              echo "ERROR: 健康检查未通过（当前状态：$status）。" >&2
+              echo "提示：数据卷位于 deploy/data，未被本次部署改动，可以回滚镜像版本。" >&2
+              docker compose --env-file deploy/.env logs --tail=150 heal-view || true
+              exit 1
+            fi
+
+            echo "==> 清理悬空镜像"
             docker image prune -f
+
+            echo "==> 部署完成：$IMAGE_REF"

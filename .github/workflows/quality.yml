@@ -4,6 +4,9 @@ on:
   push:
     branches: [main, master, codex/**]
   pull_request:
+  # 允许 deploy.yml 通过 `uses: ./.github/workflows/quality.yml` 复用这套检查，
+  # 保证质量门禁只有一份定义，生产部署必须等它通过。
+  workflow_call:
 
 jobs:
   quality:

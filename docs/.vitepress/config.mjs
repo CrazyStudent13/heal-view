@@ -22,7 +22,8 @@ export default defineConfig({
           items: [
             { text: '项目功能', link: '/guide/features' },
             { text: '快速开始', link: '/guide/quick-start' },
-            { text: '数据导入', link: '/guide/data-import' }
+            { text: '数据导入', link: '/guide/data-import' },
+            { text: '自动部署', link: '/guide/deployment' }
           ]
         }
       ],
@@ -69,7 +70,8 @@ export default defineConfig({
           items: [
             { text: '项目功能', link: '/guide/features' },
             { text: '快速开始', link: '/guide/quick-start' },
-            { text: '数据导入', link: '/guide/data-import' }
+            { text: '数据导入', link: '/guide/data-import' },
+            { text: '自动部署', link: '/guide/deployment' }
           ]
         },
         { text: '未来计划', link: '/roadmap' },
