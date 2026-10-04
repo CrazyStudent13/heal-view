@@ -152,7 +152,7 @@ export default {
       reviewSummary: '整体感受',
       reviewFatigue: '计划整体疲劳程度（0-10）',
       reviewFatigueHint:
-        '请按整个计划周期的总体感受评分；星星越高表示越疲劳。超过 6 星时，需要填写不适或异常及后续建议。',
+        '请按整个计划周期的总体感受评分；星星越高表示越疲劳。\n超过 6 星时，需要填写不适或异常及后续建议。',
       reviewHighFatigueHint: '当前疲劳程度较高，请补充不适或异常及后续建议。',
       fatigueRatingLow: '轻松',
       fatigueRatingMedium: '一般',

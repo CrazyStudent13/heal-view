@@ -961,17 +961,25 @@
         <el-form-item :label="t('plans.manager.reviewSummary')">
           <el-input v-model="phaseReviewForm.summary" type="textarea" :rows="3" maxlength="4000" show-word-limit />
         </el-form-item>
-        <el-form-item :label="t('plans.manager.reviewFatigue')">
-          <div class="fatigue-rating-field">
-            <div class="fatigue-rating-control">
-              <el-rate v-model="phaseReviewForm.fatigueLevel" :max="10" :texts="fatigueRatingTexts" show-text />
-              <el-tooltip :content="t('plans.manager.reviewFatigueHint')" placement="top">
+        <el-form-item>
+          <template #label>
+            <span class="fatigue-form-label">
+              {{ t('plans.manager.reviewFatigue') }}
+              <el-tooltip
+                :content="t('plans.manager.reviewFatigueHint')"
+                placement="top-start"
+                popper-class="fatigue-hint-tooltip"
+              >
                 <el-icon class="fatigue-help-icon" :aria-label="t('plans.manager.reviewFatigueHint')" tabindex="0">
                   <QuestionFilled />
                 </el-icon>
               </el-tooltip>
+            </span>
+          </template>
+          <div class="fatigue-rating-field">
+            <div class="fatigue-rating-control">
+              <el-rate v-model="phaseReviewForm.fatigueLevel" :max="10" :texts="fatigueRatingTexts" show-text />
             </div>
-            <p class="fatigue-rating-hint">{{ t('plans.manager.reviewFatigueHint') }}</p>
             <el-alert
               v-if="highFatigue"
               class="fatigue-high-alert"
@@ -2738,6 +2746,14 @@ h2 {
   flex-direction: column;
   gap: 6px;
 }
+.fatigue-form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+:global(.fatigue-hint-tooltip) {
+  white-space: pre-line;
+}
 .fatigue-rating-control {
   display: inline-flex;
   align-items: center;
@@ -2764,11 +2780,6 @@ h2 {
 .fatigue-help-icon:focus-visible {
   color: var(--primary-color);
   outline: none;
-}
-.fatigue-rating-hint {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .fatigue-high-alert {
   max-width: 520px;

@@ -153,7 +153,7 @@ export default {
       reviewSummary: 'Overall feeling',
       reviewFatigue: 'Overall plan fatigue (0-10)',
       reviewFatigueHint:
-        'Rate the overall fatigue across the plan period. More stars mean more fatigue; above 6 stars, discomfort and follow-up advice are required.',
+        'Rate the overall fatigue across the plan period. More stars mean more fatigue;\nabove 6 stars, discomfort and follow-up advice are required.',
       reviewHighFatigueHint: 'Fatigue is high. Please add any discomfort or unusual symptoms and follow-up advice.',
       fatigueRatingLow: 'Light',
       fatigueRatingMedium: 'Moderate',
