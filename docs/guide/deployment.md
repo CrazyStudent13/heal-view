@@ -132,6 +132,35 @@ SSH 用户不在 `docker` 组：`sudo usermod -aG docker $USER`，然后重新�
 **健康检查一直不通过**
 工作流会打印容器最后 150 行日志。常见原因是端口 `43128` 被占用（改 `deploy/.env` 的 `HEAL_VIEW_PORT`），或数据卷权限不对。
 
+**部署日志里出现 `WARNING: 无法从 GitHub 同步仓库`**
+服务器访问 `github.com` 被网络干扰（部分地区的常见情况）。这一步是**刻意设计成不阻断**的：真正要部署的镜像来自 `ghcr.io`，拿不到最新 compose 文件时会沿用服务器上现成的那份继续发布。
+
+`docker-compose.yml` 很少改动，所以通常可以忽略。如果确实需要更新它，在服务器上手动执行：
+
+```bash
+cd /opt/heal-view && git pull
+```
+
+**本地 `git push` 连不上 github.com**
+同样是网络干扰，且往往是间歇性的。可以改走 SSH 通道（GitHub 的 SSH 服务走 443 端口，通常不受影响）：
+
+```bash
+ssh-keygen -t ed25519 -C "heal-view" -f ~/.ssh/id_ed25519
+# 把 ~/.ssh/id_ed25519.pub 的内容添加到 GitHub → Settings → SSH and GPG keys
+git remote set-url origin git@github.com:CrazyStudent13/heal-view.git
+```
+
+并让 SSH 走 443 端口，在 `~/.ssh/config` 中加入：
+
+```
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+```
+
+注意这只影响**你本地的推送**。GitHub Actions 跑在 GitHub 自己的机器上，不受此影响。
+
 在服务器上手动查看：
 
 ```bash

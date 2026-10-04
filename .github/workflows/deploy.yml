@@ -145,11 +145,20 @@ jobs:
 
             cd "$DEPLOY_PATH"
 
-            echo "==> 同步 compose 文件到最新 master"
+            # 同步 compose 文件到最新 master。
             # deploy/.env、deploy/data、deploy/uploads 都被 .gitignore 忽略，
             # 因此强制对齐 master 不会动到配置和数据库。
-            git fetch --prune origin master
-            git checkout -f -B master origin/master
+            #
+            # 这一步刻意做成「失败不阻断」：真正要部署的镜像来自 ghcr.io，
+            # 而部分地区的服务器访问 github.com 会被间歇性干扰。若因网络问题
+            # 拿不到最新 compose 文件，就沿用服务器上现成的那份继续部署，
+            # 只发警告，不让一次网络抖动把整个发布搞失败。
+            echo "==> 同步 compose 文件到最新 master"
+            if git fetch --prune origin master && git checkout -f -B master origin/master; then
+              echo "compose 文件已同步。"
+            else
+              echo "WARNING: 无法从 GitHub 同步仓库，沿用服务器上现有的 compose 文件继续部署。" >&2
+            fi
 
             if [ ! -f deploy/.env ]; then
               echo "==> 首次部署：由模板生成 deploy/.env"
