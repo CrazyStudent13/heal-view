@@ -60,9 +60,20 @@ DEPLOY_PATH=/srv/heal-view APP_PORT=8080 bash deploy/setup-server.sh
 
 生成后把令牌保存好，下一步要用。（如果把这个包的可见性改成 public，就可以跳过这一步，同时服务器上的 `docker login` 也不再需要。）
 
-## 第三步：配置仓库 Secrets
+## 第三步：创建 `production` 环境
 
-到仓库的 **Settings → Secrets and variables → Actions → New repository secret**，逐个添加：
+部署任务在 `deploy.yml` 里声明了 `environment: production`，所以 Secrets 配在**环境级**，而不是仓库级：
+
+- 环境级 Secrets 只会注入到**显式声明了该环境**的任务，仓库里其它工作流读不到它们；
+- 顺带可以在这个环境上加人工审批（见下方「可选」）。
+
+到仓库的 **Settings → Environments → New environment**，名称填 **`production`**，然后点 **Configure environment**。
+
+> ⚠️ 顺序不能反：**先建好环境，再往里放 Secrets**。环境不存在时没有地方存放。
+
+## 第四步：配置 Secrets
+
+在刚建好的 `production` 环境页面，找到 **Environment secrets → Add secret**，逐个添加：
 
 | Secret | 必填 | 说明 |
 |---|---|---|
@@ -84,7 +95,11 @@ ssh-copy-id -i ~/.ssh/heal_view_deploy.pub 你的用户@你的服务器
 
 `heal_view_deploy`（私钥）的内容填进 `DEPLOY_SSH_KEY`，`.pub`（公钥）留在服务器的 `~/.ssh/authorized_keys`。
 
-## 第四步：合并到 master
+### 可选：部署前人工审批
+
+在同一环境页面的 **Deployment protection rules** 勾选 **Required reviewers** 并选中自己。开启后每次部署都会暂停等待批准，建议等流水线稳定跑通几次之后再开。
+
+## 第五步：合并到 master
 
 部署文件必须存在于 `master` 分支上，GitHub 才会执行这套工作流。合并之后，任意一次 `master` 推送都会自动发布。
 
@@ -118,7 +133,7 @@ docker compose --env-file deploy/.env start heal-view
 ## 排查
 
 **工作流在 "Check required secrets" 失败**
-Secrets 没配全，报错信息里会列出缺哪几个。
+Secrets 没配全，报错信息里会列出缺哪几个。最容易踩的坑是把 Secret 配成了**仓库级**——那样部署任务读不到，必须配在 `production` 环境的 **Environment secrets** 里。
 
 **`docker compose` 报 `unknown command` 或 `--env-file` 不识别**
 服务器装的是 Compose V1。安装 `docker-compose-plugin` 换成 V2。

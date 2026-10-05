@@ -89,8 +89,12 @@ cat <<EOF
 配置模板   : $DEPLOY_PATH/deploy/.env
 数据库位置 : $DEPLOY_PATH/deploy/data/health_data.db
 
-接下来在 GitHub 仓库里配置 Secrets
-（Settings → Secrets and variables → Actions → New repository secret）：
+接下来在 GitHub 上配置 Secrets（注意是「环境级」，不是仓库级）
+
+  1) 仓库 → Settings → Environments → New environment
+     名称填 production（必须与 deploy.yml 里的 environment 一致）
+
+  2) 在该环境的 Environment secrets 里逐个添加：
 
   DEPLOY_HOST    = 本机公网 IP 或域名
   DEPLOY_USER    = 用于 SSH 登录的用户（需在 docker 组内）
@@ -98,6 +102,8 @@ cat <<EOF
   DEPLOY_PATH    = $DEPLOY_PATH
   GHCR_TOKEN     = GitHub PAT（classic），勾选 read:packages
   DEPLOY_PORT    = 可选，SSH 端口，默认 22
+
+  配成仓库级 Secret 部署任务读不到，会直接报缺少 Secrets。
 
 配好之后，只要往 master 推代码就会自动构建并部署。
 
