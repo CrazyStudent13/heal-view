@@ -156,10 +156,16 @@ jobs:
             # 拿不到最新 compose 文件，就沿用服务器上现成的那份继续部署，
             # 只发警告，不让一次网络抖动把整个发布搞失败。
             echo "==> 同步 compose 文件到最新 master"
-            if git fetch --prune origin master && git checkout -f -B master origin/master; then
+            fetch_status=0
+            # 显式捕获 git 的退出码。这样即使远端返回 curl 28/128，
+            # set -e 也不会在可选的 compose 同步步骤中终止整个部署。
+            git -c http.lowSpeedLimit=0 -c http.lowSpeedTime=0 fetch --prune origin master || fetch_status=$?
+            if [ "$fetch_status" -ne 0 ]; then
+              echo "WARNING: 无法从 GitHub 同步仓库，沿用服务器上现有的 compose 文件继续部署。" >&2
+            elif git checkout -f -B master origin/master; then
               echo "compose 文件已同步。"
             else
-              echo "WARNING: 无法从 GitHub 同步仓库，沿用服务器上现有的 compose 文件继续部署。" >&2
+              echo "WARNING: 无法切换到最新 master，沿用服务器上现有的 compose 文件继续部署。" >&2
             fi
 
             if [ ! -f deploy/.env ]; then
