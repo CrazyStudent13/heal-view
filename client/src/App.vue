@@ -1,36 +1,37 @@
 <script setup>
-import { computed, onMounted, watch } from 'vue'
-import { ElConfigProvider } from 'element-plus'
-import { RouterView, useRoute } from 'vue-router'
-import { useLocaleStore } from '@/stores/localeStore'
-import { useThemeStore } from '@/stores/themeStore'
-import AppLayout from '@/components/layout/AppLayout.vue'
+import { computed, onMounted, watch } from 'vue';
+import { ElConfigProvider } from 'element-plus';
+import { RouterView } from 'vue-router';
+import { useLocaleStore } from '@/stores/localeStore';
+import { useThemeStore } from '@/stores/themeStore';
 
-const localeStore = useLocaleStore()
-const themeStore = useThemeStore()
-const route = useRoute()
+const localeStore = useLocaleStore();
+const themeStore = useThemeStore();
 
-const currentLocale = computed(() => localeStore.elementPlusLocale)
+const currentLocale = computed(() => localeStore.elementPlusLocale);
 
 // Watch for theme changes and update document class for Element Plus dark mode
-watch(() => themeStore.isDarkMode, (isDark) => {
-  if (isDark) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}, { immediate: true })
+watch(
+  () => themeStore.isDarkMode,
+  (isDark) => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  },
+  { immediate: true }
+);
 
 // Initialize theme on mount
 onMounted(() => {
-  themeStore.setTheme(themeStore.isDarkMode)
-})
+  themeStore.setTheme(themeStore.isDarkMode);
+});
 </script>
 
 <template>
   <el-config-provider :locale="currentLocale">
-    <AppLayout v-if="route.name !== 'login'" />
-    <RouterView v-else />
+    <RouterView />
   </el-config-provider>
 </template>
 
@@ -58,4 +59,3 @@ body {
   height: 100vh;
 }
 </style>
-

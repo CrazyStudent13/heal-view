@@ -47,6 +47,12 @@ import {
   updateTrainingSession
 } from '../controllers/trainingPlanController.js';
 import { getChinaWorkdayCalendar } from '../controllers/chinaCalendarController.js';
+import {
+  getTrainingExecution,
+  getTrainingExecutionHistory,
+  getTrainingSessionExecution,
+  saveTrainingSessionExecution
+} from '../controllers/trainingExecutionController.js';
 
 const router = express.Router();
 
@@ -110,6 +116,12 @@ router.post('/training-plans/:planId/sessions', createTrainingSession);
 router.post('/training-plans/:planId/sessions/batch', createTrainingSessionsBatch);
 router.put('/training-sessions/:id', updateTrainingSession);
 router.delete('/training-sessions/:id', deleteTrainingSession);
+
+// Manual training execution records for the mobile check-in flow
+router.get('/training-execution', getTrainingExecution);
+router.get('/training-execution/history', getTrainingExecutionHistory);
+router.get('/training-sessions/:id/execution', getTrainingSessionExecution);
+router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
 
 // Parse and import health archive ZIP exports
 router.post('/imports/parse', uploadArchive.single('archive'), parseImportArchive);
