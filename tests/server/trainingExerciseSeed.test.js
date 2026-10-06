@@ -28,7 +28,7 @@ test('uses the requested metrics for each default training exercise', () => {
     蝶式拉背器: ['weight', 'sets'],
     高拉背器: ['weight', 'sets'],
     大腿内外侧肌训练器: ['weight', 'sets'],
-    平板支撑: ['sets'],
+    平板支撑: ['sets', 'duration'],
     俯卧撑: ['sets', 'repetitions'],
     仰卧起坐: ['sets', 'repetitions']
   });

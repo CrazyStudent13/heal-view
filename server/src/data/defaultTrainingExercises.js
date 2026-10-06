@@ -106,8 +106,8 @@ export const defaultTrainingExercises = [
     equipmentMode: 'bodyweight',
     equipment: '',
     verificationMode: 'manual',
-    // 平板支撑计算的是组数；单次时长不是有效指标，不纳入目标。
-    metrics: ['sets'],
+    // 平板支撑既按组数统计，也支持按目标时长倒计时记录。
+    metrics: ['sets', 'duration'],
     purpose: '增强核心肌群耐力和躯干稳定性'
   },
   {

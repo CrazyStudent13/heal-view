@@ -427,7 +427,6 @@ function validateExecutionPayload(payload, sessionItems) {
 
     if (status === 'skipped') {
       const skipReason = normalizeSkipReason(rawItem?.skipReason);
-      if (!skipReason) errors[`items.${index}.skipReason`] = 'Choose why this item was skipped';
       value.items.push({ sessionItemId, status, actuals: {}, skipReason, note: note || '' });
       return;
     }

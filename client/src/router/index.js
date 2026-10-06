@@ -102,12 +102,13 @@ const routes = [
     path: '/m',
     component: MobileLayout,
     redirect: '/m/today',
+    meta: { public: true },
     children: [
       {
         path: 'today',
         name: 'mobile-today',
         component: loadMobileTodayPage,
-        meta: { titleKey: 'mobile.title' }
+        meta: { titleKey: 'mobile.title', public: true }
       }
     ]
   }

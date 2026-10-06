@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const clientRoot = fileURLToPath(new URL('../../client', import.meta.url));
 const mobileRoot = path.join(clientRoot, 'src/pages/mobile');
 const viteConfigSource = fs.readFileSync(path.join(clientRoot, 'vite.config.js'), 'utf8');
+const routerSource = fs.readFileSync(path.join(clientRoot, 'src/router/index.js'), 'utf8');
 
 function listVueFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -46,4 +47,17 @@ test('maps the Vant theme onto the existing design tokens', () => {
   assert.match(layout, /primaryColor:\s*'var\(--primary-color\)'/);
   assert.match(layout, /background2:\s*'var\(--card-bg\)'/);
   assert.match(layout, /:theme="themeStore\.isDarkMode \? 'dark' : 'light'"/);
+});
+
+test('keeps the personal check-in entry at /m/today without auth interception', () => {
+  assert.match(routerSource, /path:\s*'\/m'/);
+  assert.match(routerSource, /redirect:\s*'\/m\/today'/);
+  assert.match(routerSource, /path:\s*'today'[\s\S]*?meta:\s*\{\s*titleKey:\s*'mobile\.title',\s*public:\s*true\s*\}/);
+});
+
+test('does not prefill an unrecorded exercise as completed', () => {
+  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
+  assert.match(trainingPage, /if\s*\(metric\s*===\s*'sets'\)\s*\{[\s\S]*?actuals\.sets\s*=\s*null/);
+  assert.doesNotMatch(trainingPage, /actuals\.sets\s*=\s*Number\.isFinite\(targetSets\)/);
+  assert.doesNotMatch(trainingPage, /TrainingItemChips/);
 });

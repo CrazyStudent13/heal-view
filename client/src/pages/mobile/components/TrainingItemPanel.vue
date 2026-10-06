@@ -3,7 +3,7 @@
     <header class="item-panel__header">
       <div class="item-panel__title">
         <h3>{{ item.exercise.name }}</h3>
-        <van-tag plain type="primary" size="medium">{{ t('plans.exercise.verificationModes.manual') }}</van-tag>
+        <van-tag :type="statusType" size="medium">{{ statusLabel }}</van-tag>
       </div>
       <p class="item-panel__targets">
         <span class="item-panel__label">{{ t('mobile.targets') }}</span>
@@ -13,7 +13,19 @@
 
     <p v-if="lastAttemptText" class="item-panel__last">{{ t('mobile.lastAttempt', { text: lastAttemptText }) }}</p>
 
-    <div class="item-panel__metrics">
+    <button type="button" class="item-panel__details-toggle" @click="$emit('toggle-details')">
+      <span>{{ detailsOpen ? t('mobile.hideDetails') : t('mobile.recordDetails') }}</span>
+      <van-icon :name="detailsOpen ? 'arrow-up' : 'arrow-down'" />
+    </button>
+
+    <button v-if="hasDuration" type="button" class="item-panel__timer-trigger" @click="openTimer">
+      <van-icon name="clock-o" />
+      <span>{{ t('mobile.startTimer') }}</span>
+      <small>{{ t('mobile.timerReady', { seconds: targetDuration }) }}</small>
+      <van-icon name="arrow" />
+    </button>
+
+    <div v-if="detailsOpen" class="item-panel__metrics">
       <!-- 组数单独作为完成度呈现：分母是目标组数，分子是实际做了几组 -->
       <div v-if="targetSets > 0" class="metric-row">
         <span class="metric-row__label">{{ t('mobile.completedSets') }}</span>
@@ -39,7 +51,7 @@
             <van-stepper
               :model-value="durationParts[part]"
               :min="0"
-              :max="part === 'hours' ? 9 : 59"
+              :max="part === 'minutes' ? 99 : 59"
               integer
               button-size="32px"
               :aria-label="durationPartLabel(part)"
@@ -66,7 +78,7 @@
       </div>
     </div>
 
-    <p v-if="targetSets > 0 && completedSets < targetSets" class="item-panel__hint">
+    <p v-if="detailsOpen && targetSets > 0 && completedSets > 0 && completedSets < targetSets" class="item-panel__hint">
       {{ t('mobile.partialSets', { done: completedSets, target: targetSets }) }}
     </p>
 
@@ -91,15 +103,8 @@
       </van-button>
     </div>
 
-    <button v-if="isSkipped" type="button" class="item-panel__skip-trigger" @click="skipSheetVisible = true">
-      <span class="item-panel__skip-label">{{ t('mobile.skipReasonLabel') }}</span>
-      <span class="item-panel__skip-value">{{
-        skipReason ? t(`mobile.skipReasons.${skipReason}`) : t('mobile.chooseReason')
-      }}</span>
-      <van-icon name="arrow" />
-    </button>
-
     <van-field
+      v-if="detailsOpen"
       :model-value="note"
       class="item-panel__note"
       type="textarea"
@@ -110,44 +115,60 @@
       @update:model-value="(value) => $emit('update', { note: value })"
     />
 
-    <van-action-sheet
-      v-model:show="skipSheetVisible"
-      :actions="skipActions"
-      :cancel-text="t('common.cancel')"
-      close-on-click-action
-      safe-area-inset-bottom
-      @select="handleSkipSelect"
-    />
+    <van-popup v-model:show="timerVisible" position="center" round :style="{ width: 'min(88vw, 360px)' }">
+      <div class="timer-dialog">
+        <p class="timer-dialog__title">{{ item.exercise.name }}</p>
+        <div class="timer-dialog__face" :class="{ 'timer-dialog__face--running': timerRunning }">
+          <span>{{ formatTimer(timerRemaining) }}</span>
+        </div>
+        <p class="timer-dialog__status">{{ timerStatus }}</p>
+        <div class="timer-dialog__actions">
+          <van-button v-if="!timerRunning && !timerFinished" type="primary" block @click="startTimer">
+            {{ t('mobile.startTimer') }}
+          </van-button>
+          <van-button v-if="timerRunning" type="danger" plain block @click="stopTimer">
+            {{ t('mobile.stopTimer') }}
+          </van-button>
+          <van-button v-if="timerFinished" type="primary" block @click="closeTimer">
+            {{ t('mobile.timerDone') }}
+          </van-button>
+          <van-button v-if="!timerRunning && !timerFinished" plain block @click="closeTimer">
+            {{ t('common.cancel') }}
+          </van-button>
+        </div>
+      </div>
+    </van-popup>
   </article>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 
 const props = defineProps({
   item: { type: Object, required: true },
   actuals: { type: Object, default: () => ({}) },
   skipReason: { type: String, default: '' },
-  note: { type: String, default: '' }
+  note: { type: String, default: '' },
+  detailsOpen: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update', 'set-complete']);
+const emit = defineEmits(['update', 'set-complete', 'toggle-details']);
 
 const { t } = useLocaleStore();
 
-const skipReasons = ['equipment_busy', 'no_time', 'discomfort', 'too_hard', 'other'];
-const durationPartsList = ['hours', 'minutes', 'seconds'];
+// 移动端训练时长按分钟和秒录入，小时级时长不属于日常打卡场景。
+const durationPartsList = ['minutes', 'seconds'];
 // 重量按 0.5 递增最贴近器械配重片，其余计数类指标按 1 递增。
 const METRIC_STEPS = { weight: 0.5 };
 const HALF_STEP_METRICS = new Set(['weight']);
 
-const skipSheetVisible = ref(false);
-const durationParts = ref({ hours: 0, minutes: 0, seconds: 0 });
-
-const skipActions = computed(() =>
-  skipReasons.map((reason) => ({ name: t(`mobile.skipReasons.${reason}`), value: reason }))
-);
+const durationParts = ref({ minutes: 0, seconds: 0 });
+const timerVisible = ref(false);
+const timerRunning = ref(false);
+const timerFinished = ref(false);
+const timerRemaining = ref(0);
+let timerHandle = null;
 
 const targets = computed(() => {
   // 组数在「已完成组数」里单独呈现，不再作为普通指标重复出现。
@@ -181,6 +202,29 @@ const isComplete = computed(() =>
   targetSets.value > 0 ? completedSets.value >= targetSets.value : completedSets.value > 0
 );
 const isSkipped = computed(() => completedSets.value === 0);
+const hasDuration = computed(() => {
+  const metrics = new Set(props.item.exercise?.metrics || []);
+  return metrics.has('duration') || metrics.has('durationSeconds') || targetDurationSeconds() > 0;
+});
+const targetDuration = computed(() => {
+  const seconds = targetDurationSeconds();
+  return seconds > 0 ? seconds : 60;
+});
+const timerStatus = computed(() => {
+  if (timerFinished.value) return t('mobile.timerFinished');
+  if (timerRunning.value) return t('mobile.timerRunning');
+  return t('mobile.timerReady', { seconds: targetDuration.value });
+});
+const statusLabel = computed(() => {
+  if (isComplete.value) return t('mobile.statusCompleted');
+  if (completedSets.value > 0) return t('mobile.statusPartial');
+  return t('mobile.statusPending');
+});
+const statusType = computed(() => {
+  if (isComplete.value) return 'success';
+  if (completedSets.value > 0) return 'warning';
+  return 'default';
+});
 
 function updateCompletedSets(value) {
   const next = Math.max(0, Math.round(Number(value) || 0));
@@ -193,16 +237,58 @@ watch(
   () => {
     const seconds = resolveDurationSeconds();
     durationParts.value = {
-      hours: Math.floor(seconds / 3600),
-      minutes: Math.floor((seconds % 3600) / 60),
+      minutes: Math.floor(seconds / 60),
       seconds: seconds % 60
     };
   },
   { immediate: true, deep: true }
 );
 
-function handleSkipSelect(action) {
-  emit('update', { skipReason: action.value });
+function openTimer() {
+  if (!hasDuration.value) return;
+  timerRemaining.value = targetDuration.value;
+  timerRunning.value = false;
+  timerFinished.value = false;
+  timerVisible.value = true;
+}
+
+function startTimer() {
+  if (timerRunning.value) return;
+  timerRunning.value = true;
+  timerHandle = window.setInterval(() => {
+    timerRemaining.value = Math.max(0, timerRemaining.value - 1);
+    if (timerRemaining.value === 0) finishTimer();
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerHandle) window.clearInterval(timerHandle);
+  timerHandle = null;
+  timerRunning.value = false;
+}
+
+function finishTimer() {
+  stopTimer();
+  timerFinished.value = true;
+  emit('update', {
+    actuals: {
+      ...props.actuals,
+      durationSeconds: targetDuration.value,
+      sets: Math.min(targetSets.value || Number.MAX_SAFE_INTEGER, completedSets.value + 1)
+    }
+  });
+}
+
+function closeTimer() {
+  stopTimer();
+  timerVisible.value = false;
+}
+
+onBeforeUnmount(stopTimer);
+
+function formatTimer(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function resolveDurationSeconds() {
@@ -227,7 +313,7 @@ function updateDurationPart(part, value) {
   const next = { ...durationParts.value, [part]: Math.max(0, Math.round(Number(value) || 0)) };
   durationParts.value = next;
   emit('update', {
-    actuals: { ...props.actuals, durationSeconds: next.hours * 3600 + next.minutes * 60 + next.seconds }
+    actuals: { ...props.actuals, durationSeconds: next.minutes * 60 + next.seconds }
   });
 }
 
@@ -258,13 +344,9 @@ function durationPartLabel(part) {
 
 function formatDuration(seconds) {
   const total = Math.max(0, Math.round(Number(seconds) || 0));
-  return [
-    Math.floor(total / 3600) > 0 ? `${Math.floor(total / 3600)}${durationPartLabel('hours')}` : '',
-    Math.floor((total % 3600) / 60) > 0 ? `${Math.floor((total % 3600) / 60)}${durationPartLabel('minutes')}` : '',
-    total % 60 > 0 || total === 0 ? `${total % 60}${durationPartLabel('seconds')}` : ''
-  ]
-    .filter(Boolean)
-    .join('');
+  const minutes = Math.floor(total / 60);
+  const secondsPart = total % 60;
+  return `${minutes}${durationPartLabel('minutes')}${secondsPart}${durationPartLabel('seconds')}`;
 }
 
 const targetsText = computed(() => {
@@ -308,11 +390,10 @@ const lastAttemptText = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
-  background: var(--card-bg);
+  padding: 14px;
+  background: var(--app-bg);
   border: 1px solid var(--card-border);
-  border-radius: 14px;
-  box-shadow: var(--card-shadow);
+  border-radius: 12px;
 }
 
 .item-panel__header {
@@ -330,7 +411,7 @@ const lastAttemptText = computed(() => {
 .item-panel__title h3 {
   margin: 0;
   color: var(--text-primary);
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -357,6 +438,49 @@ const lastAttemptText = computed(() => {
   text-align: left;
 }
 
+.item-panel__details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 10px;
+  color: var(--primary-color);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.item-panel__details-toggle:active {
+  opacity: 0.75;
+}
+
+.item-panel__timer-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 12px;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-color);
+  border-radius: 9px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.item-panel__timer-trigger small {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: right;
+}
+
+.item-panel__timer-trigger:active {
+  opacity: 0.78;
+}
+
 .item-panel__hint {
   margin: 0;
   color: var(--warning-color);
@@ -368,7 +492,7 @@ const lastAttemptText = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .metric-row {
@@ -460,6 +584,57 @@ const lastAttemptText = computed(() => {
   padding: 10px 12px;
   background: var(--control-hover-bg);
   border-radius: 10px;
+}
+
+.timer-dialog {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+  background: var(--card-bg);
+}
+
+.timer-dialog__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.timer-dialog__face {
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  color: var(--text-primary);
+  background: var(--app-bg);
+  border: 8px solid var(--card-border);
+  border-radius: 50%;
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.timer-dialog__face--running {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.timer-dialog__status {
+  min-height: 20px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.timer-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 10px;
 }
 
 @media (max-width: 360px) {

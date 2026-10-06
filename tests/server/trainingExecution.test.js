@@ -220,8 +220,8 @@ test('rejects invalid execution payloads and unknown sessions', async () => {
       { params: { id: sessionId }, body: { status: 'skipped', items: [{ sessionItemId, status: 'skipped' }] } },
       skipWithoutReason
     );
-    assert.equal(skipWithoutReason.statusCode, 400);
-    assert.ok(skipWithoutReason.body.fields['items.0.skipReason']);
+    assert.equal(skipWithoutReason.statusCode, 200);
+    assert.equal(skipWithoutReason.body.execution.items[0].status, 'skipped');
 
     // 全部项目都跳过时，训练单元本身必须标记为 skipped。
     const wrongSessionStatus = responseRecorder();

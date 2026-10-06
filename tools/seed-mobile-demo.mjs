@@ -93,7 +93,7 @@ const strengthTemplate = [
   { name: '肩膊推举器', targets: { weight: 30, sets: 3 } },
   { name: '高拉背器', targets: { weight: 35, sets: 3 } },
   { name: '大腿内外侧肌训练器', targets: { weight: 25, sets: 3 } },
-  { name: '平板支撑', targets: { sets: 3 } }
+  { name: '平板支撑', targets: { sets: 3, durationSeconds: 60 } }
 ];
 // 有氧日只用自动验证项目（室内步行由手表同步确认），
 // 用来覆盖「这天不需要手动记录」的提示分支。

@@ -62,6 +62,13 @@ router.post('/auth/logout', logout);
 router.get('/auth/settings', requireAccess, getSettings);
 router.put('/auth/settings', requireAccess, saveSettings);
 
+// The mobile check-in is a personal daily workflow and can be opened without
+// entering the desktop application's access password. Keep this small surface
+// explicit; all planning, health data, and import APIs remain protected below.
+router.get('/training-execution', getTrainingExecution);
+router.get('/training-sessions/:id/execution', getTrainingSessionExecution);
+router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
+
 router.use(requireAccess);
 
 // Get list of dates
@@ -118,10 +125,7 @@ router.put('/training-sessions/:id', updateTrainingSession);
 router.delete('/training-sessions/:id', deleteTrainingSession);
 
 // Manual training execution records for the mobile check-in flow
-router.get('/training-execution', getTrainingExecution);
 router.get('/training-execution/history', getTrainingExecutionHistory);
-router.get('/training-sessions/:id/execution', getTrainingSessionExecution);
-router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
 
 // Parse and import health archive ZIP exports
 router.post('/imports/parse', uploadArchive.single('archive'), parseImportArchive);

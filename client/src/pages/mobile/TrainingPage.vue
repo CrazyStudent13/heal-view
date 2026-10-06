@@ -58,6 +58,15 @@
             </van-tag>
           </header>
 
+          <div v-if="session.itemCount > 0" class="session-block__summary">
+            <span>{{
+              t('mobile.sessionProgress', { done: sessionDoneCount(session), total: session.itemCount })
+            }}</span>
+            <span v-if="session.autoItemCount > 0" class="session-block__automatic">
+              {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
+            </span>
+          </div>
+
           <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
 
           <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
@@ -67,54 +76,49 @@
           </div>
 
           <template v-else>
-            <TrainingItemChips
-              :items="session.items"
-              :active-id="activeItemId(session)"
-              :statuses="itemStatuses(session)"
-              :progress="itemProgress(session)"
-              @select="(id) => selectItem(session.sessionId, id)"
-            />
-
-            <p v-if="session.autoItemCount > 0" class="session-block__auto-hint">
-              {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
-            </p>
-
-            <TrainingItemPanel
-              v-if="activeItem(session)"
-              :item="activeItem(session)"
-              :actuals="itemDraft(session.sessionId, activeItem(session).sessionItemId).actuals"
-              :skip-reason="itemDraft(session.sessionId, activeItem(session).sessionItemId).skipReason"
-              :note="itemDraft(session.sessionId, activeItem(session).sessionItemId).note"
-              @update="(patch) => updateItem(session.sessionId, activeItem(session).sessionItemId, patch)"
-              @set-complete="
-                (complete) => setItemComplete(session.sessionId, activeItem(session).sessionItemId, complete)
-              "
-            />
-
-            <div class="session-block__feel">
-              <span class="session-block__feel-label">{{ t('mobile.sessionFeel') }}</span>
-              <van-radio-group
-                :model-value="sessionDraft(session.sessionId).feel"
-                direction="horizontal"
-                @update:model-value="(value) => updateSession(session.sessionId, { feel: value })"
-              >
-                <van-radio v-for="feel in sessionFeels" :key="feel" :name="feel" icon-size="18px">
-                  {{ t(`mobile.feels.${feel}`) }}
-                </van-radio>
-              </van-radio-group>
+            <div class="session-items">
+              <TrainingItemPanel
+                v-for="item in session.items"
+                :key="item.sessionItemId"
+                :item="item"
+                :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
+                :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
+                :note="itemDraft(session.sessionId, item.sessionItemId).note"
+                :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
+                @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
+                @set-complete="(complete) => setItemComplete(session.sessionId, item.sessionItemId, complete)"
+                @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
+              />
             </div>
 
-            <van-field
-              :model-value="sessionDraft(session.sessionId).discomfort"
-              class="session-block__discomfort"
-              type="textarea"
-              rows="2"
-              autosize
-              maxlength="2000"
-              :label="t('mobile.discomfortLabel')"
-              :placeholder="t('mobile.discomfortPlaceholder')"
-              @update:model-value="(value) => updateSession(session.sessionId, { discomfort: value })"
-            />
+            <van-collapse v-model="sessionDraft(session.sessionId).extrasOpen" class="session-block__extras">
+              <van-collapse-item :title="t('mobile.moreFeedback')" name="feedback">
+                <div class="session-block__feel">
+                  <span class="session-block__feel-label">{{ t('mobile.sessionFeel') }}</span>
+                  <van-radio-group
+                    :model-value="sessionDraft(session.sessionId).feel"
+                    direction="horizontal"
+                    @update:model-value="(value) => updateSession(session.sessionId, { feel: value })"
+                  >
+                    <van-radio v-for="feel in sessionFeels" :key="feel" :name="feel" icon-size="18px">
+                      {{ t(`mobile.feels.${feel}`) }}
+                    </van-radio>
+                  </van-radio-group>
+                </div>
+
+                <van-field
+                  :model-value="sessionDraft(session.sessionId).discomfort"
+                  class="session-block__discomfort"
+                  type="textarea"
+                  rows="2"
+                  autosize
+                  maxlength="2000"
+                  :label="t('mobile.discomfortLabel')"
+                  :placeholder="t('mobile.discomfortPlaceholder')"
+                  @update:model-value="(value) => updateSession(session.sessionId, { discomfort: value })"
+                />
+              </van-collapse-item>
+            </van-collapse>
           </template>
         </section>
       </template>
@@ -144,7 +148,6 @@ import { showFailToast, showSuccessToast, showToast } from 'vant';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { getTrainingExecution, saveTrainingSessionExecution } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
-import TrainingItemChips from '@/pages/mobile/components/TrainingItemChips.vue';
 import TrainingItemPanel from '@/pages/mobile/components/TrainingItemPanel.vue';
 
 const { t, currentLocale } = useLocaleStore();
@@ -159,8 +162,8 @@ const sessions = ref([]);
 const loading = ref(true);
 const error = ref('');
 const savingSessionId = ref(null);
-// 每个训练单元当前展开的项目。
-const activeItems = reactive({});
+// 只展开用户正在补充详细数据的项目，默认保持紧凑的快速打卡列表。
+const expandedItems = reactive({});
 // 草稿在数据加载后一次性建好，避免在渲染期间创建响应式状态。
 const drafts = reactive({});
 
@@ -202,26 +205,11 @@ function draftKey(sessionId) {
 }
 
 function sessionDraft(sessionId) {
-  return drafts[sessionId] || { items: {}, feel: '', discomfort: '', kicked: false };
+  return drafts[sessionId] || { items: {}, feel: '', discomfort: '', kicked: false, extrasOpen: [] };
 }
 
 function itemDraft(sessionId, sessionItemId) {
   return sessionDraft(sessionId).items?.[sessionItemId] || { actuals: {}, skipReason: '', note: '' };
-}
-
-function activeItemId(session) {
-  const current = activeItems[session.sessionId];
-  if (current && session.items.some((item) => item.sessionItemId === current)) return current;
-  return session.items[0]?.sessionItemId ?? null;
-}
-
-function activeItem(session) {
-  const id = activeItemId(session);
-  return session.items.find((item) => item.sessionItemId === id) || null;
-}
-
-function selectItem(sessionId, sessionItemId) {
-  activeItems[sessionId] = sessionItemId;
 }
 
 /**
@@ -240,53 +228,33 @@ function itemState(session, item) {
   return { status: done >= targetSets ? 'done' : 'partial', done, target: targetSets };
 }
 
-// chips 需要每项的完成状态，统一由页面计算，避免 chips 内部再算一遍。
-function itemStatuses(session) {
-  const statuses = {};
-  for (const item of session.items) {
-    statuses[item.sessionItemId] = itemState(session, item).status;
-  }
-  return statuses;
-}
-
-function itemProgress(session) {
-  const progress = {};
-  for (const item of session.items) {
-    const state = itemState(session, item);
-    progress[item.sessionItemId] = { done: state.done, target: state.target };
-  }
-  return progress;
-}
-
 function buildDrafts() {
   for (const key of Object.keys(drafts)) delete drafts[key];
-  for (const key of Object.keys(activeItems)) delete activeItems[key];
+  for (const key of Object.keys(expandedItems)) delete expandedItems[key];
   for (const session of sessions.value) {
     const stored = readStoredDraft(session.sessionId);
     const draft = {
       items: {},
       feel: stored?.feel ?? session.execution?.sessionFeel ?? '',
       discomfort: stored?.discomfort ?? session.execution?.discomfort ?? '',
-      kicked: false
+      kicked: false,
+      extrasOpen: []
     };
     for (const item of session.items) {
       draft.items[item.sessionItemId] = stored?.items?.[item.sessionItemId] || createItemDraft(item);
     }
     drafts[session.sessionId] = draft;
-    activeItems[session.sessionId] = session.items[0]?.sessionItemId ?? null;
   }
 }
 
 /**
- * 录入值按以下顺序确定：本地草稿 > 上一次成绩 > 计划目标。
- * 例外是组数：它是本次训练的完成度，默认按目标组数预填——
- * 上次成绩会影响「今天做多重」，但不会替你决定「今天做了几组」。
+ * 录入值按以下顺序确定：本地草稿 > 本次已保存记录 > 上一次成绩 > 计划目标。
+ * 组数只代表本次完成度，首次打开时必须保持为空，不能替用户确认完成。
  */
 function createItemDraft(item) {
   const actuals = {};
   const seed = item.lastActuals || {};
   const recorded = item.execution?.actuals || {};
-  const targetSets = Number(item.targets?.sets);
 
   for (const metric of Object.keys(item.targets || {})) {
     if (metric === 'duration' || metric === 'durationSeconds') continue;
@@ -295,7 +263,7 @@ function createItemDraft(item) {
       continue;
     }
     if (metric === 'sets') {
-      actuals.sets = Number.isFinite(targetSets) && targetSets > 0 ? targetSets : null;
+      actuals.sets = null;
       continue;
     }
     const previous = Number(seed[metric]);
@@ -372,6 +340,19 @@ function setItemComplete(sessionId, sessionItemId, complete) {
   updateItem(sessionId, sessionItemId, { actuals: { sets } });
 }
 
+function itemKey(sessionId, sessionItemId) {
+  return `${sessionId}:${sessionItemId}`;
+}
+
+function isDetailsOpen(sessionId, sessionItemId) {
+  return Boolean(expandedItems[itemKey(sessionId, sessionItemId)]);
+}
+
+function toggleDetails(sessionId, sessionItemId) {
+  const key = itemKey(sessionId, sessionItemId);
+  expandedItems[key] = !expandedItems[key];
+}
+
 function updateSession(sessionId, patch) {
   Object.assign(sessionDraft(sessionId), patch);
   persistDraft(sessionId);
@@ -400,9 +381,8 @@ function clearDraft(sessionId) {
   }
   const draft = drafts[sessionId];
   if (draft) {
-    draft.items = {};
-    draft.feel = '';
-    draft.discomfort = '';
+    // 保留当前页面的已保存值，让保存成功后的状态和进度立即可见。
+    // 下一次加载仍会从服务端 execution 重建，草稿文件本身已经被清掉。
     draft.kicked = false;
   }
 }
@@ -492,7 +472,8 @@ function buildPayload(session) {
       sessionItemId: item.sessionItemId,
       status: state.status === 'skipped' ? 'skipped' : 'done',
       actuals: state.status === 'skipped' ? {} : actuals,
-      skipReason: current.skipReason
+      // 当前移动端暂不采集跳过原因，服务端字段保留用于兼容历史记录。
+      skipReason: ''
     };
   });
   const state = sessionState(session);
@@ -692,6 +673,11 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
 }
 
 .session-block__header {
@@ -713,6 +699,29 @@ onMounted(async () => {
   color: var(--text-secondary);
   font-size: 13px;
   text-align: left;
+}
+
+.session-block__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.session-block__automatic {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .session-block__notes {
@@ -750,13 +759,6 @@ onMounted(async () => {
   font-size: 20px;
 }
 
-.session-block__auto-hint {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-align: left;
-}
-
 .session-block__feel {
   display: flex;
   align-items: center;
@@ -765,6 +767,23 @@ onMounted(async () => {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
+}
+
+.session-block__extras {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+
+.session-block__extras :deep(.van-collapse-item__content) {
+  padding: 10px;
+  background: var(--app-bg);
+}
+
+.session-block__extras .session-block__feel {
+  padding: 0 0 12px;
+  background: transparent;
+  border: 0;
 }
 
 .session-block__feel-label {
@@ -811,6 +830,7 @@ onMounted(async () => {
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   background: var(--card-bg);
   border-top: 1px solid var(--card-border);
+  box-shadow: 0 -4px 16px rgb(15 23 42 / 8%);
 }
 
 .mobile-training__progress {
