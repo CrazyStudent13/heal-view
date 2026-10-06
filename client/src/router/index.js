@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore.js';
 import { translate } from '@/i18n/index.js';
+import AppLayout from '@/components/layout/AppLayout.vue';
+import MobileLayout from '@/pages/mobile/MobileLayout.vue';
 
 const loadDashboardPage = () => import('@/pages/dashboard/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
@@ -12,7 +14,7 @@ const loadPlanLayoutPage = () => import('@/pages/plans/PlanLayoutPage.vue');
 const loadPlanOverviewPage = () => import('@/pages/plans/PlanOverviewPage.vue');
 const loadPlanSessionsPage = () => import('@/pages/plans/PlanSessionsPage.vue');
 const loadPlanExercisesPage = () => import('@/pages/PlansPage.vue');
-
+const loadMobileTodayPage = () => import('@/pages/mobile/TrainingPage.vue');
 const routes = [
   {
     path: '/login',
@@ -20,70 +22,92 @@ const routes = [
     component: loadLoginPage,
     meta: { titleKey: 'auth.title', public: true }
   },
-  { path: '/', redirect: '/dashboard' },
   {
-    path: '/dashboard',
-    name: 'dashboard',
-    component: loadDashboardPage,
-    meta: { titleKey: 'nav.dashboard' }
-  },
-  {
-    path: '/import',
-    name: 'import',
-    component: loadImportPage,
-    meta: { titleKey: 'nav.import' }
-  },
-  {
-    path: '/plans',
-    name: 'plans',
-    component: loadPlanLayoutPage,
-    redirect: '/plans/overview',
-    meta: { titleKey: 'nav.plans' },
+    // 桌面端外壳：本身不带路径，只负责给下面的页面提供统一的顶栏与内容区。
+    // 移动端外壳在 /m 下自成一支，两套外壳在路由树里互斥，不会互相嵌套。
+    path: '/',
+    component: AppLayout,
     children: [
+      { path: '', redirect: '/dashboard' },
       {
-        path: 'overview',
-        name: 'plans-overview',
-        component: loadPlanOverviewPage,
-        meta: { titleKey: 'plans.overview' }
+        path: 'dashboard',
+        name: 'dashboard',
+        component: loadDashboardPage,
+        meta: { titleKey: 'nav.dashboard' }
       },
       {
-        path: 'exercises',
-        name: 'plans-exercises',
-        component: loadPlanExercisesPage,
-        meta: { titleKey: 'plans.exercise.title' }
+        path: 'import',
+        name: 'import',
+        component: loadImportPage,
+        meta: { titleKey: 'nav.import' }
       },
       {
-        path: 'sessions',
-        name: 'plans-sessions',
-        component: loadPlanSessionsPage,
-        meta: { titleKey: 'plans.sessions.title' }
+        path: 'plans',
+        name: 'plans',
+        component: loadPlanLayoutPage,
+        redirect: '/plans/overview',
+        meta: { titleKey: 'nav.plans' },
+        children: [
+          {
+            path: 'overview',
+            name: 'plans-overview',
+            component: loadPlanOverviewPage,
+            meta: { titleKey: 'plans.overview' }
+          },
+          {
+            path: 'exercises',
+            name: 'plans-exercises',
+            component: loadPlanExercisesPage,
+            meta: { titleKey: 'plans.exercise.title' }
+          },
+          {
+            path: 'sessions',
+            name: 'plans-sessions',
+            component: loadPlanSessionsPage,
+            meta: { titleKey: 'plans.sessions.title' }
+          }
+        ]
+      },
+      {
+        path: 'profile',
+        name: 'profile',
+        component: loadProfilePage,
+        redirect: '/profile/access',
+        meta: { titleKey: 'profile.title' },
+        children: [
+          {
+            path: 'access',
+            name: 'profile-access',
+            component: loadProfileAccessPage,
+            meta: {
+              titleKey: 'profile.access',
+              descriptionKey: 'auth.accessProtectionDescription'
+            }
+          },
+          {
+            path: 'about',
+            name: 'profile-about',
+            component: loadProfilePlaceholderPage,
+            meta: {
+              titleKey: 'profile.about',
+              descriptionKey: 'profile.aboutDescription'
+            }
+          }
+        ]
       }
     ]
   },
   {
-    path: '/profile',
-    name: 'profile',
-    component: loadProfilePage,
-    redirect: '/profile/access',
-    meta: { titleKey: 'profile.title' },
+    // 移动端外壳自成一支，后续 /m 下新增页面只需加子路由。
+    path: '/m',
+    component: MobileLayout,
+    redirect: '/m/today',
     children: [
       {
-        path: 'access',
-        name: 'profile-access',
-        component: loadProfileAccessPage,
-        meta: {
-          titleKey: 'profile.access',
-          descriptionKey: 'auth.accessProtectionDescription'
-        }
-      },
-      {
-        path: 'about',
-        name: 'profile-about',
-        component: loadProfilePlaceholderPage,
-        meta: {
-          titleKey: 'profile.about',
-          descriptionKey: 'profile.aboutDescription'
-        }
+        path: 'today',
+        name: 'mobile-today',
+        component: loadMobileTodayPage,
+        meta: { titleKey: 'mobile.title' }
       }
     ]
   }

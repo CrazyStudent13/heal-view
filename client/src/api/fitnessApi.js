@@ -209,3 +209,23 @@ export function updateTrainingSession(id, session) {
 export function deleteTrainingSession(id) {
   return apiClient.delete(`/training-sessions/${id}`);
 }
+
+/**
+ * 取某一天的全部训练单元，附带逐项目标、已记录的实际值和上一次成绩。
+ * 移动端「今日训练」的唯一数据源。
+ */
+export function getTrainingExecution(date, config = {}) {
+  return apiClient.get('/training-execution', { ...config, params: { date } });
+}
+
+export function getTrainingExecutionHistory(params = {}, config = {}) {
+  return apiClient.get('/training-execution/history', { ...config, params });
+}
+
+export function getTrainingSessionExecution(id, config = {}) {
+  return apiClient.get(`/training-sessions/${id}/execution`, config);
+}
+
+export function saveTrainingSessionExecution(id, execution) {
+  return apiClient.put(`/training-sessions/${id}/execution`, execution);
+}
