@@ -23,6 +23,8 @@ const expectedTables = [
   'training_phases',
   'training_plans',
   'training_session_items',
+  'training_session_log_items',
+  'training_session_logs',
   'training_sessions'
 ];
 
@@ -49,7 +51,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1, 2, 3, 4, 5, 6, 7]
+      [1, 2, 3, 4, 5, 6, 7, 8]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -135,7 +137,7 @@ test('adds equipment fields to existing version 2 exercise data', () => {
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [3, 4, 5, 6, 7]
+      [3, 4, 5, 6, 7, 8]
     );
     assert.deepEqual(
       { ...row },
@@ -152,6 +154,8 @@ test('moves existing training sessions from phases to their training plans', () 
   withTemporaryDatabase((db) => {
     migrateDatabase(db);
     db.exec(`
+      DROP TABLE training_session_log_items;
+      DROP TABLE training_session_logs;
       DROP TABLE training_session_items;
       DROP TABLE training_sessions;
       CREATE TABLE training_sessions (
@@ -196,7 +200,7 @@ test('moves existing training sessions from phases to their training plans', () 
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [5, 6, 7]
+      [5, 6, 7, 8]
     );
     assert.deepEqual(
       { ...db.prepare('SELECT plan_id, scheduled_date, name FROM training_sessions').get() },
