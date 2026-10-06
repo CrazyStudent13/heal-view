@@ -129,7 +129,9 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
           envs: DEPLOY_PATH,IMAGE_REF,GHCR_USERNAME,GHCR_TOKEN
           script_stop: true
-          command_timeout: 15m
+          # 首次部署或服务器缓存为空时，GHCR 镜像可能需要下载数百 MB。
+          # 15 分钟在低带宽 VPS 上不足，会在 docker compose pull 仍进行时被 SSH action 强制终止。
+          command_timeout: 45m
           script: |
             set -eu
 
@@ -176,7 +178,21 @@ jobs:
             fi
 
             echo "==> 拉取镜像"
-            docker compose --env-file deploy/.env pull heal-view
+            pull_ok=false
+            for attempt in 1 2 3; do
+              if docker compose --env-file deploy/.env pull heal-view; then
+                pull_ok=true
+                break
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "WARNING: 镜像拉取失败，将在 10 秒后重试（第 $attempt/3 次）。" >&2
+                sleep 10
+              fi
+            done
+            if [ "$pull_ok" != true ]; then
+              echo "ERROR: 镜像拉取失败，已重试 3 次。" >&2
+              exit 1
+            fi
 
             echo "==> 启动容器"
             docker compose --env-file deploy/.env up -d --remove-orphans heal-view
