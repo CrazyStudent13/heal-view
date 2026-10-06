@@ -304,6 +304,57 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionSevenRequiredColumns);
     }
+  },
+  {
+    version: 8,
+    name: 'training session execution logs',
+    up(db) {
+      // 训练单元保存“计划”，执行记录保存“实际做了什么”。
+      // 两者分开后，手机端确认训练不会改写计划编排，改计划也不会污染历史记录。
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS training_session_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id INTEGER NOT NULL UNIQUE REFERENCES training_sessions(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'completed'
+            CHECK (status IN ('completed', 'partial', 'skipped')),
+          source TEXT NOT NULL DEFAULT 'manual'
+            CHECK (source IN ('manual', 'auto_import')),
+          completed_at INTEGER,
+          session_feel TEXT
+            CHECK (session_feel IS NULL OR session_feel IN ('easy', 'normal', 'hard')),
+          discomfort TEXT NOT NULL DEFAULT '',
+          note TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_session_log_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_log_id INTEGER NOT NULL REFERENCES training_session_logs(id) ON DELETE CASCADE,
+          session_item_id INTEGER NOT NULL REFERENCES training_session_items(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'done'
+            CHECK (status IN ('done', 'skipped')),
+          actuals TEXT NOT NULL DEFAULT '{}',
+          skip_reason TEXT NOT NULL DEFAULT '',
+          note TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE (session_log_id, session_item_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_training_session_logs_session
+          ON training_session_logs(session_id);
+        CREATE INDEX IF NOT EXISTS idx_training_session_logs_completed
+          ON training_session_logs(completed_at);
+        CREATE INDEX IF NOT EXISTS idx_training_session_log_items_log
+          ON training_session_log_items(session_log_id);
+        CREATE INDEX IF NOT EXISTS idx_training_session_log_items_item
+          ON training_session_log_items(session_item_id);
+      `);
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionEightRequiredColumns);
+    }
   }
 ];
 
@@ -414,6 +465,32 @@ const versionSevenRequiredColumns = {
     'discomfort',
     'weight_change',
     'adjustment',
+    'created_at',
+    'updated_at'
+  ]
+};
+
+const versionEightRequiredColumns = {
+  training_session_logs: [
+    'id',
+    'session_id',
+    'status',
+    'source',
+    'completed_at',
+    'session_feel',
+    'discomfort',
+    'note',
+    'created_at',
+    'updated_at'
+  ],
+  training_session_log_items: [
+    'id',
+    'session_log_id',
+    'session_item_id',
+    'status',
+    'actuals',
+    'skip_reason',
+    'note',
     'created_at',
     'updated_at'
   ]

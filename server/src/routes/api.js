@@ -47,6 +47,12 @@ import {
   updateTrainingSession
 } from '../controllers/trainingPlanController.js';
 import { getChinaWorkdayCalendar } from '../controllers/chinaCalendarController.js';
+import {
+  getTrainingExecution,
+  getTrainingExecutionHistory,
+  getTrainingSessionExecution,
+  saveTrainingSessionExecution
+} from '../controllers/trainingExecutionController.js';
 
 const router = express.Router();
 
@@ -55,6 +61,13 @@ router.post('/auth/login', login);
 router.post('/auth/logout', logout);
 router.get('/auth/settings', requireAccess, getSettings);
 router.put('/auth/settings', requireAccess, saveSettings);
+
+// The mobile check-in is a personal daily workflow and can be opened without
+// entering the desktop application's access password. Keep this small surface
+// explicit; all planning, health data, and import APIs remain protected below.
+router.get('/training-execution', getTrainingExecution);
+router.get('/training-sessions/:id/execution', getTrainingSessionExecution);
+router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
 
 router.use(requireAccess);
 
@@ -110,6 +123,9 @@ router.post('/training-plans/:planId/sessions', createTrainingSession);
 router.post('/training-plans/:planId/sessions/batch', createTrainingSessionsBatch);
 router.put('/training-sessions/:id', updateTrainingSession);
 router.delete('/training-sessions/:id', deleteTrainingSession);
+
+// Manual training execution records for the mobile check-in flow
+router.get('/training-execution/history', getTrainingExecutionHistory);
 
 // Parse and import health archive ZIP exports
 router.post('/imports/parse', uploadArchive.single('archive'), parseImportArchive);

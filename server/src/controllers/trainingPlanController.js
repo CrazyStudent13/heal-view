@@ -1,22 +1,10 @@
 import { databaseService } from '../services/database.js';
+import { isTrainingMetric } from '../utils/trainingMetrics.js';
 
 const PLAN_STATUSES = new Set(['draft', 'active', 'paused', 'completed', 'archived']);
 const PHASE_STATUSES = new Set(['planned', 'active', 'paused', 'completed', 'cancelled']);
 const SESSION_STATUSES = new Set(['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped']);
 const MAX_FATIGUE_LEVEL = 10;
-const TARGET_METRICS = new Set([
-  'duration',
-  'durationSeconds',
-  'distance',
-  'sets',
-  'repetitions',
-  'weight',
-  'speed',
-  'incline',
-  'resistance',
-  'heart_rate',
-  'calories'
-]);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function queryRows(sql, params = []) {
@@ -100,7 +88,7 @@ function validateTargets(targets) {
   if (targets.duration != null && targets.durationSeconds != null) return null;
   for (const [metric, rawValue] of Object.entries(targets)) {
     const number = Number(rawValue);
-    if (!TARGET_METRICS.has(metric) || !Number.isFinite(number) || number <= 0) return null;
+    if (!isTrainingMetric(metric) || !Number.isFinite(number) || number <= 0) return null;
     if (metric === 'durationSeconds' && !Number.isInteger(number)) return null;
     normalized[metric] = number;
   }
