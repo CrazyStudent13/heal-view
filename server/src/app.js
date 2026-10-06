@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config/index.js';
 import { databaseService } from './services/database.js';
 import { initializeChinaWorkdayCalendar } from './services/chinaWorkdayCalendar.js';
+import { seedTrainingExercises } from './services/trainingExerciseSeed.js';
 import apiRoutes from './routes/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +55,14 @@ async function startServer() {
   try {
     // Initialize database
     await databaseService.initialize();
+
+    // Keep the built-in exercise catalog available after a fresh deployment
+    // and restore missing defaults in an existing database. The seed is
+    // idempotent and preserves user-created exercises.
+    const exerciseSeed = seedTrainingExercises();
+    console.log(
+      `Training exercise catalog initialized: ${exerciseSeed.created} created, ${exerciseSeed.updated} updated.`
+    );
 
     // Calendar refreshes are advisory and must never delay the API becoming available.
     void initializeChinaWorkdayCalendar().catch((error) => {
