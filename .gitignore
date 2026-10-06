@@ -45,6 +45,10 @@ Thumbs.db
 npm-debug.log*
 .codex-run/
 
+# Local agent / AI tool state directories (never part of the project)
+.agents/
+.workbuddy-ai/
+
 # Temporary files
 server/check*.js
 server/test*.js
