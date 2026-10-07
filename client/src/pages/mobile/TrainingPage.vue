@@ -96,6 +96,7 @@
                   v-for="item in session.items"
                   :key="item.sessionItemId"
                   :item="item"
+                  :separate-card="['平板支撑', '大腿内外侧肌训练器'].includes(item.exercise?.name)"
                   :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
                   :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
                   :note="itemDraft(session.sessionId, item.sessionItemId).note"
@@ -150,7 +151,8 @@
         type="primary"
         class="mobile-training__save"
         :loading="savingSessionId !== null"
-        loading-text=""
+        :disabled="savingSessionId !== null"
+        :loading-text="t('mobile.saving')"
         @click="submitAll"
       >
         {{ t('mobile.saveRecord') }}
@@ -162,7 +164,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { showFailToast, showSuccessToast, showToast } from 'vant';
+import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { getTrainingExecution, saveTrainingSessionExecution } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
@@ -547,6 +549,8 @@ async function saveSession(session) {
  * 全部标记为跳过时需要再点一次确认，避免误操作把整天记成跳过。
  */
 async function submitAll() {
+  if (savingSessionId.value !== null) return;
+
   const pending = confirmableSessions.value;
   if (pending.length === 0) return;
 
@@ -558,15 +562,38 @@ async function submitAll() {
     return;
   }
 
+  error.value = '';
   savingSessionId.value = pending[0].sessionId;
+  showLoadingToast({
+    message: t('mobile.saving'),
+    duration: 0,
+    position: 'middle',
+    overlay: true,
+    forbidClick: true,
+    closeOnClick: false,
+    zIndex: 2000,
+    overlayStyle: { background: 'rgba(0, 0, 0, 0.28)' }
+  });
   try {
     for (const session of pending) {
       await saveSession(session);
     }
-    showSuccessToast(t('mobile.saved'));
+    closeToast();
+    showSuccessToast({
+      message: t('mobile.saved'),
+      position: 'top',
+      duration: 1800,
+      forbidClick: false
+    });
   } catch (requestError) {
+    closeToast();
     error.value = normalizeRequestError(requestError, t) || t('mobile.saveFailed');
-    showFailToast(error.value);
+    showFailToast({
+      message: error.value,
+      position: 'top',
+      duration: 2600,
+      forbidClick: false
+    });
   } finally {
     savingSessionId.value = null;
   }
@@ -740,8 +767,7 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.session-plan,
-.session-content {
+.session-plan {
   display: flex;
   flex-direction: column;
   background: var(--card-bg);
@@ -756,7 +782,8 @@ onMounted(async () => {
 }
 
 .session-content {
-  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .session-block__header {
@@ -815,6 +842,11 @@ onMounted(async () => {
 
 .session-items :deep(.item-panel + .item-panel) {
   border-top: 1px solid var(--card-border);
+}
+
+.session-items :deep(.item-panel--card + .item-panel),
+.session-items :deep(.item-panel + .item-panel--card) {
+  border-top: 0;
 }
 
 .session-block__notes {

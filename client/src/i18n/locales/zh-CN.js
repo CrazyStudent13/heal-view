@@ -782,6 +782,7 @@ export default {
     loadFailed: '训练安排加载失败',
     saveFailed: '保存失败',
     saved: '训练记录已保存',
+    saving: '保存中...',
     offline: '当前显示的是离线草稿，尚未保存到服务器',
     targets: '目标',
     lastAttempt: '上次：{text}',

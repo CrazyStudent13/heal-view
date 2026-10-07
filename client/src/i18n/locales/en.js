@@ -784,6 +784,7 @@ export default {
     loadFailed: 'Failed to load the training schedule',
     saveFailed: 'Failed to save',
     saved: 'Training record saved',
+    saving: 'Saving...',
     offline: 'Showing an offline draft that has not been saved to the server',
     targets: 'Target',
     lastAttempt: 'Last time: {text}',

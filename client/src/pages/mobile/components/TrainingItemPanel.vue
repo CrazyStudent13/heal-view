@@ -1,5 +1,5 @@
 <template>
-  <article class="item-panel">
+  <article class="item-panel" :class="{ 'item-panel--card': separateCard }">
     <header class="item-panel__header">
       <div class="item-panel__title">
         <h3>{{ item.exercise.name }}</h3>
@@ -13,74 +13,84 @@
 
     <p v-if="lastAttemptText" class="item-panel__last">{{ t('mobile.lastAttempt', { text: lastAttemptText }) }}</p>
 
-    <button type="button" class="item-panel__details-toggle" @click="$emit('toggle-details')">
-      <span>{{ detailsOpen ? t('mobile.hideDetails') : t('mobile.recordDetails') }}</span>
-      <van-icon :name="detailsOpen ? 'arrow-up' : 'arrow-down'" />
-    </button>
+    <section class="item-panel__details" :class="{ 'item-panel__details--open': detailsOpen }">
+      <button
+        type="button"
+        class="item-panel__details-toggle"
+        :aria-expanded="detailsOpen"
+        @click="$emit('toggle-details')"
+      >
+        <span>{{ detailsOpen ? t('mobile.hideDetails') : t('mobile.recordDetails') }}</span>
+        <van-icon :name="detailsOpen ? 'arrow-up' : 'arrow-down'" />
+      </button>
 
-    <button v-if="hasDuration" type="button" class="item-panel__timer-trigger" @click="openTimer">
-      <van-icon name="clock-o" />
-      <span>{{ t('mobile.startTimer') }}</span>
-      <small>{{ t('mobile.timerReady', { seconds: targetDuration }) }}</small>
-      <van-icon name="arrow" />
-    </button>
-
-    <div v-if="detailsOpen" class="item-panel__metrics">
-      <!-- 组数单独作为完成度呈现：分母是目标组数，分子是实际做了几组 -->
-      <div v-if="targetSets > 0" class="metric-row">
-        <span class="metric-row__label">{{ t('mobile.completedSets') }}</span>
-        <div class="metric-row__control">
-          <van-stepper
-            :model-value="completedSets"
-            :min="0"
-            :max="targetSets"
-            integer
-            button-size="32px"
-            :aria-label="t('mobile.completedSets')"
-            @update:model-value="updateCompletedSets"
+      <div v-if="detailsOpen" class="item-panel__details-body">
+        <div class="item-panel__metrics" :class="{ 'item-panel__metrics--compact': usesCompactMetrics }">
+          <!-- 组数单独作为完成度呈现：分母是目标组数，分子是实际做了几组 -->
+          <van-cell
+            v-if="targetSets > 0 && usesSetsPicker"
+            class="sets-picker-cell"
+            :title="t('mobile.completedSets')"
+            :value="setsProgressText"
+            is-link
+            clickable
+            @click="openSetsPicker"
           />
-          <small class="metric-row__unit">{{ t('mobile.setsOfTarget', { target: targetSets }) }}</small>
-        </div>
-      </div>
 
-      <div v-for="metric in targets" :key="metric" class="metric-row">
-        <span class="metric-row__label">{{ metricLabel(metric) }}</span>
+          <div v-else-if="targetSets > 0" class="metric-row">
+            <span class="metric-row__label">{{ t('mobile.completedSets') }}</span>
+            <div class="metric-row__control">
+              <van-stepper
+                :model-value="completedSets"
+                :min="0"
+                :max="targetSets"
+                integer
+                button-size="32px"
+                :aria-label="t('mobile.completedSets')"
+                @update:model-value="updateCompletedSets"
+              />
+              <small class="metric-row__unit">{{ t('mobile.setsOfTarget', { target: targetSets }) }}</small>
+            </div>
+          </div>
 
-        <div v-if="metric === 'duration'" class="duration-input">
-          <div v-for="part in durationPartsList" :key="part" class="duration-part">
-            <van-stepper
-              :model-value="durationParts[part]"
-              :min="0"
-              :max="part === 'minutes' ? 99 : 59"
-              integer
-              button-size="32px"
-              :aria-label="durationPartLabel(part)"
-              @update:model-value="(value) => updateDurationPart(part, value)"
-            />
-            <small>{{ durationPartLabel(part) }}</small>
+          <div v-for="metric in targets" :key="metric" class="metric-row">
+            <span class="metric-row__label">{{ metricLabel(metric) }}</span>
+            <div class="metric-row__control">
+              <van-stepper
+                :model-value="actuals[metric] ?? 0"
+                :min="0"
+                :max="99999"
+                :step="metricStep(metric)"
+                :decimal-length="metricPrecision(metric)"
+                :input-width="metricPrecision(metric) > 0 ? '58px' : '48px'"
+                button-size="32px"
+                :aria-label="metricLabel(metric)"
+                @update:model-value="(value) => setMetricValue(metric, value)"
+              />
+              <small class="metric-row__unit">{{ unitLabel(metric) }}</small>
+            </div>
           </div>
         </div>
 
-        <div v-else class="metric-row__control">
-          <van-stepper
-            :model-value="actuals[metric] ?? 0"
-            :min="0"
-            :max="99999"
-            :step="metricStep(metric)"
-            :decimal-length="metricPrecision(metric)"
-            :input-width="metricPrecision(metric) > 0 ? '58px' : '48px'"
-            button-size="32px"
-            :aria-label="metricLabel(metric)"
-            @update:model-value="(value) => setMetricValue(metric, value)"
-          />
-          <small class="metric-row__unit">{{ unitLabel(metric) }}</small>
-        </div>
-      </div>
-    </div>
+        <button v-if="hasDuration" type="button" class="item-panel__timer-trigger" @click="openTimer">
+          <van-icon name="clock-o" />
+          <span>{{ t('mobile.startTimer') }}</span>
+          <small>{{ t('mobile.timerReady', { seconds: readyDuration }) }}</small>
+          <van-icon name="arrow" />
+        </button>
 
-    <p v-if="detailsOpen && targetSets > 0 && completedSets > 0 && completedSets < targetSets" class="item-panel__hint">
-      {{ t('mobile.partialSets', { done: completedSets, target: targetSets }) }}
-    </p>
+        <van-field
+          :model-value="note"
+          class="item-panel__note"
+          type="textarea"
+          rows="2"
+          autosize
+          maxlength="500"
+          :placeholder="t('mobile.itemNotePlaceholder')"
+          @update:model-value="(value) => $emit('update', { note: value })"
+        />
+      </div>
+    </section>
 
     <div class="item-panel__actions">
       <van-button
@@ -102,18 +112,6 @@
         {{ t('mobile.itemSkipped') }}
       </van-button>
     </div>
-
-    <van-field
-      v-if="detailsOpen"
-      :model-value="note"
-      class="item-panel__note"
-      type="textarea"
-      rows="2"
-      autosize
-      maxlength="500"
-      :placeholder="t('mobile.itemNotePlaceholder')"
-      @update:model-value="(value) => $emit('update', { note: value })"
-    />
 
     <van-popup v-model:show="skipReasonVisible" position="center" round :style="{ width: 'min(88vw, 360px)' }">
       <div class="skip-dialog">
@@ -144,6 +142,23 @@
     <van-popup v-model:show="timerVisible" position="center" round :style="{ width: 'min(88vw, 360px)' }">
       <div class="timer-dialog">
         <p class="timer-dialog__title">{{ item.exercise.name }}</p>
+        <div v-if="!timerRunning && !timerFinished" class="timer-dialog__setting">
+          <span class="timer-dialog__setting-label">{{ metricLabel('duration') }}</span>
+          <div class="duration-input">
+            <div v-for="part in durationPartsList" :key="part" class="duration-part">
+              <van-stepper
+                :model-value="durationParts[part]"
+                :min="0"
+                :max="part === 'minutes' ? 99 : 59"
+                integer
+                button-size="32px"
+                :aria-label="durationPartLabel(part)"
+                @update:model-value="(value) => updateDurationPart(part, value)"
+              />
+              <small>{{ durationPartLabel(part) }}</small>
+            </div>
+          </div>
+        </div>
         <div class="timer-dialog__face" :class="{ 'timer-dialog__face--running': timerRunning }">
           <span>{{ formatTimer(timerRemaining) }}</span>
         </div>
@@ -164,6 +179,15 @@
         </div>
       </div>
     </van-popup>
+
+    <van-popup v-model:show="setsPickerVisible" position="bottom" round>
+      <van-picker
+        :columns="setsPickerOptions"
+        :model-value="[completedSets]"
+        @confirm="confirmSetsPicker"
+        @cancel="setsPickerVisible = false"
+      />
+    </van-popup>
   </article>
 </template>
 
@@ -177,7 +201,8 @@ const props = defineProps({
   actuals: { type: Object, default: () => ({}) },
   skipReason: { type: String, default: '' },
   note: { type: String, default: '' },
-  detailsOpen: { type: Boolean, default: false }
+  detailsOpen: { type: Boolean, default: false },
+  separateCard: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update', 'set-complete', 'toggle-details']);
@@ -200,22 +225,18 @@ const timerRunning = ref(false);
 const timerFinished = ref(false);
 const timerRemaining = ref(0);
 const timerEndAt = ref(null);
+const setsPickerVisible = ref(false);
 let timerHandle = null;
 
 const targets = computed(() => {
   // 组数在「已完成组数」里单独呈现，不再作为普通指标重复出现。
   const target = props.item.targets || {};
-  const keys = Object.keys(target).filter((metric) => metric !== 'durationSeconds' && metric !== 'sets');
+  const keys = Object.keys(target).filter(
+    (metric) => metric !== 'duration' && metric !== 'durationSeconds' && metric !== 'sets'
+  );
   // 只显示这个运动项目真正支持的指标，避免历史遗留下来的无效目标继续显示。
   const supported = new Set(props.item.exercise?.metrics || []);
   const visible = keys.filter((metric) => supported.has(metric));
-  // duration 与 durationSeconds 是同一件事的两种写法，展示时统一成 duration。
-  if (
-    (supported.has('duration') || supported.has('durationSeconds')) &&
-    (target.duration != null || target.durationSeconds != null)
-  ) {
-    visible.unshift('duration');
-  }
   return visible;
 });
 
@@ -228,6 +249,17 @@ const completedSets = computed(() => {
   const value = Number(props.actuals?.sets);
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
 });
+const usesSetsPicker = computed(() => ['大腿内外侧肌训练器', '平板支撑'].includes(props.item.exercise?.name));
+const usesCompactMetrics = computed(() => props.item.exercise?.name === '大腿内外侧肌训练器');
+const setsProgressText = computed(() =>
+  t('mobile.setsProgress', { done: completedSets.value, target: targetSets.value })
+);
+const setsPickerOptions = computed(() =>
+  Array.from({ length: targetSets.value + 1 }, (_, value) => ({
+    text: `${value}${unitLabel('sets')}`,
+    value
+  }))
+);
 
 // 完成度完全由组数决定，面板上的按钮高亮也读同一个值，避免两处状态各说各话。
 const isComplete = computed(() =>
@@ -238,14 +270,12 @@ const hasDuration = computed(() => {
   const metrics = new Set(props.item.exercise?.metrics || []);
   return metrics.has('duration') || metrics.has('durationSeconds') || targetDurationSeconds() > 0;
 });
-const targetDuration = computed(() => {
-  const seconds = targetDurationSeconds();
-  return seconds > 0 ? seconds : 60;
-});
+const timerDuration = ref(0);
+const readyDuration = computed(() => timerDuration.value || resolveDurationSeconds() || 60);
 const timerStatus = computed(() => {
   if (timerFinished.value) return t('mobile.timerFinished');
   if (timerRunning.value) return t('mobile.timerRunning');
-  return t('mobile.timerReady', { seconds: targetDuration.value });
+  return t('mobile.timerReady', { seconds: readyDuration.value });
 });
 const statusLabel = computed(() => {
   if (isComplete.value) return t('mobile.statusCompleted');
@@ -261,6 +291,15 @@ const statusType = computed(() => {
 function updateCompletedSets(value) {
   const next = Math.max(0, Math.round(Number(value) || 0));
   emit('update', { actuals: { ...props.actuals, sets: next > 0 ? next : null } });
+}
+
+function openSetsPicker() {
+  setsPickerVisible.value = true;
+}
+
+function confirmSetsPicker({ selectedValues }) {
+  updateCompletedSets(selectedValues?.[0] ?? 0);
+  setsPickerVisible.value = false;
 }
 
 // 已记录的时长优先，其次沿用目标时长，最后从上次成绩预填。
@@ -279,7 +318,12 @@ watch(
 function openTimer() {
   if (!hasDuration.value) return;
   stopTimer();
-  timerRemaining.value = targetDuration.value;
+  timerDuration.value = resolveDurationSeconds() || 60;
+  durationParts.value = {
+    minutes: Math.floor(timerDuration.value / 60),
+    seconds: timerDuration.value % 60
+  };
+  timerRemaining.value = timerDuration.value;
   timerRunning.value = false;
   timerFinished.value = false;
   timerVisible.value = true;
@@ -287,7 +331,10 @@ function openTimer() {
 
 function startTimer() {
   if (timerRunning.value) return;
-  if (timerRemaining.value <= 0) timerRemaining.value = targetDuration.value;
+  if (timerRemaining.value <= 0) {
+    timerDuration.value = readyDuration.value;
+    timerRemaining.value = timerDuration.value;
+  }
   timerEndAt.value = Date.now() + timerRemaining.value * 1000;
   timerRunning.value = true;
   syncTimer();
@@ -314,7 +361,7 @@ function finishTimer() {
   emit('update', {
     actuals: {
       ...props.actuals,
-      durationSeconds: targetDuration.value,
+      durationSeconds: timerDuration.value || readyDuration.value,
       sets: Math.min(targetSets.value || Number.MAX_SAFE_INTEGER, completedSets.value + 1)
     }
   });
@@ -370,6 +417,10 @@ function resolveDurationSeconds() {
 function updateDurationPart(part, value) {
   const next = { ...durationParts.value, [part]: Math.max(0, Math.round(Number(value) || 0)) };
   durationParts.value = next;
+  timerDuration.value = next.minutes * 60 + next.seconds;
+  if (timerVisible.value && !timerRunning.value && !timerFinished.value) {
+    timerRemaining.value = timerDuration.value;
+  }
   emit('update', {
     actuals: { ...props.actuals, durationSeconds: next.minutes * 60 + next.seconds }
   });
@@ -404,19 +455,34 @@ function formatDuration(seconds) {
   const total = Math.max(0, Math.round(Number(seconds) || 0));
   const minutes = Math.floor(total / 60);
   const secondsPart = total % 60;
-  return `${minutes}${durationPartLabel('minutes')}${secondsPart}${durationPartLabel('seconds')}`;
+  const parts = [];
+  if (minutes > 0) parts.push(`${minutes}${durationPartLabel('minutes')}`);
+  if (secondsPart > 0 || parts.length === 0) parts.push(`${secondsPart}${durationPartLabel('seconds')}`);
+  return parts.join('');
 }
 
 const targetsText = computed(() => {
+  const target = props.item.targets || {};
   const parts = [];
   const seconds = targetDurationSeconds();
-  if (seconds > 0) parts.push(formatDuration(seconds));
-  for (const [metric, value] of Object.entries(props.item.targets || {})) {
+  if (usesCompactMetrics.value) {
+    const compactParts = ['weight', 'repetitions', 'sets']
+      .filter((metric) => Number(target[metric]) > 0)
+      .map((metric) => `${target[metric]}${unitLabel(metric)}`);
+    if (compactParts.length > 0) return compactParts.join(' × ');
+  }
+  if (seconds > 0) {
+    const duration = formatDuration(seconds);
+    parts.push(targetSets.value > 0 ? `${duration} × ${targetSets.value}${unitLabel('sets')}` : duration);
+  }
+  for (const [metric, value] of Object.entries(target)) {
     // 组数由完成度控件承载，这里不再重复；时长已折算成秒单独呈现。
     if (metric === 'duration' || metric === 'durationSeconds' || metric === 'sets') continue;
     parts.push(`${metricLabel(metric)} ${value}${unitLabel(metric)}`);
   }
-  if (targetSets.value > 0) parts.push(`${metricLabel('sets')} ${targetSets.value}${unitLabel('sets')}`);
+  if (targetSets.value > 0 && seconds <= 0) {
+    parts.push(`${metricLabel('sets')} ${targetSets.value}${unitLabel('sets')}`);
+  }
   return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
 });
 
@@ -451,6 +517,15 @@ const lastAttemptText = computed(() => {
   min-width: 0;
   padding: 14px 0;
   background: transparent;
+}
+
+.item-panel--card {
+  margin: 8px 0;
+  padding: 14px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
 }
 
 .item-panel__header {
@@ -508,16 +583,21 @@ const lastAttemptText = computed(() => {
   text-align: left;
 }
 
+.item-panel__details {
+  min-width: 0;
+}
+
 .item-panel__details-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 38px;
-  padding: 0 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 2px;
   color: var(--primary-color);
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   font-size: 13px;
   text-align: left;
 }
@@ -530,12 +610,12 @@ const lastAttemptText = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 10px;
   color: var(--primary-color);
   background: var(--primary-light);
   border: 1px solid var(--primary-color);
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 14px;
   text-align: left;
 }
@@ -551,18 +631,49 @@ const lastAttemptText = computed(() => {
   opacity: 0.78;
 }
 
-.item-panel__hint {
-  margin: 0;
-  color: var(--warning-color);
-  font-size: 13px;
-  text-align: left;
-}
-
 .item-panel__metrics {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 2px 0;
+  gap: 8px;
+  padding: 0;
+}
+
+.item-panel__metrics--compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  column-gap: 10px;
+}
+
+.item-panel__metrics--compact .sets-picker-cell {
+  grid-column: 1 / -1;
+}
+
+.item-panel__metrics--compact .metric-row {
+  min-width: 0;
+  gap: 6px;
+}
+
+.item-panel__metrics--compact .metric-row__label {
+  font-size: 14px;
+}
+
+.item-panel__metrics--compact .metric-row__control {
+  min-width: 0;
+  margin-left: auto;
+  gap: 4px;
+}
+
+.item-panel__metrics--compact .metric-row__unit {
+  font-size: 12px;
+}
+
+.item-panel__details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
 }
 
 .metric-row {
@@ -570,7 +681,7 @@ const lastAttemptText = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 48px;
+  min-height: 44px;
 }
 
 .metric-row__label {
@@ -590,16 +701,38 @@ const lastAttemptText = computed(() => {
   font-size: 13px;
 }
 
+.sets-picker-cell {
+  margin: 0 -4px;
+  padding: 10px 4px;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.sets-picker-cell :deep(.van-cell__title) {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 15px;
+  text-align: left;
+}
+
+.sets-picker-cell :deep(.van-cell__value) {
+  flex: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  text-align: right;
+}
+
 .duration-input {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .duration-part {
   display: flex;
   align-items: center;
+  flex: none;
   gap: 4px;
 }
 
@@ -622,7 +755,7 @@ const lastAttemptText = computed(() => {
 .item-panel__note {
   padding: 10px 12px;
   background: var(--control-hover-bg);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .skip-dialog {
@@ -673,6 +806,25 @@ const lastAttemptText = computed(() => {
   color: var(--text-primary);
   font-size: 17px;
   font-weight: 600;
+}
+
+.timer-dialog__setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+
+.timer-dialog__setting .duration-input {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.timer-dialog__setting-label {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .timer-dialog__face {
