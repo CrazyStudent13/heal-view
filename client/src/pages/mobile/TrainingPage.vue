@@ -56,14 +56,15 @@
 
       <template v-else>
         <div v-for="session in sessions" :key="session.sessionId" class="session-entry">
-          <section class="session-block">
+          <section class="session-plan">
             <header class="session-block__header">
               <div class="session-block__title">
                 <h2>{{ session.name || session.planName }}</h2>
-                <p>
+                <p v-if="session.name && session.planName && session.name !== session.planName">
                   {{ session.planName }}
                   <span v-if="session.sequence > 1"> · #{{ session.sequence }}</span>
                 </p>
+                <p v-else-if="session.sequence > 1">#{{ session.sequence }}</p>
               </div>
               <van-tag v-if="session.itemCount > 0" :type="statusTagType(session)" size="medium">
                 {{ statusLabel(session) }}
@@ -80,10 +81,12 @@
             </div>
 
             <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
+          </section>
 
+          <section class="session-content">
             <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
-            <div v-if="session.itemCount === 0" class="session-block__auto">
-              <van-icon name="clock-o" class="session-block__auto-icon" />
+            <div v-if="session.itemCount === 0" class="session-content__auto">
+              <van-icon name="clock-o" class="session-content__auto-icon" />
               <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
             </div>
 
@@ -737,29 +740,38 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.session-block {
+.session-plan,
+.session-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
   box-shadow: var(--card-shadow);
 }
 
+.session-plan {
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.session-content {
+  padding: 0 12px;
+}
+
 .session-block__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .session-block__title h2 {
   min-width: 0;
   margin: 0;
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.35;
   overflow-wrap: anywhere;
   text-align: left;
 }
@@ -771,9 +783,10 @@ onMounted(async () => {
 }
 
 .session-block__title p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.35;
   text-align: left;
 }
 
@@ -781,9 +794,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .session-block__automatic {
@@ -806,35 +819,34 @@ onMounted(async () => {
 
 .session-block__notes {
   margin: 0;
-  padding: 10px 12px;
+  padding: 6px 8px;
   color: var(--text-secondary);
   background: var(--control-hover-bg);
   border-left: 3px solid var(--primary-color);
   border-radius: 4px;
-  font-size: 13px;
-  overflow-wrap: anywhere;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
+  white-space: nowrap;
 }
 
-.session-block__auto {
+.session-content__auto {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px;
+  padding: 14px 2px;
   color: var(--text-secondary);
-  background: var(--card-bg);
-  border: 1px dashed var(--card-border);
-  border-radius: 12px;
 }
 
-.session-block__auto p {
+.session-content__auto p {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
   text-align: left;
 }
 
-.session-block__auto-icon {
+.session-content__auto-icon {
   flex: none;
   color: var(--primary-color);
   font-size: 20px;
