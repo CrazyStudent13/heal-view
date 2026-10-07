@@ -1,5 +1,22 @@
 <template>
-  <div class="mobile-training">
+  <div class="mobile-training" :aria-busy="savingSessionId !== null">
+    <div v-if="savingSessionId !== null" class="mobile-training__saving-overlay" role="status" aria-live="polite">
+      <div class="mobile-training__saving-state">
+        <van-loading size="24px" vertical>{{ t('mobile.saving') }}</van-loading>
+      </div>
+    </div>
+
+    <div
+      v-if="saveFeedback"
+      class="mobile-training__save-feedback"
+      :class="`mobile-training__save-feedback--${saveFeedback.type}`"
+      role="status"
+      aria-live="polite"
+    >
+      <van-icon :name="saveFeedback.type === 'success' ? 'success' : 'warning-o'" />
+      <span>{{ saveFeedback.message }}</span>
+    </div>
+
     <header class="mobile-training__dates">
       <button type="button" class="date-step" :aria-label="t('mobile.previousDay')" @click="shiftDate(-1)">
         <van-icon name="arrow-left" />
@@ -17,81 +34,100 @@
           {{ t('mobile.backToToday') }}
         </small>
       </div>
-      <button
-        type="button"
-        class="date-step"
-        :disabled="isToday"
-        :aria-label="t('mobile.nextDay')"
-        @click="shiftDate(1)"
-      >
-        <van-icon name="arrow" />
-      </button>
+      <div class="date-actions">
+        <button
+          type="button"
+          class="date-step"
+          :disabled="isToday"
+          :aria-label="t('mobile.nextDay')"
+          @click="shiftDate(1)"
+        >
+          <van-icon name="arrow" />
+        </button>
+        <button type="button" class="date-settings" :aria-label="t('settings.title')" @click="openSettings">
+          <van-icon name="setting-o" />
+        </button>
+      </div>
     </header>
 
     <div class="mobile-training__body">
       <div v-if="error" class="training-error" role="alert">
         <van-icon name="warning-o" />
         <span>{{ error }}</span>
+        <van-button type="danger" plain size="small" @click="load">
+          {{ t('common.retry') }}
+        </van-button>
       </div>
 
       <div v-if="loading" class="mobile-training__loading">
         <van-skeleton title :row="6" />
       </div>
 
-      <div v-else-if="sessions.length === 0" class="training-empty">
+      <div v-else-if="sessions.length === 0 && !error" class="training-empty">
         <van-icon name="records" class="training-empty__icon" />
         <p>{{ t('mobile.noSessions') }}</p>
+        <van-button type="primary" plain size="small" @click="openPlans">
+          {{ t('mobile.viewPlans') }}
+        </van-button>
       </div>
 
       <template v-else>
-        <section v-for="session in sessions" :key="session.sessionId" class="session-block">
-          <header class="session-block__header">
-            <div class="session-block__title">
-              <h2>{{ session.name || session.planName }}</h2>
-              <p>
-                {{ session.planName }}
-                <span v-if="session.sequence > 1"> · #{{ session.sequence }}</span>
-              </p>
-            </div>
-            <van-tag v-if="session.itemCount > 0" :type="statusTagType(session)" size="medium">
-              {{ statusLabel(session) }}
-            </van-tag>
-          </header>
+        <div v-for="session in sessions" :key="session.sessionId" class="session-entry">
+          <section class="session-plan">
+            <header class="session-block__header">
+              <div class="session-block__title">
+                <h2>{{ session.name || session.planName }}</h2>
+                <p v-if="session.name && session.planName && session.name !== session.planName">
+                  {{ session.planName }}
+                  <span v-if="session.sequence > 1"> · #{{ session.sequence }}</span>
+                </p>
+                <p v-else-if="session.sequence > 1">#{{ session.sequence }}</p>
+              </div>
+              <van-tag v-if="session.itemCount > 0" :type="statusTagType(session)" size="medium">
+                {{ statusLabel(session) }}
+              </van-tag>
+            </header>
 
-          <div v-if="session.itemCount > 0" class="session-block__summary">
-            <span>{{
-              t('mobile.sessionProgress', { done: sessionDoneCount(session), total: session.itemCount })
-            }}</span>
-            <span v-if="session.autoItemCount > 0" class="session-block__automatic">
-              {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
-            </span>
-          </div>
-
-          <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
-
-          <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
-          <div v-if="session.itemCount === 0" class="session-block__auto">
-            <van-icon name="clock-o" class="session-block__auto-icon" />
-            <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
-          </div>
-
-          <template v-else>
-            <div class="session-items">
-              <TrainingItemPanel
-                v-for="item in session.items"
-                :key="item.sessionItemId"
-                :item="item"
-                :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
-                :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
-                :note="itemDraft(session.sessionId, item.sessionItemId).note"
-                :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
-                @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
-                @set-complete="(complete) => setItemComplete(session.sessionId, item.sessionItemId, complete)"
-                @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
-              />
+            <div v-if="session.itemCount > 0" class="session-block__summary">
+              <span>{{
+                t('mobile.sessionProgress', { done: sessionDoneCount(session), total: session.itemCount })
+              }}</span>
+              <span v-if="session.autoItemCount > 0" class="session-block__automatic">
+                {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
+              </span>
             </div>
 
-            <van-collapse v-model="sessionDraft(session.sessionId).extrasOpen" class="session-block__extras">
+            <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
+          </section>
+
+          <section class="session-content">
+            <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
+            <div v-if="session.itemCount === 0" class="session-content__auto">
+              <van-icon name="clock-o" class="session-content__auto-icon" />
+              <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
+            </div>
+
+            <template v-else>
+              <div class="session-items">
+                <TrainingItemPanel
+                  v-for="item in session.items"
+                  :key="item.sessionItemId"
+                  :item="item"
+                  :separate-card="['平板支撑', '大腿内外侧肌训练器'].includes(item.exercise?.name)"
+                  :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
+                  :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
+                  :note="itemDraft(session.sessionId, item.sessionItemId).note"
+                  :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
+                  @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
+                  @set-complete="(payload) => setItemComplete(session.sessionId, item.sessionItemId, payload)"
+                  @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
+                />
+              </div>
+            </template>
+          </section>
+
+          <section v-if="session.itemCount > 0" class="session-feedback">
+            <van-collapse v-model="sessionDraft(session.sessionId).extrasOpen" class="session-feedback__collapse">
               <van-collapse-item :title="t('mobile.moreFeedback')" name="feedback">
                 <div class="session-block__feel">
                   <span class="session-block__feel-label">{{ t('mobile.sessionFeel') }}</span>
@@ -119,8 +155,8 @@
                 />
               </van-collapse-item>
             </van-collapse>
-          </template>
-        </section>
+          </section>
+        </div>
       </template>
     </div>
 
@@ -132,7 +168,8 @@
         type="primary"
         class="mobile-training__save"
         :loading="savingSessionId !== null"
-        loading-text=""
+        :disabled="savingSessionId !== null"
+        :loading-text="t('mobile.saving')"
         @click="submitAll"
       >
         {{ t('mobile.saveRecord') }}
@@ -142,9 +179,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { showFailToast, showSuccessToast, showToast } from 'vant';
+import { closeToast, showLoadingToast, showToast } from 'vant';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { getTrainingExecution, saveTrainingSessionExecution } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
@@ -162,6 +199,8 @@ const sessions = ref([]);
 const loading = ref(true);
 const error = ref('');
 const savingSessionId = ref(null);
+const saveFeedback = ref(null);
+let saveFeedbackTimer = null;
 // 只展开用户正在补充详细数据的项目，默认保持紧凑的快速打卡列表。
 const expandedItems = reactive({});
 // 草稿在数据加载后一次性建好，避免在渲染期间创建响应式状态。
@@ -332,12 +371,16 @@ function updateItem(sessionId, sessionItemId, patch) {
  * 「完成 / 跳过」按钮调整的是组数：目标是几组就记几组，跳过则清零。
  * 组数是完成度的唯一来源，不再单独保存一个状态字段，避免两者不同步。
  */
-function setItemComplete(sessionId, sessionItemId, complete) {
+function setItemComplete(sessionId, sessionItemId, payload) {
   const session = sessions.value.find((entry) => entry.sessionId === sessionId);
   const item = session?.items.find((entry) => entry.sessionItemId === sessionItemId);
   const targetSets = Number(item?.targets?.sets);
-  const sets = !complete ? 0 : Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
-  updateItem(sessionId, sessionItemId, { actuals: { sets } });
+  const isComplete = typeof payload === 'object' ? payload.complete === true : payload === true;
+  const sets = !isComplete ? 0 : Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
+  const patch = { actuals: { sets } };
+  if (isComplete) patch.skipReason = '';
+  if (typeof payload === 'object' && !isComplete && payload.skipReason) patch.skipReason = payload.skipReason;
+  updateItem(sessionId, sessionItemId, patch);
 }
 
 function itemKey(sessionId, sessionItemId) {
@@ -427,6 +470,14 @@ function goToday() {
   navigateTo(todayString());
 }
 
+function openPlans() {
+  router.push({ name: 'plans-overview' });
+}
+
+function openSettings() {
+  router.push({ name: 'mobile-settings' });
+}
+
 function navigateTo(date) {
   if (typeof localStorage !== 'undefined') {
     try {
@@ -472,8 +523,7 @@ function buildPayload(session) {
       sessionItemId: item.sessionItemId,
       status: state.status === 'skipped' ? 'skipped' : 'done',
       actuals: state.status === 'skipped' ? {} : actuals,
-      // 当前移动端暂不采集跳过原因，服务端字段保留用于兼容历史记录。
-      skipReason: ''
+      skipReason: state.status === 'skipped' ? current.skipReason || '' : ''
     };
   });
   const state = sessionState(session);
@@ -518,6 +568,8 @@ async function saveSession(session) {
  * 全部标记为跳过时需要再点一次确认，避免误操作把整天记成跳过。
  */
 async function submitAll() {
+  if (savingSessionId.value !== null) return;
+
   const pending = confirmableSessions.value;
   if (pending.length === 0) return;
 
@@ -529,19 +581,47 @@ async function submitAll() {
     return;
   }
 
+  error.value = '';
+  clearSaveFeedback();
   savingSessionId.value = pending[0].sessionId;
+  showLoadingToast({
+    message: t('mobile.saving'),
+    duration: 0,
+    position: 'middle',
+    forbidClick: true,
+    closeOnClick: false,
+    zIndex: 2001
+  });
   try {
     for (const session of pending) {
       await saveSession(session);
     }
-    showSuccessToast(t('mobile.saved'));
+    closeToast();
+    showSaveFeedback('success', t('mobile.saved'), 2400);
   } catch (requestError) {
+    closeToast();
     error.value = normalizeRequestError(requestError, t) || t('mobile.saveFailed');
-    showFailToast(error.value);
+    showSaveFeedback('danger', error.value, 2800);
   } finally {
     savingSessionId.value = null;
   }
 }
+
+function showSaveFeedback(type, message, duration) {
+  clearSaveFeedback();
+  saveFeedback.value = { type, message };
+  saveFeedbackTimer = window.setTimeout(clearSaveFeedback, duration);
+}
+
+function clearSaveFeedback() {
+  if (saveFeedbackTimer !== null) {
+    window.clearTimeout(saveFeedbackTimer);
+    saveFeedbackTimer = null;
+  }
+  saveFeedback.value = null;
+}
+
+onBeforeUnmount(clearSaveFeedback);
 
 watch(selectedDate, () => {
   load();
@@ -571,9 +651,78 @@ onMounted(async () => {
   min-height: 0;
 }
 
+.mobile-training__saving-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.32);
+  pointer-events: all;
+}
+
+.mobile-training__saving-state {
+  min-width: 112px;
+  padding: 16px 18px;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+}
+
+.mobile-training__saving-state :deep(.van-loading) {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.mobile-training__saving-state :deep(.van-loading__text) {
+  margin-top: 8px;
+  color: var(--text-primary);
+}
+
+.mobile-training__save-feedback {
+  position: fixed;
+  z-index: 2100;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+}
+
+.mobile-training__save-feedback .van-icon {
+  flex: none;
+  font-size: 20px;
+}
+
+.mobile-training__save-feedback--success {
+  color: var(--success-color);
+  border-color: color-mix(in srgb, var(--success-color) 35%, var(--card-border));
+  background: color-mix(in srgb, var(--success-color) 12%, var(--card-bg));
+}
+
+.mobile-training__save-feedback--danger {
+  color: var(--danger-color);
+  border-color: color-mix(in srgb, var(--danger-color) 35%, var(--card-border));
+  background: color-mix(in srgb, var(--danger-color) 12%, var(--card-bg));
+}
+
 .mobile-training__dates {
   position: sticky;
-  top: 60px;
+  top: 0;
   z-index: 9;
   display: flex;
   align-items: center;
@@ -599,6 +748,28 @@ onMounted(async () => {
 
 .date-step:disabled {
   opacity: 0.4;
+}
+
+.date-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.date-settings {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.date-settings:active {
+  opacity: 0.75;
 }
 
 .date-current {
@@ -644,6 +815,16 @@ onMounted(async () => {
   text-align: left;
 }
 
+.training-error > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.training-error :deep(.van-button) {
+  flex: none;
+  margin-top: -2px;
+}
+
 .training-error .van-icon {
   flex: none;
   margin-top: 2px;
@@ -669,35 +850,63 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.session-block {
+.training-empty :deep(.van-button) {
+  min-width: 128px;
+}
+
+.session-entry {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+}
+
+.session-plan {
+  display: flex;
+  flex-direction: column;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
   box-shadow: var(--card-shadow);
 }
 
+.session-plan {
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.session-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .session-block__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .session-block__title h2 {
+  min-width: 0;
   margin: 0;
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.session-block__title {
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
 .session-block__title p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.35;
   text-align: left;
 }
 
@@ -705,9 +914,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .session-block__automatic {
@@ -721,39 +930,48 @@ onMounted(async () => {
 .session-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+}
+
+.session-items :deep(.item-panel + .item-panel) {
+  border-top: 1px solid var(--card-border);
+}
+
+.session-items :deep(.item-panel--card + .item-panel),
+.session-items :deep(.item-panel + .item-panel--card) {
+  border-top: 0;
 }
 
 .session-block__notes {
   margin: 0;
-  padding: 10px 12px;
+  padding: 6px 8px;
   color: var(--text-secondary);
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  font-size: 13px;
+  background: var(--control-hover-bg);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 4px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
+  white-space: nowrap;
 }
 
-.session-block__auto {
+.session-content__auto {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px;
+  padding: 14px 2px;
   color: var(--text-secondary);
-  background: var(--card-bg);
-  border: 1px dashed var(--card-border);
-  border-radius: 12px;
 }
 
-.session-block__auto p {
+.session-content__auto p {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
   text-align: left;
 }
 
-.session-block__auto-icon {
+.session-content__auto-icon {
   flex: none;
   color: var(--primary-color);
   font-size: 20px;
@@ -763,27 +981,29 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-}
-
-.session-block__extras {
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-}
-
-.session-block__extras :deep(.van-collapse-item__content) {
-  padding: 10px;
-  background: var(--app-bg);
-}
-
-.session-block__extras .session-block__feel {
-  padding: 0 0 12px;
+  min-width: 0;
+  padding: 2px 0 12px;
   background: transparent;
   border: 0;
+  border-radius: 0;
+}
+
+.session-feedback {
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+}
+
+.session-feedback__collapse {
+  border: 0;
+  border-radius: 0;
+}
+
+.session-feedback__collapse :deep(.van-collapse-item__content) {
+  padding: 10px;
+  background: var(--app-bg);
 }
 
 .session-block__feel-label {

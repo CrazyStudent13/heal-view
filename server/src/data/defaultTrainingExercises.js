@@ -95,7 +95,7 @@ export const defaultTrainingExercises = [
     equipmentMode: 'equipment',
     equipment: '大腿内外侧肌训练器',
     verificationMode: 'manual',
-    metrics: ['weight', 'sets'],
+    metrics: ['weight', 'repetitions', 'sets'],
     purpose: '主要锻炼大腿内收肌和外展肌，增强髋部稳定性与下肢力量'
   },
   {
