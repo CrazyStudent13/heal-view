@@ -17,81 +17,96 @@
           {{ t('mobile.backToToday') }}
         </small>
       </div>
-      <button
-        type="button"
-        class="date-step"
-        :disabled="isToday"
-        :aria-label="t('mobile.nextDay')"
-        @click="shiftDate(1)"
-      >
-        <van-icon name="arrow" />
-      </button>
+      <div class="date-actions">
+        <button
+          type="button"
+          class="date-step"
+          :disabled="isToday"
+          :aria-label="t('mobile.nextDay')"
+          @click="shiftDate(1)"
+        >
+          <van-icon name="arrow" />
+        </button>
+        <button type="button" class="date-settings" :aria-label="t('settings.title')" @click="openSettings">
+          <van-icon name="setting-o" />
+        </button>
+      </div>
     </header>
 
     <div class="mobile-training__body">
       <div v-if="error" class="training-error" role="alert">
         <van-icon name="warning-o" />
         <span>{{ error }}</span>
+        <van-button type="danger" plain size="small" @click="load">
+          {{ t('common.retry') }}
+        </van-button>
       </div>
 
       <div v-if="loading" class="mobile-training__loading">
         <van-skeleton title :row="6" />
       </div>
 
-      <div v-else-if="sessions.length === 0" class="training-empty">
+      <div v-else-if="sessions.length === 0 && !error" class="training-empty">
         <van-icon name="records" class="training-empty__icon" />
         <p>{{ t('mobile.noSessions') }}</p>
+        <van-button type="primary" plain size="small" @click="openPlans">
+          {{ t('mobile.viewPlans') }}
+        </van-button>
       </div>
 
       <template v-else>
-        <section v-for="session in sessions" :key="session.sessionId" class="session-block">
-          <header class="session-block__header">
-            <div class="session-block__title">
-              <h2>{{ session.name || session.planName }}</h2>
-              <p>
-                {{ session.planName }}
-                <span v-if="session.sequence > 1"> · #{{ session.sequence }}</span>
-              </p>
-            </div>
-            <van-tag v-if="session.itemCount > 0" :type="statusTagType(session)" size="medium">
-              {{ statusLabel(session) }}
-            </van-tag>
-          </header>
+        <div v-for="session in sessions" :key="session.sessionId" class="session-entry">
+          <section class="session-block">
+            <header class="session-block__header">
+              <div class="session-block__title">
+                <h2>{{ session.name || session.planName }}</h2>
+                <p>
+                  {{ session.planName }}
+                  <span v-if="session.sequence > 1"> · #{{ session.sequence }}</span>
+                </p>
+              </div>
+              <van-tag v-if="session.itemCount > 0" :type="statusTagType(session)" size="medium">
+                {{ statusLabel(session) }}
+              </van-tag>
+            </header>
 
-          <div v-if="session.itemCount > 0" class="session-block__summary">
-            <span>{{
-              t('mobile.sessionProgress', { done: sessionDoneCount(session), total: session.itemCount })
-            }}</span>
-            <span v-if="session.autoItemCount > 0" class="session-block__automatic">
-              {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
-            </span>
-          </div>
-
-          <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
-
-          <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
-          <div v-if="session.itemCount === 0" class="session-block__auto">
-            <van-icon name="clock-o" class="session-block__auto-icon" />
-            <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
-          </div>
-
-          <template v-else>
-            <div class="session-items">
-              <TrainingItemPanel
-                v-for="item in session.items"
-                :key="item.sessionItemId"
-                :item="item"
-                :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
-                :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
-                :note="itemDraft(session.sessionId, item.sessionItemId).note"
-                :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
-                @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
-                @set-complete="(complete) => setItemComplete(session.sessionId, item.sessionItemId, complete)"
-                @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
-              />
+            <div v-if="session.itemCount > 0" class="session-block__summary">
+              <span>{{
+                t('mobile.sessionProgress', { done: sessionDoneCount(session), total: session.itemCount })
+              }}</span>
+              <span v-if="session.autoItemCount > 0" class="session-block__automatic">
+                {{ t('mobile.automaticHint', { count: session.autoItemCount }) }}
+              </span>
             </div>
 
-            <van-collapse v-model="sessionDraft(session.sessionId).extrasOpen" class="session-block__extras">
+            <p v-if="session.planNotes" class="session-block__notes">{{ session.planNotes }}</p>
+
+            <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
+            <div v-if="session.itemCount === 0" class="session-block__auto">
+              <van-icon name="clock-o" class="session-block__auto-icon" />
+              <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
+            </div>
+
+            <template v-else>
+              <div class="session-items">
+                <TrainingItemPanel
+                  v-for="item in session.items"
+                  :key="item.sessionItemId"
+                  :item="item"
+                  :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
+                  :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
+                  :note="itemDraft(session.sessionId, item.sessionItemId).note"
+                  :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
+                  @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
+                  @set-complete="(payload) => setItemComplete(session.sessionId, item.sessionItemId, payload)"
+                  @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
+                />
+              </div>
+            </template>
+          </section>
+
+          <section v-if="session.itemCount > 0" class="session-feedback">
+            <van-collapse v-model="sessionDraft(session.sessionId).extrasOpen" class="session-feedback__collapse">
               <van-collapse-item :title="t('mobile.moreFeedback')" name="feedback">
                 <div class="session-block__feel">
                   <span class="session-block__feel-label">{{ t('mobile.sessionFeel') }}</span>
@@ -119,8 +134,8 @@
                 />
               </van-collapse-item>
             </van-collapse>
-          </template>
-        </section>
+          </section>
+        </div>
       </template>
     </div>
 
@@ -332,12 +347,16 @@ function updateItem(sessionId, sessionItemId, patch) {
  * 「完成 / 跳过」按钮调整的是组数：目标是几组就记几组，跳过则清零。
  * 组数是完成度的唯一来源，不再单独保存一个状态字段，避免两者不同步。
  */
-function setItemComplete(sessionId, sessionItemId, complete) {
+function setItemComplete(sessionId, sessionItemId, payload) {
   const session = sessions.value.find((entry) => entry.sessionId === sessionId);
   const item = session?.items.find((entry) => entry.sessionItemId === sessionItemId);
   const targetSets = Number(item?.targets?.sets);
-  const sets = !complete ? 0 : Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
-  updateItem(sessionId, sessionItemId, { actuals: { sets } });
+  const isComplete = typeof payload === 'object' ? payload.complete === true : payload === true;
+  const sets = !isComplete ? 0 : Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
+  const patch = { actuals: { sets } };
+  if (isComplete) patch.skipReason = '';
+  if (typeof payload === 'object' && !isComplete && payload.skipReason) patch.skipReason = payload.skipReason;
+  updateItem(sessionId, sessionItemId, patch);
 }
 
 function itemKey(sessionId, sessionItemId) {
@@ -427,6 +446,14 @@ function goToday() {
   navigateTo(todayString());
 }
 
+function openPlans() {
+  router.push({ name: 'plans-overview' });
+}
+
+function openSettings() {
+  router.push({ name: 'mobile-settings' });
+}
+
 function navigateTo(date) {
   if (typeof localStorage !== 'undefined') {
     try {
@@ -472,8 +499,7 @@ function buildPayload(session) {
       sessionItemId: item.sessionItemId,
       status: state.status === 'skipped' ? 'skipped' : 'done',
       actuals: state.status === 'skipped' ? {} : actuals,
-      // 当前移动端暂不采集跳过原因，服务端字段保留用于兼容历史记录。
-      skipReason: ''
+      skipReason: state.status === 'skipped' ? current.skipReason || '' : ''
     };
   });
   const state = sessionState(session);
@@ -573,7 +599,7 @@ onMounted(async () => {
 
 .mobile-training__dates {
   position: sticky;
-  top: 60px;
+  top: 0;
   z-index: 9;
   display: flex;
   align-items: center;
@@ -599,6 +625,28 @@ onMounted(async () => {
 
 .date-step:disabled {
   opacity: 0.4;
+}
+
+.date-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.date-settings {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.date-settings:active {
+  opacity: 0.75;
 }
 
 .date-current {
@@ -644,6 +692,16 @@ onMounted(async () => {
   text-align: left;
 }
 
+.training-error > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.training-error :deep(.van-button) {
+  flex: none;
+  margin-top: -2px;
+}
+
 .training-error .van-icon {
   flex: none;
   margin-top: 2px;
@@ -669,6 +727,16 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+.training-empty :deep(.van-button) {
+  min-width: 128px;
+}
+
+.session-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .session-block {
   display: flex;
   flex-direction: column;
@@ -688,9 +756,17 @@ onMounted(async () => {
 }
 
 .session-block__title h2 {
+  min-width: 0;
   margin: 0;
   color: var(--text-primary);
   font-size: 18px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.session-block__title {
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
@@ -721,17 +797,22 @@ onMounted(async () => {
 .session-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+}
+
+.session-items :deep(.item-panel + .item-panel) {
+  border-top: 1px solid var(--card-border);
 }
 
 .session-block__notes {
   margin: 0;
   padding: 10px 12px;
   color: var(--text-secondary);
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
+  background: var(--control-hover-bg);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 4px;
   font-size: 13px;
+  overflow-wrap: anywhere;
   text-align: left;
 }
 
@@ -763,27 +844,29 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-}
-
-.session-block__extras {
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-}
-
-.session-block__extras :deep(.van-collapse-item__content) {
-  padding: 10px;
-  background: var(--app-bg);
-}
-
-.session-block__extras .session-block__feel {
-  padding: 0 0 12px;
+  min-width: 0;
+  padding: 2px 0 12px;
   background: transparent;
   border: 0;
+  border-radius: 0;
+}
+
+.session-feedback {
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+}
+
+.session-feedback__collapse {
+  border: 0;
+  border-radius: 0;
+}
+
+.session-feedback__collapse :deep(.van-collapse-item__content) {
+  padding: 10px;
+  background: var(--app-bg);
 }
 
 .session-block__feel-label {

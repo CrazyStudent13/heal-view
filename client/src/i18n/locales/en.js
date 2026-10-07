@@ -63,6 +63,7 @@ export default {
     localeZh: 'Simplified Chinese',
     localeEn: 'English',
     theme: 'Theme',
+    about: 'About',
     light: 'Light',
     dark: 'Dark',
     units: {
@@ -820,6 +821,8 @@ export default {
     setsProgress: '{done}/{target} sets',
     partialSets: 'This exercise targets {target} sets and {done} are recorded, so it will be saved as partly done.',
     chooseReason: 'Choose a reason',
+    skipReasonPlaceholder: 'Optional details about why you skipped it',
+    viewPlans: 'View exercise plans',
     discomfortLabel: 'Discomfort or anything unusual',
     aboutNote: 'Heal View is for personal fitness record keeping only. It provides no medical diagnosis or coaching.',
     sessionFeel: 'How it felt',

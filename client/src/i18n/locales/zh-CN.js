@@ -63,6 +63,7 @@ export default {
     localeZh: '简体中文',
     localeEn: 'English',
     theme: '主题',
+    about: '关于',
     light: '亮',
     dark: '暗',
     units: {
@@ -817,6 +818,8 @@ export default {
     setsProgress: '{done}/{target}组',
     partialSets: '这项目标 {target} 组，已记录 {done} 组，保存后记为部分完成。',
     chooseReason: '请选择原因',
+    skipReasonPlaceholder: '可填写具体原因（可选）',
+    viewPlans: '查看运动计划',
     discomfortLabel: '不适或异常',
     aboutNote: 'Heal View 仅用于个人运动数据记录与回顾，不提供医疗诊断或教练服务。',
     sessionFeel: '本次感受',

@@ -15,6 +15,7 @@ const loadPlanOverviewPage = () => import('@/pages/plans/PlanOverviewPage.vue');
 const loadPlanSessionsPage = () => import('@/pages/plans/PlanSessionsPage.vue');
 const loadPlanExercisesPage = () => import('@/pages/PlansPage.vue');
 const loadMobileTodayPage = () => import('@/pages/mobile/TrainingPage.vue');
+const loadMobileSettingsPage = () => import('@/pages/mobile/MobileSettingsPage.vue');
 const routes = [
   {
     path: '/login',
@@ -109,6 +110,12 @@ const routes = [
         name: 'mobile-today',
         component: loadMobileTodayPage,
         meta: { titleKey: 'mobile.title', public: true }
+      },
+      {
+        path: 'settings',
+        name: 'mobile-settings',
+        component: loadMobileSettingsPage,
+        meta: { titleKey: 'settings.title', public: true }
       }
     ]
   }

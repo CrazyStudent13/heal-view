@@ -97,7 +97,7 @@
         :type="isSkipped ? 'warning' : 'default'"
         icon="arrow"
         block
-        @click="$emit('set-complete', false)"
+        @click="openSkipReason"
       >
         {{ t('mobile.itemSkipped') }}
       </van-button>
@@ -114,6 +114,32 @@
       :placeholder="t('mobile.itemNotePlaceholder')"
       @update:model-value="(value) => $emit('update', { note: value })"
     />
+
+    <van-popup v-model:show="skipReasonVisible" position="center" round :style="{ width: 'min(88vw, 360px)' }">
+      <div class="skip-dialog">
+        <h3 class="skip-dialog__title">{{ t('mobile.skipReasonLabel') }}</h3>
+        <p class="skip-dialog__exercise">{{ item.exercise.name }}</p>
+        <van-radio-group v-model="skipReasonDraft" class="skip-dialog__options">
+          <van-radio v-for="reason in skipReasonOptions" :key="reason" :name="reason">
+            {{ t(`mobile.skipReasons.${reason}`) }}
+          </van-radio>
+        </van-radio-group>
+        <van-field
+          v-if="skipReasonDraft === 'other'"
+          v-model="skipReasonNote"
+          type="textarea"
+          rows="2"
+          autosize
+          maxlength="200"
+          :label="t('mobile.skipReasonLabel')"
+          :placeholder="t('mobile.skipReasonPlaceholder')"
+        />
+        <div class="skip-dialog__actions">
+          <van-button type="primary" block @click="confirmSkip">{{ t('mobile.itemSkipped') }}</van-button>
+          <van-button plain block @click="skipReasonVisible = false">{{ t('common.cancel') }}</van-button>
+        </div>
+      </div>
+    </van-popup>
 
     <van-popup v-model:show="timerVisible" position="center" round :style="{ width: 'min(88vw, 360px)' }">
       <div class="timer-dialog">
@@ -143,6 +169,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { showToast } from 'vant';
 import { useLocaleStore } from '@/stores/localeStore.js';
 
 const props = defineProps({
@@ -164,10 +191,15 @@ const METRIC_STEPS = { weight: 0.5 };
 const HALF_STEP_METRICS = new Set(['weight']);
 
 const durationParts = ref({ minutes: 0, seconds: 0 });
+const skipReasonOptions = ['equipment_busy', 'no_time', 'discomfort', 'too_hard', 'other'];
+const skipReasonVisible = ref(false);
+const skipReasonDraft = ref('');
+const skipReasonNote = ref('');
 const timerVisible = ref(false);
 const timerRunning = ref(false);
 const timerFinished = ref(false);
 const timerRemaining = ref(0);
+const timerEndAt = ref(null);
 let timerHandle = null;
 
 const targets = computed(() => {
@@ -246,6 +278,7 @@ watch(
 
 function openTimer() {
   if (!hasDuration.value) return;
+  stopTimer();
   timerRemaining.value = targetDuration.value;
   timerRunning.value = false;
   timerFinished.value = false;
@@ -254,16 +287,24 @@ function openTimer() {
 
 function startTimer() {
   if (timerRunning.value) return;
+  if (timerRemaining.value <= 0) timerRemaining.value = targetDuration.value;
+  timerEndAt.value = Date.now() + timerRemaining.value * 1000;
   timerRunning.value = true;
-  timerHandle = window.setInterval(() => {
-    timerRemaining.value = Math.max(0, timerRemaining.value - 1);
-    if (timerRemaining.value === 0) finishTimer();
-  }, 1000);
+  syncTimer();
+  timerHandle = window.setInterval(syncTimer, 250);
+}
+
+// The interval keeps the display reactive while the end timestamp keeps it accurate after backgrounding.
+function syncTimer() {
+  if (!timerEndAt.value || timerFinished.value) return;
+  timerRemaining.value = Math.max(0, Math.ceil((timerEndAt.value - Date.now()) / 1000));
+  if (timerRemaining.value === 0) finishTimer();
 }
 
 function stopTimer() {
   if (timerHandle) window.clearInterval(timerHandle);
   timerHandle = null;
+  timerEndAt.value = null;
   timerRunning.value = false;
 }
 
@@ -282,6 +323,23 @@ function finishTimer() {
 function closeTimer() {
   stopTimer();
   timerVisible.value = false;
+}
+
+function openSkipReason() {
+  const existing = props.skipReason?.trim() || '';
+  skipReasonDraft.value = skipReasonOptions.includes(existing) ? existing : existing ? 'other' : '';
+  skipReasonNote.value = existing && !skipReasonOptions.includes(existing) ? existing : '';
+  skipReasonVisible.value = true;
+}
+
+function confirmSkip() {
+  if (!skipReasonDraft.value) {
+    showToast(t('mobile.chooseReason'));
+    return;
+  }
+  const reason = skipReasonDraft.value === 'other' ? skipReasonNote.value.trim() || 'other' : skipReasonDraft.value;
+  emit('set-complete', { complete: false, skipReason: reason });
+  skipReasonVisible.value = false;
 }
 
 onBeforeUnmount(stopTimer);
@@ -390,10 +448,9 @@ const lastAttemptText = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 14px;
-  background: var(--app-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
+  min-width: 0;
+  padding: 14px 0;
+  background: transparent;
 }
 
 .item-panel__header {
@@ -405,17 +462,30 @@ const lastAttemptText = computed(() => {
 .item-panel__title {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   gap: 8px;
+  min-width: 0;
+  text-align: left;
 }
 
 .item-panel__title h3 {
+  flex: 1;
+  min-width: 0;
   margin: 0;
   color: var(--text-primary);
   font-size: 16px;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.item-panel__title :deep(.van-tag) {
+  flex: none;
 }
 
 .item-panel__targets {
+  overflow-wrap: anywhere;
   margin: 0;
   color: var(--text-primary);
   font-size: 13px;
@@ -549,41 +619,44 @@ const lastAttemptText = computed(() => {
   font-size: 15px;
 }
 
-.item-panel__skip-trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  color: var(--text-primary);
-  background: var(--control-hover-bg);
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  text-align: left;
-}
-
-.item-panel__skip-trigger:active {
-  opacity: 0.75;
-}
-
-.item-panel__skip-label {
-  flex: none;
-  color: var(--text-secondary);
-}
-
-.item-panel__skip-value {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .item-panel__note {
   padding: 10px 12px;
   background: var(--control-hover-bg);
   border-radius: 10px;
+}
+
+.skip-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--card-bg);
+}
+
+.skip-dialog__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.skip-dialog__exercise {
+  margin: -6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.skip-dialog__options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skip-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .timer-dialog {
