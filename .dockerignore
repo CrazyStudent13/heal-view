@@ -9,6 +9,11 @@ health_data.db
 *.db
 data
 uploads
+server/data
+server/uploads
+server/*.db
+deploy/data
+deploy/uploads
 server/.env
 client/.env
 .env

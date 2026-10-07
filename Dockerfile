@@ -10,8 +10,10 @@ COPY server/package.json server/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY client client
-COPY server server
+# 只把运行所需的服务端源码放进构建阶段，避免把本地数据库、导入归档和上传文件带进镜像。
+COPY server/src server/src
 RUN pnpm --filter heal-view-client build
+RUN pnpm --filter heal-view-server deploy --prod /tmp/server-deploy
 
 FROM node:22.13-bookworm-slim AS runtime
 
@@ -22,9 +24,7 @@ ENV NODE_ENV=production \
     DB_PATH=/app/data/health_data.db \
     UPLOAD_DIR=/app/uploads
 
-COPY --from=build /app/package.json /app/pnpm-workspace.yaml /app/
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/server /app/server
+COPY --from=build /tmp/server-deploy /app/server
 COPY --from=build /app/client/dist /app/client/dist
 
 RUN mkdir -p /app/data /app/uploads \
