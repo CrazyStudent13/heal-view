@@ -54,6 +54,10 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DEPLOY_REGISTRY: ${{ secrets.DEPLOY_REGISTRY }}
+          DEPLOY_REGISTRY_REPOSITORY: ${{ secrets.DEPLOY_REGISTRY_REPOSITORY }}
+          DEPLOY_REGISTRY_USERNAME: ${{ secrets.DEPLOY_REGISTRY_USERNAME }}
+          DEPLOY_REGISTRY_PASSWORD: ${{ secrets.DEPLOY_REGISTRY_PASSWORD }}
         run: |
           missing=""
           for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_PATH GHCR_TOKEN; do
@@ -63,15 +67,40 @@ jobs:
             echo "::error::缺少必需的 Secrets:$missing （Settings → Environments → production → Environment secrets。注意：配成仓库级 Secret 这里读不到）"
             exit 1
           fi
+          mirror_missing=""
+          if [ -n "${DEPLOY_REGISTRY:-}" ]; then
+            for name in DEPLOY_REGISTRY_REPOSITORY DEPLOY_REGISTRY_USERNAME DEPLOY_REGISTRY_PASSWORD; do
+              if [ -z "${!name:-}" ]; then mirror_missing="$mirror_missing $name"; fi
+            done
+          fi
+          if [ -n "$mirror_missing" ]; then
+            echo "::error::配置了 DEPLOY_REGISTRY，但缺少:$mirror_missing"
+            exit 1
+          fi
+          if [ -z "${DEPLOY_REGISTRY:-}" ]; then
+            echo "WARNING: 未配置国内镜像仓库，服务器将继续使用 GHCR；中国大陆服务器可能较慢。" >&2
+          fi
           echo "Secrets 检查通过。"
 
       - name: Resolve image name and tag
         id: image
         shell: bash
+        env:
+          DEPLOY_REGISTRY: ${{ secrets.DEPLOY_REGISTRY }}
+          DEPLOY_REGISTRY_REPOSITORY: ${{ secrets.DEPLOY_REGISTRY_REPOSITORY }}
         run: |
           # GHCR 要求镜像名全小写，而 github.repository 会保留用户名的大小写。
           name="$(echo '${{ env.REGISTRY }}/${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           echo "name=$name" >> "$GITHUB_OUTPUT"
+
+          deploy_name="$name"
+          deploy_registry=''
+          if [ -n "${DEPLOY_REGISTRY:-}" ]; then
+            deploy_registry="${DEPLOY_REGISTRY,,}"
+            deploy_name="${deploy_registry%/}/${DEPLOY_REGISTRY_REPOSITORY#/}"
+          fi
+          echo "deploy_name=$deploy_name" >> "$GITHUB_OUTPUT"
+          echo "deploy_registry=$deploy_registry" >> "$GITHUB_OUTPUT"
 
           if [ -n "${{ inputs.image_tag }}" ]; then
             # 手动回滚：部署指定标签，不重新构建。
@@ -89,7 +118,17 @@ jobs:
 
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"
-          echo "将部署：$name:$tag（构建镜像：$build）"
+          {
+            echo 'tags<<IMAGE_TAGS'
+            echo "$name:$tag"
+            echo "$name:latest"
+            if [ -n "$deploy_registry" ]; then
+              echo "$deploy_name:$tag"
+              echo "$deploy_name:latest"
+            fi
+            echo 'IMAGE_TAGS'
+          } >> "$GITHUB_OUTPUT"
+          echo "将部署：$deploy_name:$tag（构建镜像：$build）"
 
       - name: Set up Buildx
         if: steps.image.outputs.build == 'true'
@@ -109,9 +148,7 @@ jobs:
         with:
           context: .
           load: true
-          tags: |
-            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
-            ${{ steps.image.outputs.name }}:latest
+          tags: ${{ steps.image.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -122,59 +159,47 @@ jobs:
           docker push '${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}'
           docker push '${{ steps.image.outputs.name }}:latest'
 
-      - name: Save image archive for SSH transfer
-        if: steps.image.outputs.build == 'true'
-        id: archive
+      - name: Log in to deployment registry
+        if: steps.image.outputs.build == 'true' && steps.image.outputs.deploy_registry != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.image.outputs.deploy_registry }}
+          username: ${{ secrets.DEPLOY_REGISTRY_USERNAME }}
+          password: ${{ secrets.DEPLOY_REGISTRY_PASSWORD }}
+
+      - name: Push image to deployment registry
+        if: steps.image.outputs.build == 'true' && steps.image.outputs.deploy_registry != ''
         shell: bash
         run: |
-          mkdir -p .deploy
-          archive=".deploy/heal-view-${{ steps.image.outputs.tag }}.tar.gz"
-          docker save '${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}' | gzip -1 > "$archive"
-          echo "path=$archive" >> "$GITHUB_OUTPUT"
-          du -h "$archive"
-
-      # 中国大陆服务器访问 GHCR 可能很慢。优先通过已经可用的 SSH 链路传输镜像，
-      # 远端直接 docker load；传输失败时由后面的部署脚本回退到 GHCR pull。
-      - name: Transfer image archive to server
-        if: steps.image.outputs.build == 'true'
-        continue-on-error: true
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
-          source: ${{ steps.archive.outputs.path }}
-          target: /tmp
-          overwrite: true
-          timeout: 30s
-          command_timeout: 15m
+          docker push '${{ steps.image.outputs.deploy_name }}:${{ steps.image.outputs.tag }}'
+          docker push '${{ steps.image.outputs.deploy_name }}:latest'
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          IMAGE_REF: ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          IMAGE_ARCHIVE: ${{ steps.image.outputs.build == 'true' && format('/tmp/heal-view-{0}.tar.gz', steps.image.outputs.tag) || '' }}
+          IMAGE_REF: ${{ steps.image.outputs.deploy_name }}:${{ steps.image.outputs.tag }}
+          IMAGE_REGISTRY: ${{ steps.image.outputs.deploy_registry != '' && steps.image.outputs.deploy_registry || env.REGISTRY }}
+          IMAGE_USERNAME: ${{ steps.image.outputs.deploy_registry != '' && secrets.DEPLOY_REGISTRY_USERNAME || github.actor }}
+          IMAGE_PASSWORD: ${{ steps.image.outputs.deploy_registry != '' && secrets.DEPLOY_REGISTRY_PASSWORD || secrets.GHCR_TOKEN }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
-          envs: DEPLOY_PATH,IMAGE_REF,GHCR_USERNAME,GHCR_TOKEN,IMAGE_ARCHIVE
+          envs: DEPLOY_PATH,IMAGE_REF,IMAGE_REGISTRY,IMAGE_USERNAME,IMAGE_PASSWORD
           script_stop: true
-          # 首次部署或服务器缓存为空时，GHCR 镜像可能需要下载数百 MB。
-          # 15 分钟在低带宽 VPS 上不足，会在 docker compose pull 仍进行时被 SSH action 强制终止。
+          # 首次部署或服务器缓存为空时，镜像可能需要下载数百 MB。
+          # 镜像仓库地址由 IMAGE_REGISTRY 决定；中国大陆服务器建议配置国内 registry。
           command_timeout: 45m
           script: |
             set -eu
 
             : "${DEPLOY_PATH:?DEPLOY_PATH 未配置}"
             : "${IMAGE_REF:?IMAGE_REF 未配置}"
-            : "${GHCR_USERNAME:?GHCR_USERNAME 未配置}"
-            : "${GHCR_TOKEN:?GHCR_TOKEN 未配置}"
+            : "${IMAGE_REGISTRY:?IMAGE_REGISTRY 未配置}"
+            : "${IMAGE_USERNAME:?IMAGE_USERNAME 未配置}"
+            : "${IMAGE_PASSWORD:?IMAGE_PASSWORD 未配置}"
 
             if [ ! -d "$DEPLOY_PATH/.git" ]; then
               echo "ERROR: $DEPLOY_PATH 不是 git 仓库。请先在服务器上执行一次 deploy/setup-server.sh。" >&2
@@ -187,7 +212,7 @@ jobs:
             # deploy/.env、deploy/data、deploy/uploads 都被 .gitignore 忽略，
             # 因此强制对齐 master 不会动到配置和数据库。
             #
-            # 这一步刻意做成「失败不阻断」：真正要部署的镜像来自 ghcr.io，
+            # 这一步刻意做成「失败不阻断」：真正要部署的镜像来自配置的 registry，
             # 而部分地区的服务器访问 github.com 会被间歇性干扰。若因网络问题
             # 拿不到最新 compose 文件，就沿用服务器上现成的那份继续部署，
             # 只发警告，不让一次网络抖动把整个发布搞失败。
@@ -216,37 +241,23 @@ jobs:
               echo "HEAL_VIEW_IMAGE=$IMAGE_REF" >> deploy/.env
             fi
 
-            image_loaded=false
-            if [ -n "${IMAGE_ARCHIVE:-}" ] && [ -f "$IMAGE_ARCHIVE" ]; then
-              echo "==> 通过 SSH 传输的镜像包加载镜像"
-              if gzip -dc "$IMAGE_ARCHIVE" | docker load; then
-                image_loaded=true
-                rm -f "$IMAGE_ARCHIVE"
-                echo "镜像包加载完成，跳过 GHCR 拉取。"
-              else
-                echo "WARNING: 镜像包加载失败，回退到 GHCR 拉取。" >&2
+            echo "==> 登录镜像仓库：$IMAGE_REGISTRY"
+            printf '%s' "$IMAGE_PASSWORD" | docker login "$IMAGE_REGISTRY" -u "$IMAGE_USERNAME" --password-stdin
+            echo "==> 拉取镜像"
+            pull_ok=false
+            for attempt in 1 2 3; do
+              if docker compose --env-file deploy/.env pull heal-view; then
+                pull_ok=true
+                break
               fi
-            fi
-
-            if [ "$image_loaded" != true ]; then
-              echo "==> 登录 GHCR"
-              printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-              echo "==> 拉取镜像"
-              pull_ok=false
-              for attempt in 1 2 3; do
-                if docker compose --env-file deploy/.env pull heal-view; then
-                  pull_ok=true
-                  break
-                fi
-                if [ "$attempt" -lt 3 ]; then
-                  echo "WARNING: 镜像拉取失败，将在 10 秒后重试（第 $attempt/3 次）。" >&2
-                  sleep 10
-                fi
-              done
-              if [ "$pull_ok" != true ]; then
-                echo "ERROR: 镜像拉取失败，已重试 3 次。" >&2
-                exit 1
+              if [ "$attempt" -lt 3 ]; then
+                echo "WARNING: 镜像拉取失败，将在 10 秒后重试（第 $attempt/3 次）。" >&2
+                sleep 10
               fi
+            done
+            if [ "$pull_ok" != true ]; then
+              echo "ERROR: 镜像拉取失败，已重试 3 次。" >&2
+              exit 1
             fi
 
             echo "==> 启动容器"

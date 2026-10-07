@@ -1,6 +1,6 @@
 # 自动部署
 
-往 `master` 推送代码后，GitHub Actions 会自动构建镜像、推送到 GHCR，并让服务器拉取新镜像重启容器。整个过程不需要人工登录服务器。
+往 `master` 推送代码后，GitHub Actions 会自动构建镜像、推送到 GHCR；如果配置了国内镜像仓库，也会同步推送一份，服务器从配置的仓库拉取新镜像并重启容器。整个过程不需要人工登录服务器。
 
 ## 工作方式
 
@@ -10,11 +10,11 @@ push 到 master
       ├─ quality.yml        格式化 / ESLint / i18n / 测试 / 前端构建
       │        │ 通过
       ▼        ▼
-  构建 Docker 镜像 ──► 推送 ghcr.io/crazystudent13/heal-view:latest
-                                  和  :<commit-sha>
+  构建 Docker 镜像 ──► 推送 GHCR（归档/回滚）
+      │                 └─► 可选：国内 registry（生产拉取）
       │
       ▼
-  SSH 登录服务器 ──► 传输镜像并 docker load ──► up -d
+  SSH 登录服务器 ──► 登录生产 registry ──► pull ──► up -d
       │
       ▼
   轮询容器健康检查，超过 2 分钟仍未 healthy 则整个流程失败并打印日志
@@ -27,9 +27,9 @@ push 到 master
 - **部署不并发**：`concurrency` 设为 `cancel-in-progress: false`。连续 push 会排队，而不是把正在进行的部署砍在半路。
 - **数据卷不动**：`deploy/data` 与 `deploy/uploads` 是挂载卷，更新镜像不会影响数据库。
 - **生产镜像精简**：镜像只包含后端生产依赖、服务端源码和前端构建产物，不会把服务器上的导入归档、数据库或上传文件打包进去。
-- **绕过 GHCR 慢链路**：构建完成后，Actions 会通过部署所用的 SSH 链路传输压缩镜像并在服务器上加载；传输失败时才回退到 GHCR 拉取。
+- **国内 registry 优先**：配置 `DEPLOY_REGISTRY` 后，Actions 会把同一镜像推送到国内 registry，服务器直接从该地址拉取，GHCR 只保留为归档和回滚来源。
 
-如果服务器位于中国大陆，访问 `ghcr.io` 的速度可能受跨境网络影响。现在正常发布会优先走 SSH 镜像传输，不要求服务器直接访问 GHCR；只有 SSH 传输失败时才会回退到 GHCR。新版镜像也移除了本地数据和前端开发依赖，进一步减少传输量。
+如果服务器位于中国大陆，访问 `ghcr.io` 的速度可能受跨境网络影响。建议使用阿里云 ACR、腾讯云 TCR 或自建 registry，并配置下面的可选 Secrets。仅配置 GHCR 仍然可以部署，但速度取决于服务器的跨境网络。新版镜像也移除了本地数据和前端开发依赖，进一步减少传输量。
 
 ## 前置要求
 
@@ -87,8 +87,14 @@ DEPLOY_PATH=/srv/heal-view APP_PORT=8080 bash deploy/setup-server.sh
 | `DEPLOY_PATH` | ✅ | 部署目录，与第一步保持一致，例如 `/opt/heal-view` |
 | `GHCR_TOKEN` | ✅ | 上一步创建的 PAT（`read:packages`） |
 | `DEPLOY_PORT` | ❌ | SSH 端口，默认 `22` |
+| `DEPLOY_REGISTRY` | ❌ | 国内 registry 地址，例如 `registry.cn-hangzhou.aliyuncs.com` |
+| `DEPLOY_REGISTRY_REPOSITORY` | 配置 registry 时必填 | 镜像仓库路径，例如 `your-namespace/heal-view` |
+| `DEPLOY_REGISTRY_USERNAME` | 配置 registry 时必填 | registry 登录用户名 |
+| `DEPLOY_REGISTRY_PASSWORD` | 配置 registry 时必填 | registry 登录密码或访问令牌 |
 
 > 缺少任何一个必填 Secret，工作流会在部署前**明确失败**并列出缺哪几个，不会静默跳过。
+
+配置了 `DEPLOY_REGISTRY` 后，工作流会同时推送 GHCR 和该 registry，并让服务器使用国内 registry 的镜像地址。四个 registry Secret 要么全部配置，要么全部留空。
 
 如果服务器上还没有密钥对，在**本地**生成一对专用密钥：
 
@@ -152,7 +158,7 @@ SSH 用户不在 `docker` 组：`sudo usermod -aG docker $USER`，然后重新�
 工作流会打印容器最后 150 行日志。常见原因是端口 `43128` 被占用（改 `deploy/.env` 的 `HEAL_VIEW_PORT`），或数据卷权限不对。
 
 **部署日志里出现 `WARNING: 无法从 GitHub 同步仓库`**
-服务器访问 `github.com` 被网络干扰（部分地区的常见情况）。这一步是**刻意设计成不阻断**的：真正要部署的镜像来自 `ghcr.io`，拿不到最新 compose 文件时会沿用服务器上现成的那份继续发布。
+服务器访问 `github.com` 被网络干扰（部分地区的常见情况）。这一步是**刻意设计成不阻断**的：真正要部署的镜像来自配置的 registry，拿不到最新 compose 文件时会沿用服务器上现成的那份继续发布。
 
 `docker-compose.yml` 很少改动，所以通常可以忽略。如果确实需要更新它，在服务器上手动执行：
 
