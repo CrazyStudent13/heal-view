@@ -102,6 +102,10 @@ cat <<EOF
   DEPLOY_PATH    = $DEPLOY_PATH
   GHCR_TOKEN     = GitHub PAT（classic），勾选 read:packages
   DEPLOY_PORT    = 可选，SSH 端口，默认 22
+  DEPLOY_REGISTRY              = 可选，国内 registry 地址
+  DEPLOY_REGISTRY_REPOSITORY   = 配置 registry 时必填，例如 your-namespace/heal-view
+  DEPLOY_REGISTRY_USERNAME     = 配置 registry 时必填
+  DEPLOY_REGISTRY_PASSWORD     = 配置 registry 时必填（密码或访问令牌）
 
   配成仓库级 Secret 部署任务读不到，会直接报缺少 Secrets。
 
