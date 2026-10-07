@@ -19,16 +19,13 @@
           <p class="settings-section__description">{{ t('settings.languageDescription') }}</p>
         </header>
         <van-cell-group inset class="settings-card">
-          <van-cell
-            :title="t('settings.language')"
-            :value="currentLocaleLabel"
-            center
-            is-link
-            clickable
-            @click="localePickerVisible = true"
-          >
+          <van-cell center is-link clickable @click="localePickerVisible = true">
             <template #icon>
               <span class="settings-cell__locale" aria-hidden="true">{{ localeCodeLabel }}</span>
+            </template>
+            <template #title>
+              <div class="settings-cell__title">{{ t('settings.language') }}</div>
+              <div class="settings-cell__value">{{ currentLocaleLabel }}</div>
             </template>
           </van-cell>
         </van-cell-group>
@@ -40,16 +37,13 @@
           <p class="settings-section__description">{{ t('settings.themeDescription') }}</p>
         </header>
         <van-cell-group inset class="settings-card">
-          <van-cell
-            :title="t('settings.theme')"
-            :value="currentThemeLabel"
-            center
-            is-link
-            clickable
-            @click="themePickerVisible = true"
-          >
+          <van-cell center is-link clickable @click="themePickerVisible = true">
             <template #icon>
               <van-icon name="bulb-o" class="settings-cell__icon" aria-hidden="true" />
+            </template>
+            <template #title>
+              <div class="settings-cell__title">{{ t('settings.theme') }}</div>
+              <div class="settings-cell__value">{{ currentThemeLabel }}</div>
             </template>
           </van-cell>
         </van-cell-group>
@@ -275,6 +269,20 @@ async function handleLogout() {
   margin-right: 10px;
   color: var(--text-secondary);
   font-size: 19px;
+}
+
+.settings-cell__title {
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.settings-cell__value {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
 }
 
 .settings-cell__locale {
