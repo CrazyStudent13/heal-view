@@ -108,12 +108,45 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          load: true
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
             ${{ steps.image.outputs.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Push image to GHCR
+        if: steps.image.outputs.build == 'true'
+        shell: bash
+        run: |
+          docker push '${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}'
+          docker push '${{ steps.image.outputs.name }}:latest'
+
+      - name: Save image archive for SSH transfer
+        if: steps.image.outputs.build == 'true'
+        id: archive
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/heal-view-image.tar.gz"
+          docker save '${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}' | gzip -1 > "$archive"
+          echo "path=$archive" >> "$GITHUB_OUTPUT"
+          du -h "$archive"
+
+      # 中国大陆服务器访问 GHCR 可能很慢。优先通过已经可用的 SSH 链路传输镜像，
+      # 远端直接 docker load；传输失败时由后面的部署脚本回退到 GHCR pull。
+      - name: Transfer image archive to server
+        if: steps.image.outputs.build == 'true'
+        continue-on-error: true
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
+          source: ${{ steps.archive.outputs.path }}
+          target: /tmp
+          overwrite: true
+          command_timeout: 45m
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
@@ -122,12 +155,13 @@ jobs:
           IMAGE_REF: ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          IMAGE_ARCHIVE: /tmp/heal-view-image.tar.gz
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || '22' }}
-          envs: DEPLOY_PATH,IMAGE_REF,GHCR_USERNAME,GHCR_TOKEN
+          envs: DEPLOY_PATH,IMAGE_REF,GHCR_USERNAME,GHCR_TOKEN,IMAGE_ARCHIVE
           script_stop: true
           # 首次部署或服务器缓存为空时，GHCR 镜像可能需要下载数百 MB。
           # 15 分钟在低带宽 VPS 上不足，会在 docker compose pull 仍进行时被 SSH action 强制终止。
@@ -173,9 +207,6 @@ jobs:
               cp deploy/.env.example deploy/.env
             fi
 
-            echo "==> 登录 GHCR"
-            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-
             echo "==> 固定镜像版本：$IMAGE_REF"
             if grep -q '^HEAL_VIEW_IMAGE=' deploy/.env; then
               sed -i "s#^HEAL_VIEW_IMAGE=.*#HEAL_VIEW_IMAGE=$IMAGE_REF#" deploy/.env
@@ -183,21 +214,37 @@ jobs:
               echo "HEAL_VIEW_IMAGE=$IMAGE_REF" >> deploy/.env
             fi
 
-            echo "==> 拉取镜像"
-            pull_ok=false
-            for attempt in 1 2 3; do
-              if docker compose --env-file deploy/.env pull heal-view; then
-                pull_ok=true
-                break
+            image_loaded=false
+            if [ -n "${IMAGE_ARCHIVE:-}" ] && [ -f "$IMAGE_ARCHIVE" ]; then
+              echo "==> 通过 SSH 传输的镜像包加载镜像"
+              if gzip -dc "$IMAGE_ARCHIVE" | docker load; then
+                image_loaded=true
+                rm -f "$IMAGE_ARCHIVE"
+                echo "镜像包加载完成，跳过 GHCR 拉取。"
+              else
+                echo "WARNING: 镜像包加载失败，回退到 GHCR 拉取。" >&2
               fi
-              if [ "$attempt" -lt 3 ]; then
-                echo "WARNING: 镜像拉取失败，将在 10 秒后重试（第 $attempt/3 次）。" >&2
-                sleep 10
+            fi
+
+            if [ "$image_loaded" != true ]; then
+              echo "==> 登录 GHCR"
+              printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+              echo "==> 拉取镜像"
+              pull_ok=false
+              for attempt in 1 2 3; do
+                if docker compose --env-file deploy/.env pull heal-view; then
+                  pull_ok=true
+                  break
+                fi
+                if [ "$attempt" -lt 3 ]; then
+                  echo "WARNING: 镜像拉取失败，将在 10 秒后重试（第 $attempt/3 次）。" >&2
+                  sleep 10
+                fi
+              done
+              if [ "$pull_ok" != true ]; then
+                echo "ERROR: 镜像拉取失败，已重试 3 次。" >&2
+                exit 1
               fi
-            done
-            if [ "$pull_ok" != true ]; then
-              echo "ERROR: 镜像拉取失败，已重试 3 次。" >&2
-              exit 1
             fi
 
             echo "==> 启动容器"
