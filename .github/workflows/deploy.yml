@@ -127,7 +127,8 @@ jobs:
         id: archive
         shell: bash
         run: |
-          archive="$RUNNER_TEMP/heal-view-image.tar.gz"
+          mkdir -p .deploy
+          archive=".deploy/heal-view-${{ steps.image.outputs.tag }}.tar.gz"
           docker save '${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}' | gzip -1 > "$archive"
           echo "path=$archive" >> "$GITHUB_OUTPUT"
           du -h "$archive"
@@ -146,7 +147,8 @@ jobs:
           source: ${{ steps.archive.outputs.path }}
           target: /tmp
           overwrite: true
-          command_timeout: 45m
+          timeout: 30s
+          command_timeout: 15m
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
@@ -155,7 +157,7 @@ jobs:
           IMAGE_REF: ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          IMAGE_ARCHIVE: /tmp/heal-view-image.tar.gz
+          IMAGE_ARCHIVE: ${{ steps.image.outputs.build == 'true' && format('/tmp/heal-view-{0}.tar.gz', steps.image.outputs.tag) || '' }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
