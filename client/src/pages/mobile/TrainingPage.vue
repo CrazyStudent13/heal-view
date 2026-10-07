@@ -1,5 +1,22 @@
 <template>
-  <div class="mobile-training">
+  <div class="mobile-training" :aria-busy="savingSessionId !== null">
+    <div v-if="savingSessionId !== null" class="mobile-training__saving-overlay" role="status" aria-live="polite">
+      <div class="mobile-training__saving-state">
+        <van-loading size="24px" vertical>{{ t('mobile.saving') }}</van-loading>
+      </div>
+    </div>
+
+    <div
+      v-if="saveFeedback"
+      class="mobile-training__save-feedback"
+      :class="`mobile-training__save-feedback--${saveFeedback.type}`"
+      role="status"
+      aria-live="polite"
+    >
+      <van-icon :name="saveFeedback.type === 'success' ? 'success' : 'warning-o'" />
+      <span>{{ saveFeedback.message }}</span>
+    </div>
+
     <header class="mobile-training__dates">
       <button type="button" class="date-step" :aria-label="t('mobile.previousDay')" @click="shiftDate(-1)">
         <van-icon name="arrow-left" />
@@ -162,9 +179,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
+import { closeToast, showLoadingToast, showToast } from 'vant';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { getTrainingExecution, saveTrainingSessionExecution } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
@@ -182,6 +199,8 @@ const sessions = ref([]);
 const loading = ref(true);
 const error = ref('');
 const savingSessionId = ref(null);
+const saveFeedback = ref(null);
+let saveFeedbackTimer = null;
 // 只展开用户正在补充详细数据的项目，默认保持紧凑的快速打卡列表。
 const expandedItems = reactive({});
 // 草稿在数据加载后一次性建好，避免在渲染期间创建响应式状态。
@@ -563,41 +582,46 @@ async function submitAll() {
   }
 
   error.value = '';
+  clearSaveFeedback();
   savingSessionId.value = pending[0].sessionId;
   showLoadingToast({
     message: t('mobile.saving'),
     duration: 0,
     position: 'middle',
-    overlay: true,
     forbidClick: true,
     closeOnClick: false,
-    zIndex: 2000,
-    overlayStyle: { background: 'rgba(0, 0, 0, 0.28)' }
+    zIndex: 2001
   });
   try {
     for (const session of pending) {
       await saveSession(session);
     }
     closeToast();
-    showSuccessToast({
-      message: t('mobile.saved'),
-      position: 'top',
-      duration: 1800,
-      forbidClick: false
-    });
+    showSaveFeedback('success', t('mobile.saved'), 2400);
   } catch (requestError) {
     closeToast();
     error.value = normalizeRequestError(requestError, t) || t('mobile.saveFailed');
-    showFailToast({
-      message: error.value,
-      position: 'top',
-      duration: 2600,
-      forbidClick: false
-    });
+    showSaveFeedback('danger', error.value, 2800);
   } finally {
     savingSessionId.value = null;
   }
 }
+
+function showSaveFeedback(type, message, duration) {
+  clearSaveFeedback();
+  saveFeedback.value = { type, message };
+  saveFeedbackTimer = window.setTimeout(clearSaveFeedback, duration);
+}
+
+function clearSaveFeedback() {
+  if (saveFeedbackTimer !== null) {
+    window.clearTimeout(saveFeedbackTimer);
+    saveFeedbackTimer = null;
+  }
+  saveFeedback.value = null;
+}
+
+onBeforeUnmount(clearSaveFeedback);
 
 watch(selectedDate, () => {
   load();
@@ -625,6 +649,75 @@ onMounted(async () => {
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+.mobile-training__saving-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.32);
+  pointer-events: all;
+}
+
+.mobile-training__saving-state {
+  min-width: 112px;
+  padding: 16px 18px;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+}
+
+.mobile-training__saving-state :deep(.van-loading) {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.mobile-training__saving-state :deep(.van-loading__text) {
+  margin-top: 8px;
+  color: var(--text-primary);
+}
+
+.mobile-training__save-feedback {
+  position: fixed;
+  z-index: 2100;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+}
+
+.mobile-training__save-feedback .van-icon {
+  flex: none;
+  font-size: 20px;
+}
+
+.mobile-training__save-feedback--success {
+  color: var(--success-color);
+  border-color: color-mix(in srgb, var(--success-color) 35%, var(--card-border));
+  background: color-mix(in srgb, var(--success-color) 12%, var(--card-bg));
+}
+
+.mobile-training__save-feedback--danger {
+  color: var(--danger-color);
+  border-color: color-mix(in srgb, var(--danger-color) 35%, var(--card-border));
+  background: color-mix(in srgb, var(--danger-color) 12%, var(--card-bg));
 }
 
 .mobile-training__dates {
