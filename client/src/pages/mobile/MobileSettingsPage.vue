@@ -20,19 +20,15 @@
         </header>
         <van-cell-group inset class="settings-card">
           <van-cell
-            v-for="locale in localeStore.availableLocales"
-            :key="locale.code"
-            :title="t(locale.labelKey)"
+            :title="t('settings.language')"
+            :value="currentLocaleLabel"
             center
+            is-link
             clickable
-            :class="{ 'settings-cell--active': locale.code === localeStore.currentLocale }"
-            @click="localeStore.setLocale(locale.code)"
+            @click="localePickerVisible = true"
           >
             <template #icon>
-              <span class="settings-cell__locale" aria-hidden="true">{{ locale.code === 'zh-CN' ? '中' : 'EN' }}</span>
-            </template>
-            <template #right-icon>
-              <van-icon v-if="locale.code === localeStore.currentLocale" name="success" class="settings-cell__check" />
+              <span class="settings-cell__locale" aria-hidden="true">{{ localeCodeLabel }}</span>
             </template>
           </van-cell>
         </van-cell-group>
@@ -46,14 +42,14 @@
         <van-cell-group inset class="settings-card">
           <van-cell
             :title="t('settings.theme')"
-            :label="themeStore.isDarkMode ? t('settings.dark') : t('settings.light')"
+            :value="currentThemeLabel"
             center
+            is-link
+            clickable
+            @click="themePickerVisible = true"
           >
             <template #icon>
               <van-icon name="bulb-o" class="settings-cell__icon" aria-hidden="true" />
-            </template>
-            <template #right-icon>
-              <van-switch :model-value="themeStore.isDarkMode" size="22px" @update:model-value="themeStore.setTheme" />
             </template>
           </van-cell>
         </van-cell-group>
@@ -100,10 +96,31 @@
         </van-cell-group>
       </section>
     </main>
+
+    <van-popup v-model:show="localePickerVisible" position="bottom" round>
+      <van-picker
+        :model-value="localePickerValue"
+        :columns="localePickerOptions"
+        :title="t('settings.language')"
+        @confirm="confirmLocale"
+        @cancel="localePickerVisible = false"
+      />
+    </van-popup>
+
+    <van-popup v-model:show="themePickerVisible" position="bottom" round>
+      <van-picker
+        :model-value="themePickerValue"
+        :columns="themePickerOptions"
+        :title="t('settings.theme')"
+        @confirm="confirmTheme"
+        @cancel="themePickerVisible = false"
+      />
+    </van-popup>
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { useThemeStore } from '@/stores/themeStore.js';
@@ -114,9 +131,43 @@ const localeStore = useLocaleStore();
 const themeStore = useThemeStore();
 const authStore = useAuthStore();
 const { t } = localeStore;
+const localePickerVisible = ref(false);
+const themePickerVisible = ref(false);
+
+const localePickerOptions = computed(() => {
+  localeStore.currentLocale;
+  return localeStore.availableLocales.map((locale) => ({
+    text: t(locale.labelKey),
+    value: locale.code
+  }));
+});
+const localePickerValue = computed(() => [localeStore.currentLocale]);
+const currentLocaleLabel = computed(() => {
+  const current = localeStore.availableLocales.find((locale) => locale.code === localeStore.currentLocale);
+  return current ? t(current.labelKey) : localeStore.currentLocale;
+});
+const localeCodeLabel = computed(() => (localeStore.currentLocale === 'zh-CN' ? '中' : 'EN'));
+const themePickerOptions = computed(() => [
+  { text: t('settings.light'), value: 'light' },
+  { text: t('settings.dark'), value: 'dark' }
+]);
+const themePickerValue = computed(() => [themeStore.isDarkMode ? 'dark' : 'light']);
+const currentThemeLabel = computed(() => (themeStore.isDarkMode ? t('settings.dark') : t('settings.light')));
 
 function goBack() {
   router.push({ name: 'mobile-today' });
+}
+
+function confirmLocale({ selectedValues }) {
+  const nextLocale = selectedValues?.[0];
+  if (nextLocale) localeStore.setLocale(nextLocale);
+  localePickerVisible.value = false;
+}
+
+function confirmTheme({ selectedValues }) {
+  const nextTheme = selectedValues?.[0];
+  if (nextTheme) themeStore.setTheme(nextTheme === 'dark');
+  themePickerVisible.value = false;
 }
 
 async function handleLogout() {
@@ -237,16 +288,6 @@ async function handleLogout() {
   background: color-mix(in srgb, var(--primary-color) 12%, var(--card-bg));
   font-size: 11px;
   font-weight: 600;
-}
-
-.settings-cell--active :deep(.van-cell__title) {
-  color: var(--primary-color);
-  font-weight: 500;
-}
-
-.settings-cell__check {
-  color: var(--primary-color);
-  font-size: 18px;
 }
 
 .settings-card--account {
