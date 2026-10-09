@@ -508,32 +508,10 @@
                   >
                     <span>{{ metricLabel(metric) }}</span>
                     <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
+                      <TrainingDurationInput
+                        v-model="item.durationParts"
+                        :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
+                      />
                     </template>
                     <template v-else>
                       <el-input-number
@@ -651,24 +629,27 @@
       v-model="sessionDialogVisible"
       class="session-dialog"
       :title="sessionDialogTitle"
-      width="min(820px, calc(100vw - 32px))"
+      width="min(1120px, calc(100vw - 32px))"
       top="6vh"
       destroy-on-close
     >
+      <template #header="{ titleId, titleClass }">
+        <div class="session-dialog-heading">
+          <h2 :id="titleId" :class="titleClass">{{ sessionDialogTitle }}</h2>
+          <el-select v-model="sessionForm.status" class="session-status-select" :aria-label="t('plans.manager.status')">
+            <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
+          </el-select>
+        </div>
+      </template>
       <el-form label-position="top" @submit.prevent>
-        <div class="session-form-grid" :class="{ 'session-form-grid--editing': isEditingSession }">
-          <el-form-item v-if="!isEditingSession" :label="t('plans.manager.sessionDate')" required>
+        <div v-if="!isEditingSession" class="session-form-grid">
+          <el-form-item :label="t('plans.manager.sessionDate')" required>
             <el-date-picker
               v-model="sessionForm.scheduledDate"
               class="full-width"
               type="date"
               value-format="YYYY-MM-DD"
             />
-          </el-form-item>
-          <el-form-item :label="t('plans.manager.status')">
-            <el-select v-model="sessionForm.status" class="full-width">
-              <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
-            </el-select>
           </el-form-item>
         </div>
 
@@ -679,93 +660,91 @@
           }}</el-button>
         </div>
 
-        <div class="session-items-table-wrap">
-          <el-table :data="sessionForm.items" border class="session-items-table">
-            <el-table-column :label="t('plans.manager.trainingItems')" min-width="220">
-              <template #default="{ row: item }">
-                <el-select
-                  v-model="item.exerciseId"
-                  class="exercise-select"
-                  filterable
-                  :placeholder="t('plans.manager.selectExercise')"
-                  @change="resetItemTargets(item)"
-                >
-                  <el-option
-                    v-for="exercise in exerciseOptionsFor(item)"
-                    :key="exercise.id"
-                    :label="exercise.name"
-                    :value="exercise.id"
-                    :disabled="!exercise.enabled"
-                  />
-                </el-select>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('plans.manager.targets')" min-width="460">
-              <template #default="{ row: item }">
-                <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
-                  <label
-                    v-for="metric in metricsFor(item)"
-                    :key="metric"
-                    class="target-field"
-                    :class="{ 'target-field--duration': metric === 'duration' }"
+        <div class="session-item-cards">
+          <div
+            v-for="(item, index) in sessionForm.items"
+            :key="item.key"
+            class="session-item-card"
+            :class="{ 'session-item-card--open': expandedSessionItems.includes(item.key) }"
+          >
+            <div class="session-item-card__header">
+              <button
+                type="button"
+                class="session-item-card__summary"
+                :aria-expanded="expandedSessionItems.includes(item.key)"
+                :aria-controls="`session-item-body-${item.key}`"
+                @click="toggleSessionItem(item.key)"
+              >
+                <span class="session-item-card__number">{{ index + 1 }}</span>
+                <span class="session-item-card__heading">
+                  <strong>{{ exerciseFor(item.exerciseId)?.name || t('plans.manager.selectExercise') }}</strong>
+                  <span>{{ targetsText({ targets: targetPayload(item) }) }}</span>
+                </span>
+                <el-icon class="session-item-card__arrow"><ArrowRight /></el-icon>
+              </button>
+              <el-button
+                class="session-item-card__delete"
+                type="danger"
+                text
+                :icon="Delete"
+                :aria-label="`${t('common.delete')} ${exerciseFor(item.exerciseId)?.name || ''}`"
+                @click="removeSessionItem(index)"
+              >
+                {{ t('common.delete') }}
+              </el-button>
+            </div>
+            <div
+              v-show="expandedSessionItems.includes(item.key)"
+              :id="`session-item-body-${item.key}`"
+              class="session-item-card__body"
+            >
+              <div class="session-item-card__exercise">
+                <el-form-item :label="t('plans.manager.trainingItems')">
+                  <el-select
+                    v-model="item.exerciseId"
+                    class="exercise-select"
+                    filterable
+                    :placeholder="t('plans.manager.selectExercise')"
+                    @change="resetItemTargets(item)"
                   >
-                    <span>{{ metricLabel(metric) }}</span>
-                    <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <el-input-number
-                        v-model="item.targets[metric]"
-                        :min="0"
-                        :precision="metricPrecision(metric)"
-                        controls-position="right"
-                      />
-                      <small>{{ unitLabel(metric) }}</small>
-                    </template>
-                  </label>
-                </div>
-                <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('plans.sessions.actions')" width="72" align="center">
-              <template #default="{ $index }">
-                <el-tooltip :content="t('common.delete')" placement="top">
-                  <el-button
-                    link
-                    type="danger"
-                    :icon="Delete"
-                    :aria-label="t('common.delete')"
-                    @click="removeSessionItem($index)"
+                    <el-option
+                      v-for="exercise in exerciseOptionsFor(item)"
+                      :key="exercise.id"
+                      :label="exercise.name"
+                      :value="exercise.id"
+                      :disabled="!exercise.enabled"
+                    />
+                  </el-select>
+                </el-form-item>
+              </div>
+              <div v-if="metricsFor(item).length" class="session-card-targets">
+                <div
+                  v-for="metric in metricsFor(item)"
+                  :key="metric"
+                  class="session-card-target"
+                  :class="{ 'session-card-target--duration': metric === 'duration' }"
+                >
+                  <span class="session-card-target__label">{{ metricLabel(metric) }}</span>
+                  <TrainingDurationInput
+                    v-if="metric === 'duration'"
+                    v-model="item.durationParts"
+                    :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
                   />
-                </el-tooltip>
-              </template>
-            </el-table-column>
-          </el-table>
+                  <div v-else class="session-card-target__input">
+                    <el-input-number
+                      v-model="item.targets[metric]"
+                      :aria-label="metricLabel(metric)"
+                      :min="0"
+                      :precision="metricPrecision(metric)"
+                      controls-position="right"
+                    />
+                    <small>{{ unitLabel(metric) }}</small>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
+            </div>
+          </div>
         </div>
 
         <el-form-item :label="t('plans.manager.sessionNotes')">
@@ -881,32 +860,10 @@
                   >
                     <span>{{ metricLabel(metric) }}</span>
                     <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
+                      <TrainingDurationInput
+                        v-model="item.durationParts"
+                        :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
+                      />
                     </template>
                     <template v-else>
                       <el-input-number
@@ -1010,6 +967,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, ArrowRight, Delete, EditPen, MagicStick, Plus, QuestionFilled } from '@element-plus/icons-vue';
+import TrainingDurationInput from '@/components/plans/TrainingDurationInput.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
 import {
@@ -1046,6 +1004,7 @@ const detailDrawerVisible = ref(false);
 const planDetailTab = ref('calendar');
 const planDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
+const expandedSessionItems = ref([]);
 const batchSessionDialogVisible = ref(false);
 const phaseReviewDialogVisible = ref(false);
 const editingPlanId = ref(null);
@@ -1892,6 +1851,7 @@ function openSessionDialog(session = null, scheduledDate = '') {
     items: session?.items?.map((item) => createItem(item.exerciseId, item.targets)) || []
   });
   if (sessionForm.items.length === 0) addSessionItem();
+  expandedSessionItems.value = sessionForm.items.slice(0, 1).map((item) => item.key);
   sessionDialogVisible.value = true;
 }
 
@@ -1916,10 +1876,18 @@ function addSessionItem() {
   if (!exercise) return;
   const item = createItem(exercise.id);
   sessionForm.items.push(item);
+  expandedSessionItems.value.push(item.key);
   resetItemTargets(item);
 }
 
+function toggleSessionItem(key) {
+  expandedSessionItems.value = expandedSessionItems.value.includes(key)
+    ? expandedSessionItems.value.filter((itemKey) => itemKey !== key)
+    : [...expandedSessionItems.value, key];
+}
+
 function removeSessionItem(index) {
+  expandedSessionItems.value = expandedSessionItems.value.filter((key) => key !== sessionForm.items[index].key);
   sessionForm.items.splice(index, 1);
 }
 
@@ -2875,17 +2843,55 @@ h2 {
 .full-width {
   width: 100%;
 }
-.session-dialog :deep(.el-dialog__body) {
+:global(.session-dialog .el-dialog__body) {
   max-height: calc(88vh - 130px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-darker) transparent;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar) {
+  width: 6px;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-track) {
+  background: transparent;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-thumb) {
+  border-radius: 6px;
+  background: var(--el-border-color-darker);
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-button) {
+  display: none;
+}
+.session-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 28px;
+}
+.session-dialog-heading h2 {
+  margin: 0;
+  min-width: 0;
+}
+.session-status-select {
+  flex: 0 0 124px;
+}
+.session-status-select :deep(.el-select__wrapper) {
+  background: transparent;
+  box-shadow: none;
+}
+.session-status-select :deep(.el-select__wrapper:hover) {
+  background: var(--app-bg);
+}
+.session-status-select :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px var(--primary-color);
 }
 .session-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-}
-.session-form-grid--editing {
-  grid-template-columns: minmax(220px, 320px);
 }
 .training-items-heading {
   justify-content: space-between;
@@ -2900,6 +2906,168 @@ h2 {
   gap: 12px;
   margin-bottom: 18px;
 }
+
+.session-item-cards {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.session-item-card {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.session-item-card__header {
+  display: flex;
+  align-items: center;
+  background: var(--app-bg);
+}
+.session-item-card__summary {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.session-item-card__summary:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+.session-item-card__number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  font-weight: 600;
+}
+.session-item-card__heading {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  overflow-wrap: anywhere;
+}
+.session-item-card__heading strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.session-item-card__heading > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.session-item-card__arrow {
+  flex: none;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+.session-item-card--open .session-item-card__arrow {
+  transform: rotate(90deg);
+}
+.session-item-card__body {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: end;
+  gap: 20px;
+  padding: 18px;
+  border-top: 1px solid var(--card-border);
+}
+.session-item-card__exercise {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
+.session-item-card__exercise .el-form-item {
+  flex: 1;
+  max-width: 360px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.session-item-card__delete {
+  flex: none;
+  margin: 0 10px 0 0;
+}
+.session-card-targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 28px;
+}
+.session-card-target {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.session-card-target__label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.session-card-target__input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.session-card-target__input :deep(.el-input-number) {
+  width: 120px;
+}
+.session-card-target__input small {
+  color: var(--text-secondary);
+}
+@media (max-width: 1000px) {
+  .session-item-card__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .session-card-targets,
+  .session-item-card__body > .no-targets {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .session-dialog-heading {
+    align-items: flex-start;
+    gap: 4px;
+    padding-right: 16px;
+  }
+  .session-status-select {
+    flex-basis: 100px;
+  }
+  .session-item-card__delete {
+    margin-right: 4px;
+    padding-inline: 6px;
+  }
+  .session-item-card__summary {
+    padding: 12px;
+  }
+  .session-item-card__body {
+    padding: 12px;
+  }
+  .session-item-card__heading {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .session-card-targets {
+    gap: 16px;
+  }
+  .session-card-target--duration {
+    flex-basis: 100%;
+  }
+}
+
 .session-items-table-wrap {
   margin-bottom: 18px;
   overflow-x: auto;
@@ -2965,22 +3133,6 @@ h2 {
 }
 .target-field--duration {
   grid-column: 1 / -1;
-}
-.duration-input-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-.target-field .duration-input-group :deep(.el-input-number) {
-  width: 84px;
-  min-width: 84px;
-  flex: none;
-}
-.duration-input-group small {
-  min-width: 12px;
-  margin-right: 2px;
 }
 .target-field :deep(.el-input-number) {
   width: auto;

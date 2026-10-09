@@ -25,7 +25,7 @@
       </button>
 
       <div v-if="detailsOpen" class="item-panel__details-body">
-        <div class="item-panel__metrics" :class="{ 'item-panel__metrics--compact': usesCompactMetrics }">
+        <div class="item-panel__metrics">
           <!-- 组数单独作为完成度呈现：分母是目标组数，分子是实际做了几组 -->
           <van-cell
             v-if="targetSets > 0 && usesSetsPicker"
@@ -250,7 +250,6 @@ const completedSets = computed(() => {
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
 });
 const usesSetsPicker = computed(() => ['大腿内外侧肌训练器', '平板支撑'].includes(props.item.exercise?.name));
-const usesCompactMetrics = computed(() => props.item.exercise?.name === '大腿内外侧肌训练器');
 const setsProgressText = computed(() =>
   t('mobile.setsProgress', { done: completedSets.value, target: targetSets.value })
 );
@@ -465,12 +464,6 @@ const targetsText = computed(() => {
   const target = props.item.targets || {};
   const parts = [];
   const seconds = targetDurationSeconds();
-  if (usesCompactMetrics.value) {
-    const compactParts = ['weight', 'repetitions', 'sets']
-      .filter((metric) => Number(target[metric]) > 0)
-      .map((metric) => `${target[metric]}${unitLabel(metric)}`);
-    if (compactParts.length > 0) return compactParts.join(' × ');
-  }
   if (seconds > 0) {
     const duration = formatDuration(seconds);
     parts.push(targetSets.value > 0 ? `${duration} × ${targetSets.value}${unitLabel('sets')}` : duration);
@@ -520,7 +513,7 @@ const lastAttemptText = computed(() => {
 }
 
 .item-panel--card {
-  margin: 8px 0;
+  margin: 0;
   padding: 14px 12px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -636,36 +629,6 @@ const lastAttemptText = computed(() => {
   flex-direction: column;
   gap: 8px;
   padding: 0;
-}
-
-.item-panel__metrics--compact {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
-  column-gap: 10px;
-}
-
-.item-panel__metrics--compact .sets-picker-cell {
-  grid-column: 1 / -1;
-}
-
-.item-panel__metrics--compact .metric-row {
-  min-width: 0;
-  gap: 6px;
-}
-
-.item-panel__metrics--compact .metric-row__label {
-  font-size: 14px;
-}
-
-.item-panel__metrics--compact .metric-row__control {
-  min-width: 0;
-  margin-left: auto;
-  gap: 4px;
-}
-
-.item-panel__metrics--compact .metric-row__unit {
-  font-size: 12px;
 }
 
 .item-panel__details-body {

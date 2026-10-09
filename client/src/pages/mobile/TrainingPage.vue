@@ -113,7 +113,7 @@
                   v-for="item in session.items"
                   :key="item.sessionItemId"
                   :item="item"
-                  :separate-card="['平板支撑', '大腿内外侧肌训练器'].includes(item.exercise?.name)"
+                  separate-card
                   :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
                   :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
                   :note="itemDraft(session.sessionId, item.sessionItemId).note"
@@ -930,16 +930,7 @@ onMounted(async () => {
 .session-items {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.session-items :deep(.item-panel + .item-panel) {
-  border-top: 1px solid var(--card-border);
-}
-
-.session-items :deep(.item-panel--card + .item-panel),
-.session-items :deep(.item-panel + .item-panel--card) {
-  border-top: 0;
+  gap: 10px;
 }
 
 .session-block__notes {

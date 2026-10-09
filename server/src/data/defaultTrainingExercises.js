@@ -62,7 +62,7 @@ export const defaultTrainingExercises = [
     equipmentMode: 'equipment',
     equipment: '肩膊推举器',
     verificationMode: 'manual',
-    metrics: ['weight', 'sets'],
+    metrics: ['weight', 'repetitions', 'sets'],
     purpose: '主要锻炼三角肌和肱三头肌，增强肩部推举力量'
   },
   {
@@ -73,7 +73,7 @@ export const defaultTrainingExercises = [
     equipmentMode: 'equipment',
     equipment: '蝶式拉背器',
     verificationMode: 'manual',
-    metrics: ['weight', 'sets'],
+    metrics: ['weight', 'repetitions', 'sets'],
     purpose: '主要锻炼上背部和三角肌后束，改善肩背稳定性'
   },
   {
@@ -84,7 +84,7 @@ export const defaultTrainingExercises = [
     equipmentMode: 'equipment',
     equipment: '高拉背器',
     verificationMode: 'manual',
-    metrics: ['weight', 'sets'],
+    metrics: ['weight', 'repetitions', 'sets'],
     purpose: '主要锻炼背阔肌、斜方肌和肱二头肌，增强上肢拉力'
   },
   {
