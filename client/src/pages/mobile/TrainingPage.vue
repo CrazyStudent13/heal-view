@@ -471,11 +471,14 @@ function clearDraft(sessionId) {
 // 整次完成度按逐项状态汇总：部分完成也算「练了」，但不计入完成项数。
 function sessionState(session) {
   const states = session.items.map((item) => itemState(session, item));
+  const autoPending = Number(session.autoItemCount || 0);
   return {
     done: states.filter((state) => state.status === 'done').length,
     partial: states.filter((state) => state.status === 'partial').length,
     skipped: states.filter((state) => state.status === 'skipped').length,
-    total: states.length
+    manualTotal: states.length,
+    autoPending,
+    total: states.length + autoPending
   };
 }
 

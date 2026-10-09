@@ -367,6 +367,25 @@ test('plan calendar reflects saved mobile training execution', async () => {
       ]
     );
     const exerciseId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    databaseService.getDb().run(
+      `INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      [
+        'Indoor walk',
+        'mdi:walk',
+        'aerobic',
+        'indoor',
+        'auto',
+        'bodyweight',
+        '',
+        '["duration","distance"]',
+        'Cardio',
+        now,
+        now
+      ]
+    );
+    const autoExerciseId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
 
     const planResponse = responseRecorder();
     createTrainingPlan(
@@ -388,15 +407,23 @@ test('plan calendar reflects saved mobile training execution', async () => {
         params: { planId: planResponse.body.id },
         body: {
           scheduledDate: '2026-10-09',
-          items: [{ exerciseId, targets: { weight: 35, repetitions: 15, sets: 3 } }]
+          items: [
+            { exerciseId, targets: { weight: 35, repetitions: 15, sets: 3 } },
+            { exerciseId: autoExerciseId, targets: { duration: 35, distance: 3.2 } }
+          ]
         }
       },
       sessionResponse
     );
     assert.equal(sessionResponse.statusCode, 201);
     const sessionItemId = Number(
-      databaseService.query('SELECT id FROM training_session_items WHERE session_id = ?', [sessionResponse.body.id])[0]
-        .values[0][0]
+      databaseService.query(
+        `SELECT item.id
+         FROM training_session_items item
+         JOIN training_exercises exercise ON exercise.id = item.exercise_id
+         WHERE item.session_id = ? AND exercise.verification_mode = 'manual'`,
+        [sessionResponse.body.id]
+      )[0].values[0][0]
     );
 
     const saveResponse = responseRecorder();
@@ -427,9 +454,10 @@ test('plan calendar reflects saved mobile training execution', async () => {
     getTrainingPlan({ params: { id: planResponse.body.id } }, detailResponse);
     assert.equal(detailResponse.statusCode, 200);
     const [session] = detailResponse.body.sessions;
-    assert.equal(session.status, 'achieved');
-    assert.equal(session.execution.status, 'completed');
+    assert.equal(session.status, 'partial');
+    assert.equal(session.execution.status, 'partial');
     assert.deepEqual(session.items[0].execution.actuals, { weight: 35, repetitions: 15, sets: 3 });
+    assert.equal(session.items[1].execution, null);
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

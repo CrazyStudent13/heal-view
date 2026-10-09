@@ -244,6 +244,8 @@ function getPhaseExecutionSummary(phaseId, planId, startDate, endDate) {
 
 function serializeSession(row) {
   const executionStatus = row.execution_status || '';
+  const itemCount = Number(row.session_item_count ?? row.item_count ?? 0);
+  const loggedItemCount = Number(row.logged_item_count ?? 0);
   return {
     id: Number(row.id),
     planId: Number(row.plan_id),
@@ -251,7 +253,7 @@ function serializeSession(row) {
     sequence: Number(row.sequence),
     name: row.name || '',
     notes: row.notes || '',
-    status: effectiveSessionStatus(row.status, executionStatus),
+    status: effectiveSessionStatus(row.status, executionStatus, itemCount, loggedItemCount),
     plannedStatus: row.status,
     execution: executionStatus
       ? {
@@ -303,8 +305,10 @@ function serializeItem(row) {
   };
 }
 
-function effectiveSessionStatus(plannedStatus, executionStatus) {
-  if (executionStatus === 'completed') return 'achieved';
+function effectiveSessionStatus(plannedStatus, executionStatus, itemCount = 0, loggedItemCount = 0) {
+  if (executionStatus === 'completed') {
+    return itemCount > 0 && loggedItemCount < itemCount ? 'partial' : 'achieved';
+  }
   if (executionStatus === 'partial') return 'partial';
   if (executionStatus === 'skipped') return 'skipped';
   return plannedStatus;
@@ -438,6 +442,9 @@ export function listTrainingSessions(req, res) {
     const rows = queryRows(
       `SELECT s.*, p.name AS plan_name,
         (SELECT COUNT(*) FROM training_session_items item_count WHERE item_count.session_id = s.id) AS item_count,
+        (SELECT COUNT(*) FROM training_session_log_items logged_item
+          JOIN training_session_logs logged_log ON logged_log.id = logged_item.session_log_id
+          WHERE logged_log.session_id = s.id) AS logged_item_count,
         (SELECT COALESCE(json_group_array(json_object('name', exercise.name, 'targets', json(item.targets))), '[]')
           FROM training_session_items item
           JOIN training_exercises exercise ON exercise.id = item.exercise_id
@@ -471,7 +478,11 @@ export function getTrainingPlan(req, res) {
         log.completed_at AS execution_completed_at,
         log.session_feel AS execution_session_feel,
         log.discomfort AS execution_discomfort,
-        log.note AS execution_note
+        log.note AS execution_note,
+        (SELECT COUNT(*) FROM training_session_items item_count WHERE item_count.session_id = s.id) AS session_item_count,
+        (SELECT COUNT(*) FROM training_session_log_items logged_item
+          JOIN training_session_logs logged_log ON logged_log.id = logged_item.session_log_id
+          WHERE logged_log.session_id = s.id) AS logged_item_count
        FROM training_sessions s
        LEFT JOIN training_session_logs log ON log.session_id = s.id
        WHERE s.plan_id = ?

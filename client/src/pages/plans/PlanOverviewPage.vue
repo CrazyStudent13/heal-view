@@ -169,6 +169,9 @@
                     ><i class="calendar-dot calendar-dot--completed"></i
                     >{{ t('plans.manager.statuses.achieved') }}</span
                   >
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--partial"></i>{{ t('plans.manager.statuses.partial') }}</span
+                  >
                 </div>
 
                 <div class="calendar-workspace">
@@ -1473,14 +1476,16 @@ function calendarDayClass(day) {
     String(today.getMonth() + 1).padStart(2, '0'),
     String(today.getDate()).padStart(2, '0')
   ].join('-');
-  const hasCompleted = day.sessions.some((session) => ['achieved', 'partial'].includes(session.status));
+  const hasPartial = day.sessions.some((session) => session.status === 'partial');
+  const hasAchieved = day.sessions.some((session) => session.status === 'achieved');
   return {
     'calendar-day--empty': !day.date,
     'calendar-day--outside-plan': day.date && !day.inPlan,
     'calendar-day--in-plan': day.inPlan,
     'calendar-day--today': day.date === todayKey,
     'calendar-day--selected': day.date === calendarSelectedDate.value,
-    'calendar-day--completed': hasCompleted
+    'calendar-day--completed': hasAchieved && !hasPartial,
+    'calendar-day--partial': hasPartial
   };
 }
 
@@ -2357,6 +2362,9 @@ h2 {
 .calendar-dot--completed {
   background: var(--el-color-success);
 }
+.calendar-dot--partial {
+  background: var(--el-color-warning);
+}
 .calendar-weekdays,
 .training-calendar-grid {
   display: grid;
@@ -2413,6 +2421,17 @@ h2 {
 }
 .calendar-day--completed {
   background: color-mix(in srgb, var(--el-color-success) 7%, var(--card-bg));
+}
+.calendar-day--partial {
+  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--card-bg));
+}
+.calendar-day--partial[role='button']:hover,
+.calendar-day--partial.calendar-day--selected {
+  border-color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
+}
+.calendar-day--partial.calendar-day--selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-warning) 18%, transparent);
 }
 .calendar-day__number {
   font-size: 13px;

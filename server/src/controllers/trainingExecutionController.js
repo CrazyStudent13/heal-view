@@ -325,6 +325,21 @@ function fetchSessionDetail(sessionId) {
   return groupDayRows(queryRows(SESSION_DETAIL_SQL, [sessionId]))[0] || null;
 }
 
+function countAutomaticSessionItems(sessionId) {
+  const row = queryRow(
+    `SELECT COUNT(*) AS count
+     FROM training_session_items
+     WHERE session_id = ? AND verification_mode <> 'manual'`,
+    [sessionId]
+  );
+  return Number(row?.count || 0);
+}
+
+function normalizeManualExecutionStatus(status, automaticItemCount) {
+  if (status === 'completed' && automaticItemCount > 0) return 'partial';
+  return status;
+}
+
 export function getTrainingExecution(req, res) {
   try {
     const date = req.query.date;
@@ -503,6 +518,7 @@ export function saveTrainingSessionExecution(req, res) {
     }
 
     const value = validation.value;
+    value.status = normalizeManualExecutionStatus(value.status, countAutomaticSessionItems(id));
     // 手动确认流程产出的记录来源恒为 manual；手表匹配的数据由自动匹配流程写入。
     const source = 'manual';
 
