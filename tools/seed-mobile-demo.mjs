@@ -90,8 +90,8 @@ createTrainingPhase(
 );
 
 const strengthTemplate = [
-  { name: '肩膊推举器', targets: { weight: 30, sets: 3 } },
-  { name: '高拉背器', targets: { weight: 35, sets: 3 } },
+  { name: '肩膊推举器', targets: { weight: 30, repetitions: 12, sets: 3 } },
+  { name: '高拉背器', targets: { weight: 35, repetitions: 12, sets: 3 } },
   { name: '大腿内外侧肌训练器', targets: { weight: 25, sets: 3 } },
   { name: '平板支撑', targets: { sets: 3, durationSeconds: 60 } }
 ];

@@ -113,7 +113,7 @@
                   v-for="item in session.items"
                   :key="item.sessionItemId"
                   :item="item"
-                  :separate-card="['平板支撑', '大腿内外侧肌训练器'].includes(item.exercise?.name)"
+                  separate-card
                   :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
                   :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
                   :note="itemDraft(session.sessionId, item.sessionItemId).note"
@@ -368,19 +368,57 @@ function updateItem(sessionId, sessionItemId, patch) {
 }
 
 /**
- * 「完成 / 跳过」按钮调整的是组数：目标是几组就记几组，跳过则清零。
+ * 「完成 / 跳过」按钮写入整项的结果：完成按计划目标落值，跳过清空实际值。
  * 组数是完成度的唯一来源，不再单独保存一个状态字段，避免两者不同步。
  */
 function setItemComplete(sessionId, sessionItemId, payload) {
   const session = sessions.value.find((entry) => entry.sessionId === sessionId);
   const item = session?.items.find((entry) => entry.sessionItemId === sessionItemId);
-  const targetSets = Number(item?.targets?.sets);
   const isComplete = typeof payload === 'object' ? payload.complete === true : payload === true;
-  const sets = !isComplete ? 0 : Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
-  const patch = { actuals: { sets } };
+  const current = itemDraft(sessionId, sessionItemId);
+  const patch = { actuals: isComplete ? targetActuals(item) : emptyActuals(item, current.actuals) };
   if (isComplete) patch.skipReason = '';
   if (typeof payload === 'object' && !isComplete && payload.skipReason) patch.skipReason = payload.skipReason;
   updateItem(sessionId, sessionItemId, patch);
+}
+
+function targetActuals(item) {
+  const targets = item?.targets || {};
+  const supportedMetrics = new Set(item?.exercise?.metrics || []);
+  const actuals = {};
+
+  for (const [metric, rawValue] of Object.entries(targets)) {
+    if (metric === 'duration') continue;
+    if (metric === 'durationSeconds') {
+      const seconds = targetDurationSeconds(targets);
+      if (seconds > 0) actuals.durationSeconds = seconds;
+      continue;
+    }
+    if (!supportedMetrics.has(metric)) continue;
+    const value = Number(rawValue);
+    if (Number.isFinite(value) && value > 0) actuals[metric] = value;
+  }
+
+  const targetSets = Number(targets.sets);
+  actuals.sets = Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
+
+  if (supportedMetrics.has('duration') && actuals.durationSeconds == null) {
+    const seconds = targetDurationSeconds(targets);
+    if (seconds > 0) actuals.durationSeconds = seconds;
+  }
+
+  return actuals;
+}
+
+function emptyActuals(item, currentActuals = {}) {
+  const keys = new Set([
+    ...Object.keys(currentActuals),
+    ...Object.keys(item?.targets || {}),
+    'sets',
+    'durationSeconds'
+  ]);
+  keys.delete('duration');
+  return Object.fromEntries([...keys].map((metric) => [metric, null]));
 }
 
 function itemKey(sessionId, sessionItemId) {
@@ -433,11 +471,14 @@ function clearDraft(sessionId) {
 // 整次完成度按逐项状态汇总：部分完成也算「练了」，但不计入完成项数。
 function sessionState(session) {
   const states = session.items.map((item) => itemState(session, item));
+  const autoPending = Number(session.autoItemCount || 0);
   return {
     done: states.filter((state) => state.status === 'done').length,
     partial: states.filter((state) => state.status === 'partial').length,
     skipped: states.filter((state) => state.status === 'skipped').length,
-    total: states.length
+    manualTotal: states.length,
+    autoPending,
+    total: states.length + autoPending
   };
 }
 
@@ -930,16 +971,7 @@ onMounted(async () => {
 .session-items {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.session-items :deep(.item-panel + .item-panel) {
-  border-top: 1px solid var(--card-border);
-}
-
-.session-items :deep(.item-panel--card + .item-panel),
-.session-items :deep(.item-panel + .item-panel--card) {
-  border-top: 0;
+  gap: 10px;
 }
 
 .session-block__notes {

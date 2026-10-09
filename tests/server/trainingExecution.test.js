@@ -441,7 +441,12 @@ test('exposes only manual items and keeps automatic ones out of the check-in flo
       firstSave
     );
     assert.equal(firstSave.statusCode, 200);
+    assert.equal(firstSave.body.execution.status, 'partial');
     assert.equal(firstSave.body.execution.source, 'manual');
+    assert.equal(
+      queryFirst('SELECT status FROM training_sessions WHERE id = ?', [firstSession.body.id]).status,
+      'partial'
+    );
     // 只手动项目会落库：这个训练单元有两个项目，但只应写入一条手动记录。
     assert.equal(
       Number(

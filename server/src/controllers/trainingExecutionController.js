@@ -156,6 +156,13 @@ function serializeLog(row, items) {
   };
 }
 
+function sessionStatusForExecution(executionStatus) {
+  if (executionStatus === 'completed') return 'achieved';
+  if (executionStatus === 'partial') return 'partial';
+  if (executionStatus === 'skipped') return 'skipped';
+  return null;
+}
+
 function loadLog(sessionId) {
   const logRow = queryRow('SELECT * FROM training_session_logs WHERE session_id = ?', [sessionId]);
   if (!logRow) return null;
@@ -316,6 +323,21 @@ function fetchSessionsForRange(startDate, endDate) {
 
 function fetchSessionDetail(sessionId) {
   return groupDayRows(queryRows(SESSION_DETAIL_SQL, [sessionId]))[0] || null;
+}
+
+function countAutomaticSessionItems(sessionId) {
+  const row = queryRow(
+    `SELECT COUNT(*) AS count
+     FROM training_session_items
+     WHERE session_id = ? AND verification_mode <> 'manual'`,
+    [sessionId]
+  );
+  return Number(row?.count || 0);
+}
+
+function normalizeManualExecutionStatus(status, automaticItemCount) {
+  if (status === 'completed' && automaticItemCount > 0) return 'partial';
+  return status;
 }
 
 export function getTrainingExecution(req, res) {
@@ -496,6 +518,7 @@ export function saveTrainingSessionExecution(req, res) {
     }
 
     const value = validation.value;
+    value.status = normalizeManualExecutionStatus(value.status, countAutomaticSessionItems(id));
     // 手动确认流程产出的记录来源恒为 manual；手表匹配的数据由自动匹配流程写入。
     const source = 'manual';
 
@@ -528,6 +551,10 @@ export function saveTrainingSessionExecution(req, res) {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [logId, item.sessionItemId, item.status, JSON.stringify(item.actuals), item.skipReason, item.note, now, now]
         );
+      }
+      const sessionStatus = sessionStatusForExecution(value.status);
+      if (sessionStatus) {
+        db.run('UPDATE training_sessions SET status = ?, updated_at = ? WHERE id = ?', [sessionStatus, now, id]);
       }
       db.run('COMMIT');
       transactionOpen = false;

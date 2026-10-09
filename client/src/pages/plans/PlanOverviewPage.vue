@@ -160,14 +160,20 @@
                 <div class="calendar-summary">
                   <span>{{ t('plans.manager.calendarPlanDays') }}：{{ plannedCalendarDays }}</span>
                   <span class="calendar-summary__completed"
-                    >{{ t('plans.manager.calendarCompletedDays') }}：{{ completedCalendarDays }}</span
+                    >{{ t('plans.manager.calendarAchievedDays') }}：{{ achievedCalendarDays }}</span
                   >
-                  <span class="calendar-legend"
-                    ><i class="calendar-dot calendar-dot--planned"></i>{{ t('plans.manager.statuses.planned') }}</span
+                  <span class="calendar-summary__partial"
+                    >{{ t('plans.manager.calendarPartialDays') }}：{{ partialCalendarDays }}</span
                   >
                   <span class="calendar-legend"
                     ><i class="calendar-dot calendar-dot--completed"></i
                     >{{ t('plans.manager.statuses.achieved') }}</span
+                  >
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--partial"></i>{{ t('plans.manager.statuses.partial') }}</span
+                  >
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--missed"></i>{{ t('plans.manager.statuses.missed') }}</span
                   >
                 </div>
 
@@ -215,11 +221,13 @@
                           <div class="calendar-day-detail__title">
                             <h5>{{ calendarSelectedDate }}</h5>
                             <el-tag
-                              v-if="selectedCalendarSession"
+                              v-if="
+                                selectedCalendarSession && calendarSessionStatus(selectedCalendarSession) !== 'planned'
+                              "
                               size="small"
-                              :type="statusTagType(selectedCalendarSession.status)"
+                              :type="statusTagType(calendarSessionStatus(selectedCalendarSession))"
                             >
-                              {{ statusLabel(selectedCalendarSession.status) }}
+                              {{ statusLabel(calendarSessionStatus(selectedCalendarSession)) }}
                             </el-tag>
                           </div>
                           <p v-if="selectedCalendarSessions.length === 0">{{ t('plans.manager.calendarNoSession') }}</p>
@@ -276,8 +284,16 @@
                           <div class="calendar-session-detail__body">
                             <div class="session-items">
                               <div v-for="item in session.items" :key="item.id" class="session-item">
-                                <span>{{ item.exercise.name }}</span>
+                                <div class="session-item__heading">
+                                  <span>{{ item.exercise.name }}</span>
+                                  <el-tag v-if="item.execution" size="small" :type="itemExecutionTagType(item)">
+                                    {{ itemExecutionLabel(item) }}
+                                  </el-tag>
+                                </div>
                                 <small>{{ targetsText(item) }}</small>
+                                <small v-if="actualsText(item)" class="session-item__actual">{{
+                                  actualsText(item)
+                                }}</small>
                               </div>
                             </div>
                           </div>
@@ -508,32 +524,10 @@
                   >
                     <span>{{ metricLabel(metric) }}</span>
                     <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
+                      <TrainingDurationInput
+                        v-model="item.durationParts"
+                        :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
+                      />
                     </template>
                     <template v-else>
                       <el-input-number
@@ -651,24 +645,27 @@
       v-model="sessionDialogVisible"
       class="session-dialog"
       :title="sessionDialogTitle"
-      width="min(820px, calc(100vw - 32px))"
+      width="min(1120px, calc(100vw - 32px))"
       top="6vh"
       destroy-on-close
     >
+      <template #header="{ titleId, titleClass }">
+        <div class="session-dialog-heading">
+          <h2 :id="titleId" :class="titleClass">{{ sessionDialogTitle }}</h2>
+          <el-select v-model="sessionForm.status" class="session-status-select" :aria-label="t('plans.manager.status')">
+            <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
+          </el-select>
+        </div>
+      </template>
       <el-form label-position="top" @submit.prevent>
-        <div class="session-form-grid" :class="{ 'session-form-grid--editing': isEditingSession }">
-          <el-form-item v-if="!isEditingSession" :label="t('plans.manager.sessionDate')" required>
+        <div v-if="!isEditingSession" class="session-form-grid">
+          <el-form-item :label="t('plans.manager.sessionDate')" required>
             <el-date-picker
               v-model="sessionForm.scheduledDate"
               class="full-width"
               type="date"
               value-format="YYYY-MM-DD"
             />
-          </el-form-item>
-          <el-form-item :label="t('plans.manager.status')">
-            <el-select v-model="sessionForm.status" class="full-width">
-              <el-option v-for="status in sessionStatuses" :key="status" :label="statusLabel(status)" :value="status" />
-            </el-select>
           </el-form-item>
         </div>
 
@@ -679,93 +676,91 @@
           }}</el-button>
         </div>
 
-        <div class="session-items-table-wrap">
-          <el-table :data="sessionForm.items" border class="session-items-table">
-            <el-table-column :label="t('plans.manager.trainingItems')" min-width="220">
-              <template #default="{ row: item }">
-                <el-select
-                  v-model="item.exerciseId"
-                  class="exercise-select"
-                  filterable
-                  :placeholder="t('plans.manager.selectExercise')"
-                  @change="resetItemTargets(item)"
-                >
-                  <el-option
-                    v-for="exercise in exerciseOptionsFor(item)"
-                    :key="exercise.id"
-                    :label="exercise.name"
-                    :value="exercise.id"
-                    :disabled="!exercise.enabled"
-                  />
-                </el-select>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('plans.manager.targets')" min-width="460">
-              <template #default="{ row: item }">
-                <div v-if="metricsFor(item).length > 0" class="target-grid session-target-grid">
-                  <label
-                    v-for="metric in metricsFor(item)"
-                    :key="metric"
-                    class="target-field"
-                    :class="{ 'target-field--duration': metric === 'duration' }"
+        <div class="session-item-cards">
+          <div
+            v-for="(item, index) in sessionForm.items"
+            :key="item.key"
+            class="session-item-card"
+            :class="{ 'session-item-card--open': expandedSessionItems.includes(item.key) }"
+          >
+            <div class="session-item-card__header">
+              <button
+                type="button"
+                class="session-item-card__summary"
+                :aria-expanded="expandedSessionItems.includes(item.key)"
+                :aria-controls="`session-item-body-${item.key}`"
+                @click="toggleSessionItem(item.key)"
+              >
+                <span class="session-item-card__number">{{ index + 1 }}</span>
+                <span class="session-item-card__heading">
+                  <strong>{{ exerciseFor(item.exerciseId)?.name || t('plans.manager.selectExercise') }}</strong>
+                  <span>{{ targetsText({ targets: targetPayload(item) }) }}</span>
+                </span>
+                <el-icon class="session-item-card__arrow"><ArrowRight /></el-icon>
+              </button>
+              <el-button
+                class="session-item-card__delete"
+                type="danger"
+                text
+                :icon="Delete"
+                :aria-label="`${t('common.delete')} ${exerciseFor(item.exerciseId)?.name || ''}`"
+                @click="removeSessionItem(index)"
+              >
+                {{ t('common.delete') }}
+              </el-button>
+            </div>
+            <div
+              v-show="expandedSessionItems.includes(item.key)"
+              :id="`session-item-body-${item.key}`"
+              class="session-item-card__body"
+            >
+              <div class="session-item-card__exercise">
+                <el-form-item :label="t('plans.manager.trainingItems')">
+                  <el-select
+                    v-model="item.exerciseId"
+                    class="exercise-select"
+                    filterable
+                    :placeholder="t('plans.manager.selectExercise')"
+                    @change="resetItemTargets(item)"
                   >
-                    <span>{{ metricLabel(metric) }}</span>
-                    <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <el-input-number
-                        v-model="item.targets[metric]"
-                        :min="0"
-                        :precision="metricPrecision(metric)"
-                        controls-position="right"
-                      />
-                      <small>{{ unitLabel(metric) }}</small>
-                    </template>
-                  </label>
-                </div>
-                <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('plans.sessions.actions')" width="72" align="center">
-              <template #default="{ $index }">
-                <el-tooltip :content="t('common.delete')" placement="top">
-                  <el-button
-                    link
-                    type="danger"
-                    :icon="Delete"
-                    :aria-label="t('common.delete')"
-                    @click="removeSessionItem($index)"
+                    <el-option
+                      v-for="exercise in exerciseOptionsFor(item)"
+                      :key="exercise.id"
+                      :label="exercise.name"
+                      :value="exercise.id"
+                      :disabled="!exercise.enabled"
+                    />
+                  </el-select>
+                </el-form-item>
+              </div>
+              <div v-if="metricsFor(item).length" class="session-card-targets">
+                <div
+                  v-for="metric in metricsFor(item)"
+                  :key="metric"
+                  class="session-card-target"
+                  :class="{ 'session-card-target--duration': metric === 'duration' }"
+                >
+                  <span class="session-card-target__label">{{ metricLabel(metric) }}</span>
+                  <TrainingDurationInput
+                    v-if="metric === 'duration'"
+                    v-model="item.durationParts"
+                    :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
                   />
-                </el-tooltip>
-              </template>
-            </el-table-column>
-          </el-table>
+                  <div v-else class="session-card-target__input">
+                    <el-input-number
+                      v-model="item.targets[metric]"
+                      :aria-label="metricLabel(metric)"
+                      :min="0"
+                      :precision="metricPrecision(metric)"
+                      controls-position="right"
+                    />
+                    <small>{{ unitLabel(metric) }}</small>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="no-targets">{{ t('plans.manager.noTargets') }}</p>
+            </div>
+          </div>
         </div>
 
         <el-form-item :label="t('plans.manager.sessionNotes')">
@@ -881,32 +876,10 @@
                   >
                     <span>{{ metricLabel(metric) }}</span>
                     <template v-if="metric === 'duration'">
-                      <div class="duration-input-group">
-                        <el-input-number
-                          v-model="item.durationParts.hours"
-                          :min="0"
-                          :max="99"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('hours') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.minutes"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('minutes') }}</small>
-                        <el-input-number
-                          v-model="item.durationParts.seconds"
-                          :min="0"
-                          :max="59"
-                          :precision="0"
-                          controls-position="right"
-                        />
-                        <small>{{ durationPartLabel('seconds') }}</small>
-                      </div>
+                      <TrainingDurationInput
+                        v-model="item.durationParts"
+                        :minutes-only="exerciseFor(item.exerciseId)?.name === '平板支撑'"
+                      />
                     </template>
                     <template v-else>
                       <el-input-number
@@ -1010,6 +983,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, ArrowRight, Delete, EditPen, MagicStick, Plus, QuestionFilled } from '@element-plus/icons-vue';
+import TrainingDurationInput from '@/components/plans/TrainingDurationInput.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
 import {
@@ -1046,6 +1020,7 @@ const detailDrawerVisible = ref(false);
 const planDetailTab = ref('calendar');
 const planDialogVisible = ref(false);
 const sessionDialogVisible = ref(false);
+const expandedSessionItems = ref([]);
 const batchSessionDialogVisible = ref(false);
 const phaseReviewDialogVisible = ref(false);
 const editingPlanId = ref(null);
@@ -1202,11 +1177,19 @@ const planWeightChangeTagType = computed(() => {
 const plannedCalendarDays = computed(
   () => new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate)).size
 );
-const completedCalendarDays = computed(
+const achievedCalendarDays = computed(
   () =>
     new Set(
       (planDetail.value?.sessions || [])
-        .filter((session) => ['achieved', 'partial'].includes(session.status))
+        .filter((session) => calendarSessionStatus(session) === 'achieved')
+        .map((session) => session.scheduledDate)
+    ).size
+);
+const partialCalendarDays = computed(
+  () =>
+    new Set(
+      (planDetail.value?.sessions || [])
+        .filter((session) => calendarSessionStatus(session) === 'partial')
         .map((session) => session.scheduledDate)
     ).size
 );
@@ -1249,7 +1232,7 @@ function statusLabel(status) {
 function statusTagType(status) {
   if (['active', 'achieved', 'completed'].includes(status)) return 'success';
   if (['paused', 'partial'].includes(status)) return 'warning';
-  if (['cancelled', 'skipped'].includes(status)) return 'danger';
+  if (['cancelled', 'skipped', 'missed'].includes(status)) return 'danger';
   return 'info';
 }
 
@@ -1288,14 +1271,54 @@ function metricPrecision(metric) {
 }
 
 function targetsText(item) {
-  const entries = Object.entries(item.targets || {}).filter(
+  const parts = metricValuesText(item.targets || {}, durationSecondsFromParts(item.durationParts));
+  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+}
+
+function metricValuesText(values, fallbackDurationSeconds = 0) {
+  const entries = Object.entries(values || {}).filter(
     ([metric]) => !['duration', 'durationSeconds', 'durationUnit'].includes(metric)
   );
   const parts = [];
-  const seconds = durationSecondsFromTargets(item.targets || {}) || durationSecondsFromParts(item.durationParts);
+  const seconds = durationSecondsFromTargets(values || {}) || fallbackDurationSeconds;
   if (seconds > 0) parts.push(`${metricLabel('duration')} ${formatDurationText(seconds)}`);
   parts.push(...entries.map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`));
-  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+  return parts;
+}
+
+function actualsText(item) {
+  const execution = item.execution;
+  if (!execution) return '';
+  if (execution.status === 'skipped') return t('plans.manager.itemStatuses.skipped');
+  const parts = metricValuesText(execution.actuals || {});
+  return parts.length > 0
+    ? `${t('plans.manager.actuals')} ${parts.join(t('common.listSeparator'))}`
+    : t('plans.manager.itemStatuses.done');
+}
+
+function itemExecutionLabel(item) {
+  const execution = item.execution;
+  if (!execution) return '';
+  if (execution.status === 'skipped') return t('plans.manager.itemStatuses.skipped');
+  const targetSets = Number(item.targets?.sets);
+  const actualSets = Number(execution.actuals?.sets);
+  if (
+    Number.isFinite(targetSets) &&
+    targetSets > 0 &&
+    Number.isFinite(actualSets) &&
+    actualSets > 0 &&
+    actualSets < targetSets
+  ) {
+    return t('plans.manager.itemStatuses.partial');
+  }
+  return t('plans.manager.itemStatuses.done');
+}
+
+function itemExecutionTagType(item) {
+  const execution = item.execution;
+  if (!execution) return 'info';
+  if (execution.status === 'skipped') return 'danger';
+  return itemExecutionLabel(item) === t('plans.manager.itemStatuses.partial') ? 'warning' : 'success';
 }
 
 function durationSecondsFromTargets(targets) {
@@ -1459,26 +1482,41 @@ function selectCalendarDate(date) {
   calendarSelectedDate.value = date;
 }
 
-function calendarDayClass(day) {
+function todayKey() {
   const today = new Date();
-  const todayKey = [
+  return [
     today.getFullYear(),
     String(today.getMonth() + 1).padStart(2, '0'),
     String(today.getDate()).padStart(2, '0')
   ].join('-');
-  const hasCompleted = day.sessions.some((session) => ['achieved', 'partial'].includes(session.status));
+}
+
+function calendarSessionStatus(session) {
+  if (!session) return 'planned';
+  if (session.status === 'planned' && session.scheduledDate < todayKey()) return 'missed';
+  return session.status || 'planned';
+}
+
+function calendarDayClass(day) {
+  const currentToday = todayKey();
+  const statuses = day.sessions.map((session) => calendarSessionStatus(session));
+  const hasPartial = statuses.includes('partial');
+  const hasAchieved = statuses.includes('achieved');
+  const hasMissed = statuses.includes('missed');
   return {
     'calendar-day--empty': !day.date,
     'calendar-day--outside-plan': day.date && !day.inPlan,
     'calendar-day--in-plan': day.inPlan,
-    'calendar-day--today': day.date === todayKey,
+    'calendar-day--today': day.date === currentToday,
     'calendar-day--selected': day.date === calendarSelectedDate.value,
-    'calendar-day--completed': hasCompleted
+    'calendar-day--completed': hasAchieved && !hasPartial && !hasMissed,
+    'calendar-day--partial': hasPartial,
+    'calendar-day--missed': hasMissed && !hasAchieved && !hasPartial
   };
 }
 
 function calendarSessionClass(session) {
-  return 'calendar-session-chip--' + (session.status || 'planned');
+  return 'calendar-session-chip--' + calendarSessionStatus(session);
 }
 
 function sessionExercisesText(session) {
@@ -1892,6 +1930,7 @@ function openSessionDialog(session = null, scheduledDate = '') {
     items: session?.items?.map((item) => createItem(item.exerciseId, item.targets)) || []
   });
   if (sessionForm.items.length === 0) addSessionItem();
+  expandedSessionItems.value = sessionForm.items.slice(0, 1).map((item) => item.key);
   sessionDialogVisible.value = true;
 }
 
@@ -1916,10 +1955,18 @@ function addSessionItem() {
   if (!exercise) return;
   const item = createItem(exercise.id);
   sessionForm.items.push(item);
+  expandedSessionItems.value.push(item.key);
   resetItemTargets(item);
 }
 
+function toggleSessionItem(key) {
+  expandedSessionItems.value = expandedSessionItems.value.includes(key)
+    ? expandedSessionItems.value.filter((itemKey) => itemKey !== key)
+    : [...expandedSessionItems.value, key];
+}
+
 function removeSessionItem(index) {
+  expandedSessionItems.value = expandedSessionItems.value.filter((key) => key !== sessionForm.items[index].key);
   sessionForm.items.splice(index, 1);
 }
 
@@ -2315,6 +2362,9 @@ h2 {
 .calendar-summary__completed {
   color: var(--el-color-success);
 }
+.calendar-summary__partial {
+  color: var(--el-color-warning);
+}
 .calendar-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
@@ -2335,11 +2385,14 @@ h2 {
   border-radius: 50%;
   background: var(--el-color-info);
 }
-.calendar-dot--planned {
-  background: var(--el-color-warning);
-}
 .calendar-dot--completed {
   background: var(--el-color-success);
+}
+.calendar-dot--partial {
+  background: var(--el-color-warning);
+}
+.calendar-dot--missed {
+  background: var(--el-color-danger);
 }
 .calendar-weekdays,
 .training-calendar-grid {
@@ -2398,6 +2451,28 @@ h2 {
 .calendar-day--completed {
   background: color-mix(in srgb, var(--el-color-success) 7%, var(--card-bg));
 }
+.calendar-day--partial {
+  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--card-bg));
+}
+.calendar-day--partial[role='button']:hover,
+.calendar-day--partial.calendar-day--selected {
+  border-color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
+}
+.calendar-day--partial.calendar-day--selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-warning) 18%, transparent);
+}
+.calendar-day--missed {
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--card-bg));
+}
+.calendar-day--missed[role='button']:hover,
+.calendar-day--missed.calendar-day--selected {
+  border-color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, var(--card-bg));
+}
+.calendar-day--missed.calendar-day--selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-danger) 15%, transparent);
+}
 .calendar-day__number {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -2429,7 +2504,8 @@ h2 {
   color: var(--el-color-warning);
   background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
 }
-.calendar-session-chip--skipped {
+.calendar-session-chip--skipped,
+.calendar-session-chip--missed {
   color: var(--el-color-danger);
   background: color-mix(in srgb, var(--el-color-danger) 10%, var(--card-bg));
 }
@@ -2855,16 +2931,31 @@ h2 {
   gap: 7px;
 }
 .session-item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
   color: var(--text-primary);
   font-size: 13px;
+}
+.session-item__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.session-item__heading > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .session-item small,
 .session-notes,
 .no-targets {
   color: var(--text-secondary);
+}
+.session-item__actual {
+  color: var(--el-color-success);
 }
 .session-notes {
   margin-top: 9px;
@@ -2875,17 +2966,55 @@ h2 {
 .full-width {
   width: 100%;
 }
-.session-dialog :deep(.el-dialog__body) {
+:global(.session-dialog .el-dialog__body) {
   max-height: calc(88vh - 130px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-darker) transparent;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar) {
+  width: 6px;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-track) {
+  background: transparent;
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-thumb) {
+  border-radius: 6px;
+  background: var(--el-border-color-darker);
+}
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-button) {
+  display: none;
+}
+.session-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 28px;
+}
+.session-dialog-heading h2 {
+  margin: 0;
+  min-width: 0;
+}
+.session-status-select {
+  flex: 0 0 124px;
+}
+.session-status-select :deep(.el-select__wrapper) {
+  background: transparent;
+  box-shadow: none;
+}
+.session-status-select :deep(.el-select__wrapper:hover) {
+  background: var(--app-bg);
+}
+.session-status-select :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px var(--primary-color);
 }
 .session-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-}
-.session-form-grid--editing {
-  grid-template-columns: minmax(220px, 320px);
 }
 .training-items-heading {
   justify-content: space-between;
@@ -2900,6 +3029,168 @@ h2 {
   gap: 12px;
   margin-bottom: 18px;
 }
+
+.session-item-cards {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.session-item-card {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.session-item-card__header {
+  display: flex;
+  align-items: center;
+  background: var(--app-bg);
+}
+.session-item-card__summary {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.session-item-card__summary:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+.session-item-card__number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  font-weight: 600;
+}
+.session-item-card__heading {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  overflow-wrap: anywhere;
+}
+.session-item-card__heading strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.session-item-card__heading > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.session-item-card__arrow {
+  flex: none;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+.session-item-card--open .session-item-card__arrow {
+  transform: rotate(90deg);
+}
+.session-item-card__body {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: end;
+  gap: 20px;
+  padding: 18px;
+  border-top: 1px solid var(--card-border);
+}
+.session-item-card__exercise {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
+.session-item-card__exercise .el-form-item {
+  flex: 1;
+  max-width: 360px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.session-item-card__delete {
+  flex: none;
+  margin: 0 10px 0 0;
+}
+.session-card-targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 28px;
+}
+.session-card-target {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.session-card-target__label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.session-card-target__input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.session-card-target__input :deep(.el-input-number) {
+  width: 120px;
+}
+.session-card-target__input small {
+  color: var(--text-secondary);
+}
+@media (max-width: 1000px) {
+  .session-item-card__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .session-card-targets,
+  .session-item-card__body > .no-targets {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .session-dialog-heading {
+    align-items: flex-start;
+    gap: 4px;
+    padding-right: 16px;
+  }
+  .session-status-select {
+    flex-basis: 100px;
+  }
+  .session-item-card__delete {
+    margin-right: 4px;
+    padding-inline: 6px;
+  }
+  .session-item-card__summary {
+    padding: 12px;
+  }
+  .session-item-card__body {
+    padding: 12px;
+  }
+  .session-item-card__heading {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .session-card-targets {
+    gap: 16px;
+  }
+  .session-card-target--duration {
+    flex-basis: 100%;
+  }
+}
+
 .session-items-table-wrap {
   margin-bottom: 18px;
   overflow-x: auto;
@@ -2965,22 +3256,6 @@ h2 {
 }
 .target-field--duration {
   grid-column: 1 / -1;
-}
-.duration-input-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-.target-field .duration-input-group :deep(.el-input-number) {
-  width: 84px;
-  min-width: 84px;
-  flex: none;
-}
-.duration-input-group small {
-  min-width: 12px;
-  margin-right: 2px;
 }
 .target-field :deep(.el-input-number) {
   width: auto;
