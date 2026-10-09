@@ -104,7 +104,7 @@
       </van-button>
       <van-button
         class="status-button"
-        :type="isSkipped ? 'warning' : 'default'"
+        :type="isMarkedSkipped ? 'warning' : 'default'"
         icon="arrow"
         block
         @click="openSkipReason"
@@ -264,7 +264,7 @@ const setsPickerOptions = computed(() =>
 const isComplete = computed(() =>
   targetSets.value > 0 ? completedSets.value >= targetSets.value : completedSets.value > 0
 );
-const isSkipped = computed(() => completedSets.value === 0);
+const isMarkedSkipped = computed(() => completedSets.value === 0 && Boolean(props.skipReason));
 const hasDuration = computed(() => {
   const metrics = new Set(props.item.exercise?.metrics || []);
   return metrics.has('duration') || metrics.has('durationSeconds') || targetDurationSeconds() > 0;
@@ -277,13 +277,15 @@ const timerStatus = computed(() => {
   return t('mobile.timerReady', { seconds: readyDuration.value });
 });
 const statusLabel = computed(() => {
-  if (isComplete.value) return t('mobile.statusCompleted');
-  if (completedSets.value > 0) return t('mobile.statusPartial');
+  if (isComplete.value) return t('mobile.itemStatusLogged');
+  if (completedSets.value > 0) return t('mobile.itemStatusPartial');
+  if (isMarkedSkipped.value) return t('mobile.itemStatusSkipped');
   return t('mobile.statusPending');
 });
 const statusType = computed(() => {
   if (isComplete.value) return 'success';
   if (completedSets.value > 0) return 'warning';
+  if (isMarkedSkipped.value) return 'warning';
   return 'default';
 });
 
