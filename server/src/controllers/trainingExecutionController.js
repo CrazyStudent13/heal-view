@@ -156,6 +156,13 @@ function serializeLog(row, items) {
   };
 }
 
+function sessionStatusForExecution(executionStatus) {
+  if (executionStatus === 'completed') return 'achieved';
+  if (executionStatus === 'partial') return 'partial';
+  if (executionStatus === 'skipped') return 'skipped';
+  return null;
+}
+
 function loadLog(sessionId) {
   const logRow = queryRow('SELECT * FROM training_session_logs WHERE session_id = ?', [sessionId]);
   if (!logRow) return null;
@@ -528,6 +535,10 @@ export function saveTrainingSessionExecution(req, res) {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [logId, item.sessionItemId, item.status, JSON.stringify(item.actuals), item.skipReason, item.note, now, now]
         );
+      }
+      const sessionStatus = sessionStatusForExecution(value.status);
+      if (sessionStatus) {
+        db.run('UPDATE training_sessions SET status = ?, updated_at = ? WHERE id = ?', [sessionStatus, now, id]);
       }
       db.run('COMMIT');
       transactionOpen = false;

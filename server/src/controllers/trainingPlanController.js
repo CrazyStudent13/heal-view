@@ -243,6 +243,7 @@ function getPhaseExecutionSummary(phaseId, planId, startDate, endDate) {
 }
 
 function serializeSession(row) {
+  const executionStatus = row.execution_status || '';
   return {
     id: Number(row.id),
     planId: Number(row.plan_id),
@@ -250,7 +251,19 @@ function serializeSession(row) {
     sequence: Number(row.sequence),
     name: row.name || '',
     notes: row.notes || '',
-    status: row.status,
+    status: effectiveSessionStatus(row.status, executionStatus),
+    plannedStatus: row.status,
+    execution: executionStatus
+      ? {
+          id: Number(row.execution_id),
+          status: executionStatus,
+          source: row.execution_source,
+          completedAt: row.execution_completed_at == null ? null : Number(row.execution_completed_at),
+          sessionFeel: row.execution_session_feel || null,
+          discomfort: row.execution_discomfort || '',
+          note: row.execution_note || ''
+        }
+      : null,
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at)
   };
@@ -278,8 +291,23 @@ function serializeItem(row) {
       icon: row.exercise_icon,
       category: row.exercise_category,
       metrics: parseJson(row.exercise_metrics, [])
-    }
+    },
+    execution: row.log_item_id
+      ? {
+          status: row.log_item_status,
+          actuals: parseJson(row.log_item_actuals, {}),
+          skipReason: row.log_item_skip_reason || '',
+          note: row.log_item_note || ''
+        }
+      : null
   };
+}
+
+function effectiveSessionStatus(plannedStatus, executionStatus) {
+  if (executionStatus === 'completed') return 'achieved';
+  if (executionStatus === 'partial') return 'partial';
+  if (executionStatus === 'skipped') return 'skipped';
+  return plannedStatus;
 }
 
 function getPlan(id) {
@@ -337,7 +365,10 @@ export function listTrainingPlans(req, res) {
         COUNT(DISTINCT ph.id) AS phase_count,
         COUNT(DISTINCT s.id) AS session_count,
         COUNT(DISTINCT s.scheduled_date) AS training_day_count,
-        COUNT(DISTINCT CASE WHEN s.status IN ('achieved', 'partial') THEN s.scheduled_date END) AS completed_training_day_count,
+        COUNT(DISTINCT CASE
+          WHEN log.status IN ('completed', 'partial') OR (log.id IS NULL AND s.status IN ('achieved', 'partial'))
+          THEN s.scheduled_date
+        END) AS completed_training_day_count,
         (
           SELECT phase.name
           FROM training_phases phase
@@ -356,6 +387,7 @@ export function listTrainingPlans(req, res) {
       FROM training_plans p
       LEFT JOIN training_phases ph ON ph.plan_id = p.id
       LEFT JOIN training_sessions s ON s.plan_id = p.id
+      LEFT JOIN training_session_logs log ON log.session_id = s.id
       GROUP BY p.id
       ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END,
         p.start_date DESC, p.id DESC
@@ -432,7 +464,18 @@ export function getTrainingPlan(req, res) {
       plan.id
     ]).map(serializePhase);
     const sessions = queryRows(
-      'SELECT * FROM training_sessions WHERE plan_id = ? ORDER BY scheduled_date, sequence, id',
+      `SELECT s.*,
+        log.id AS execution_id,
+        log.status AS execution_status,
+        log.source AS execution_source,
+        log.completed_at AS execution_completed_at,
+        log.session_feel AS execution_session_feel,
+        log.discomfort AS execution_discomfort,
+        log.note AS execution_note
+       FROM training_sessions s
+       LEFT JOIN training_session_logs log ON log.session_id = s.id
+       WHERE s.plan_id = ?
+       ORDER BY s.scheduled_date, s.sequence, s.id`,
       [plan.id]
     ).map(serializeSession);
     const sessionIds = sessions.map((session) => session.id);
@@ -441,9 +484,17 @@ export function getTrainingPlan(req, res) {
         ? []
         : queryRows(
             `SELECT i.*, e.name AS exercise_name, e.icon AS exercise_icon,
-              e.category AS exercise_category, e.metrics AS exercise_metrics
+              e.category AS exercise_category, e.metrics AS exercise_metrics,
+              log_item.id AS log_item_id,
+              log_item.status AS log_item_status,
+              log_item.actuals AS log_item_actuals,
+              log_item.skip_reason AS log_item_skip_reason,
+              log_item.note AS log_item_note
              FROM training_session_items i
              JOIN training_exercises e ON e.id = i.exercise_id
+             LEFT JOIN training_session_logs log ON log.session_id = i.session_id
+             LEFT JOIN training_session_log_items log_item
+              ON log_item.session_log_id = log.id AND log_item.session_item_id = i.id
              WHERE i.session_id IN (${sessionIds.map(() => '?').join(', ')})
              ORDER BY i.position, i.id`,
             sessionIds

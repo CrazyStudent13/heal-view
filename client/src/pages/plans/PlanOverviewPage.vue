@@ -276,8 +276,16 @@
                           <div class="calendar-session-detail__body">
                             <div class="session-items">
                               <div v-for="item in session.items" :key="item.id" class="session-item">
-                                <span>{{ item.exercise.name }}</span>
+                                <div class="session-item__heading">
+                                  <span>{{ item.exercise.name }}</span>
+                                  <el-tag v-if="item.execution" size="small" :type="itemExecutionTagType(item)">
+                                    {{ itemExecutionLabel(item) }}
+                                  </el-tag>
+                                </div>
                                 <small>{{ targetsText(item) }}</small>
+                                <small v-if="actualsText(item)" class="session-item__actual">{{
+                                  actualsText(item)
+                                }}</small>
                               </div>
                             </div>
                           </div>
@@ -1247,14 +1255,54 @@ function metricPrecision(metric) {
 }
 
 function targetsText(item) {
-  const entries = Object.entries(item.targets || {}).filter(
+  const parts = metricValuesText(item.targets || {}, durationSecondsFromParts(item.durationParts));
+  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+}
+
+function metricValuesText(values, fallbackDurationSeconds = 0) {
+  const entries = Object.entries(values || {}).filter(
     ([metric]) => !['duration', 'durationSeconds', 'durationUnit'].includes(metric)
   );
   const parts = [];
-  const seconds = durationSecondsFromTargets(item.targets || {}) || durationSecondsFromParts(item.durationParts);
+  const seconds = durationSecondsFromTargets(values || {}) || fallbackDurationSeconds;
   if (seconds > 0) parts.push(`${metricLabel('duration')} ${formatDurationText(seconds)}`);
   parts.push(...entries.map(([metric, value]) => `${metricLabel(metric)} ${value} ${unitLabel(metric)}`));
-  return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
+  return parts;
+}
+
+function actualsText(item) {
+  const execution = item.execution;
+  if (!execution) return '';
+  if (execution.status === 'skipped') return t('plans.manager.itemStatuses.skipped');
+  const parts = metricValuesText(execution.actuals || {});
+  return parts.length > 0
+    ? `${t('plans.manager.actuals')} ${parts.join(t('common.listSeparator'))}`
+    : t('plans.manager.itemStatuses.done');
+}
+
+function itemExecutionLabel(item) {
+  const execution = item.execution;
+  if (!execution) return '';
+  if (execution.status === 'skipped') return t('plans.manager.itemStatuses.skipped');
+  const targetSets = Number(item.targets?.sets);
+  const actualSets = Number(execution.actuals?.sets);
+  if (
+    Number.isFinite(targetSets) &&
+    targetSets > 0 &&
+    Number.isFinite(actualSets) &&
+    actualSets > 0 &&
+    actualSets < targetSets
+  ) {
+    return t('plans.manager.itemStatuses.partial');
+  }
+  return t('plans.manager.itemStatuses.done');
+}
+
+function itemExecutionTagType(item) {
+  const execution = item.execution;
+  if (!execution) return 'info';
+  if (execution.status === 'skipped') return 'danger';
+  return itemExecutionLabel(item) === t('plans.manager.itemStatuses.partial') ? 'warning' : 'success';
 }
 
 function durationSecondsFromTargets(targets) {
@@ -2823,16 +2871,31 @@ h2 {
   gap: 7px;
 }
 .session-item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
   color: var(--text-primary);
   font-size: 13px;
+}
+.session-item__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.session-item__heading > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .session-item small,
 .session-notes,
 .no-targets {
   color: var(--text-secondary);
+}
+.session-item__actual {
+  color: var(--el-color-success);
 }
 .session-notes {
   margin-top: 9px;

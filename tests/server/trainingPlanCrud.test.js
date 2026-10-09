@@ -19,6 +19,7 @@ import {
   listTrainingSessions,
   saveTrainingPhaseReview
 } from '../../server/src/controllers/trainingPlanController.js';
+import { saveTrainingSessionExecution } from '../../server/src/controllers/trainingExecutionController.js';
 import { databaseService } from '../../server/src/services/database.js';
 
 function responseRecorder() {
@@ -332,6 +333,103 @@ test('appends batch exercises to existing training dates', async () => {
       appendedSession.items.map((item) => item.exerciseId).sort((a, b) => a - b),
       [walkingId, plankId].sort((a, b) => a - b)
     );
+  } finally {
+    databaseService.close();
+    config.dbPath = originalDbPath;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('plan calendar reflects saved mobile training execution', async () => {
+  const originalDbPath = config.dbPath;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-plan-execution-'));
+  config.dbPath = path.join(directory, 'health_data.db');
+
+  try {
+    await databaseService.initialize();
+    const now = Date.now();
+    databaseService.getDb().run(
+      `INSERT INTO training_exercises
+        (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      [
+        'Pulldown',
+        'mdi:dumbbell',
+        'strength',
+        'indoor',
+        'manual',
+        'equipment',
+        'Pulldown machine',
+        '["weight","repetitions","sets"]',
+        'Strength',
+        now,
+        now
+      ]
+    );
+    const exerciseId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+
+    const planResponse = responseRecorder();
+    createTrainingPlan(
+      {
+        body: {
+          name: 'Execution plan',
+          startDate: '2026-10-01',
+          endDate: '2026-10-31',
+          status: 'active'
+        }
+      },
+      planResponse
+    );
+    assert.equal(planResponse.statusCode, 201);
+
+    const sessionResponse = responseRecorder();
+    createTrainingSession(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          scheduledDate: '2026-10-09',
+          items: [{ exerciseId, targets: { weight: 35, repetitions: 15, sets: 3 } }]
+        }
+      },
+      sessionResponse
+    );
+    assert.equal(sessionResponse.statusCode, 201);
+    const sessionItemId = Number(
+      databaseService.query('SELECT id FROM training_session_items WHERE session_id = ?', [sessionResponse.body.id])[0]
+        .values[0][0]
+    );
+
+    const saveResponse = responseRecorder();
+    saveTrainingSessionExecution(
+      {
+        params: { id: sessionResponse.body.id },
+        body: {
+          status: 'completed',
+          items: [
+            {
+              sessionItemId,
+              status: 'done',
+              actuals: { weight: 35, repetitions: 15, sets: 3 }
+            }
+          ]
+        }
+      },
+      saveResponse
+    );
+    assert.equal(saveResponse.statusCode, 200);
+
+    const listResponse = responseRecorder();
+    listTrainingPlans({}, listResponse);
+    const listedPlan = listResponse.body.plans.find((plan) => plan.id === planResponse.body.id);
+    assert.equal(listedPlan.completedTrainingDayCount, 1);
+
+    const detailResponse = responseRecorder();
+    getTrainingPlan({ params: { id: planResponse.body.id } }, detailResponse);
+    assert.equal(detailResponse.statusCode, 200);
+    const [session] = detailResponse.body.sessions;
+    assert.equal(session.status, 'achieved');
+    assert.equal(session.execution.status, 'completed');
+    assert.deepEqual(session.items[0].execution.actuals, { weight: 35, repetitions: 15, sets: 3 });
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

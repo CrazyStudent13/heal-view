@@ -198,6 +198,7 @@ export default {
       addTrainingItem: '添加训练项目',
       selectExercise: '选择运动项目',
       targets: '目标',
+      actuals: '实际',
       noTargets: '不设置量化目标',
       noSessions: '暂无训练单元',
       nameRequired: '请输入名称',
@@ -229,6 +230,11 @@ export default {
         partial: '部分达标',
         no_data: '无数据',
         unverifiable: '无法验证',
+        skipped: '已跳过'
+      },
+      itemStatuses: {
+        done: '已完成',
+        partial: '部分完成',
         skipped: '已跳过'
       },
       units: {

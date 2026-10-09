@@ -199,6 +199,7 @@ export default {
       addTrainingItem: 'Add exercise',
       selectExercise: 'Select an exercise',
       targets: 'Targets',
+      actuals: 'Actual',
       noTargets: 'No numeric target',
       noSessions: 'No training sessions yet',
       nameRequired: 'Enter a name',
@@ -230,6 +231,11 @@ export default {
         partial: 'Partially achieved',
         no_data: 'No data',
         unverifiable: 'Unverifiable',
+        skipped: 'Skipped'
+      },
+      itemStatuses: {
+        done: 'Done',
+        partial: 'Partial',
         skipped: 'Skipped'
       },
       units: {
