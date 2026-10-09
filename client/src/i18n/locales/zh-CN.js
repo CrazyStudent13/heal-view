@@ -193,6 +193,8 @@ export default {
       nextMonth: '下个月',
       calendarPlanDays: '计划训练日',
       calendarCompletedDays: '已完成训练日',
+      calendarAchievedDays: '全部完成训练日',
+      calendarPartialDays: '部分达标训练日',
       calendarNoSession: '无训练安排',
       trainingItems: '训练项目',
       addTrainingItem: '添加训练项目',
@@ -226,11 +228,12 @@ export default {
         archived: '已归档',
         planned: '待开始',
         cancelled: '已取消',
-        achieved: '达标',
+        achieved: '全部完成',
         partial: '部分达标',
         no_data: '无数据',
         unverifiable: '无法验证',
-        skipped: '已跳过'
+        skipped: '已跳过',
+        missed: '未完成'
       },
       itemStatuses: {
         done: '已完成',

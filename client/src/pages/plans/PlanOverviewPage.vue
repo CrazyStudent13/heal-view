@@ -160,10 +160,10 @@
                 <div class="calendar-summary">
                   <span>{{ t('plans.manager.calendarPlanDays') }}：{{ plannedCalendarDays }}</span>
                   <span class="calendar-summary__completed"
-                    >{{ t('plans.manager.calendarCompletedDays') }}：{{ completedCalendarDays }}</span
+                    >{{ t('plans.manager.calendarAchievedDays') }}：{{ achievedCalendarDays }}</span
                   >
-                  <span class="calendar-legend"
-                    ><i class="calendar-dot calendar-dot--planned"></i>{{ t('plans.manager.statuses.planned') }}</span
+                  <span class="calendar-summary__partial"
+                    >{{ t('plans.manager.calendarPartialDays') }}：{{ partialCalendarDays }}</span
                   >
                   <span class="calendar-legend"
                     ><i class="calendar-dot calendar-dot--completed"></i
@@ -171,6 +171,9 @@
                   >
                   <span class="calendar-legend"
                     ><i class="calendar-dot calendar-dot--partial"></i>{{ t('plans.manager.statuses.partial') }}</span
+                  >
+                  <span class="calendar-legend"
+                    ><i class="calendar-dot calendar-dot--missed"></i>{{ t('plans.manager.statuses.missed') }}</span
                   >
                 </div>
 
@@ -218,11 +221,13 @@
                           <div class="calendar-day-detail__title">
                             <h5>{{ calendarSelectedDate }}</h5>
                             <el-tag
-                              v-if="selectedCalendarSession"
+                              v-if="
+                                selectedCalendarSession && calendarSessionStatus(selectedCalendarSession) !== 'planned'
+                              "
                               size="small"
-                              :type="statusTagType(selectedCalendarSession.status)"
+                              :type="statusTagType(calendarSessionStatus(selectedCalendarSession))"
                             >
-                              {{ statusLabel(selectedCalendarSession.status) }}
+                              {{ statusLabel(calendarSessionStatus(selectedCalendarSession)) }}
                             </el-tag>
                           </div>
                           <p v-if="selectedCalendarSessions.length === 0">{{ t('plans.manager.calendarNoSession') }}</p>
@@ -1172,11 +1177,19 @@ const planWeightChangeTagType = computed(() => {
 const plannedCalendarDays = computed(
   () => new Set((planDetail.value?.sessions || []).map((session) => session.scheduledDate)).size
 );
-const completedCalendarDays = computed(
+const achievedCalendarDays = computed(
   () =>
     new Set(
       (planDetail.value?.sessions || [])
-        .filter((session) => ['achieved', 'partial'].includes(session.status))
+        .filter((session) => calendarSessionStatus(session) === 'achieved')
+        .map((session) => session.scheduledDate)
+    ).size
+);
+const partialCalendarDays = computed(
+  () =>
+    new Set(
+      (planDetail.value?.sessions || [])
+        .filter((session) => calendarSessionStatus(session) === 'partial')
         .map((session) => session.scheduledDate)
     ).size
 );
@@ -1219,7 +1232,7 @@ function statusLabel(status) {
 function statusTagType(status) {
   if (['active', 'achieved', 'completed'].includes(status)) return 'success';
   if (['paused', 'partial'].includes(status)) return 'warning';
-  if (['cancelled', 'skipped'].includes(status)) return 'danger';
+  if (['cancelled', 'skipped', 'missed'].includes(status)) return 'danger';
   return 'info';
 }
 
@@ -1469,28 +1482,41 @@ function selectCalendarDate(date) {
   calendarSelectedDate.value = date;
 }
 
-function calendarDayClass(day) {
+function todayKey() {
   const today = new Date();
-  const todayKey = [
+  return [
     today.getFullYear(),
     String(today.getMonth() + 1).padStart(2, '0'),
     String(today.getDate()).padStart(2, '0')
   ].join('-');
-  const hasPartial = day.sessions.some((session) => session.status === 'partial');
-  const hasAchieved = day.sessions.some((session) => session.status === 'achieved');
+}
+
+function calendarSessionStatus(session) {
+  if (!session) return 'planned';
+  if (session.status === 'planned' && session.scheduledDate < todayKey()) return 'missed';
+  return session.status || 'planned';
+}
+
+function calendarDayClass(day) {
+  const currentToday = todayKey();
+  const statuses = day.sessions.map((session) => calendarSessionStatus(session));
+  const hasPartial = statuses.includes('partial');
+  const hasAchieved = statuses.includes('achieved');
+  const hasMissed = statuses.includes('missed');
   return {
     'calendar-day--empty': !day.date,
     'calendar-day--outside-plan': day.date && !day.inPlan,
     'calendar-day--in-plan': day.inPlan,
-    'calendar-day--today': day.date === todayKey,
+    'calendar-day--today': day.date === currentToday,
     'calendar-day--selected': day.date === calendarSelectedDate.value,
-    'calendar-day--completed': hasAchieved && !hasPartial,
-    'calendar-day--partial': hasPartial
+    'calendar-day--completed': hasAchieved && !hasPartial && !hasMissed,
+    'calendar-day--partial': hasPartial,
+    'calendar-day--missed': hasMissed && !hasAchieved && !hasPartial
   };
 }
 
 function calendarSessionClass(session) {
-  return 'calendar-session-chip--' + (session.status || 'planned');
+  return 'calendar-session-chip--' + calendarSessionStatus(session);
 }
 
 function sessionExercisesText(session) {
@@ -2336,6 +2362,9 @@ h2 {
 .calendar-summary__completed {
   color: var(--el-color-success);
 }
+.calendar-summary__partial {
+  color: var(--el-color-warning);
+}
 .calendar-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
@@ -2356,14 +2385,14 @@ h2 {
   border-radius: 50%;
   background: var(--el-color-info);
 }
-.calendar-dot--planned {
-  background: var(--el-color-warning);
-}
 .calendar-dot--completed {
   background: var(--el-color-success);
 }
 .calendar-dot--partial {
   background: var(--el-color-warning);
+}
+.calendar-dot--missed {
+  background: var(--el-color-danger);
 }
 .calendar-weekdays,
 .training-calendar-grid {
@@ -2433,6 +2462,17 @@ h2 {
 .calendar-day--partial.calendar-day--selected {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-warning) 18%, transparent);
 }
+.calendar-day--missed {
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--card-bg));
+}
+.calendar-day--missed[role='button']:hover,
+.calendar-day--missed.calendar-day--selected {
+  border-color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, var(--card-bg));
+}
+.calendar-day--missed.calendar-day--selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-danger) 15%, transparent);
+}
 .calendar-day__number {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -2464,7 +2504,8 @@ h2 {
   color: var(--el-color-warning);
   background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
 }
-.calendar-session-chip--skipped {
+.calendar-session-chip--skipped,
+.calendar-session-chip--missed {
   color: var(--el-color-danger);
   background: color-mix(in srgb, var(--el-color-danger) 10%, var(--card-bg));
 }

@@ -194,6 +194,8 @@ export default {
       nextMonth: 'Next month',
       calendarPlanDays: 'Planned days',
       calendarCompletedDays: 'Completed days',
+      calendarAchievedDays: 'Fully completed days',
+      calendarPartialDays: 'Partially achieved days',
       calendarNoSession: 'No session planned',
       trainingItems: 'Training exercises',
       addTrainingItem: 'Add exercise',
@@ -227,11 +229,12 @@ export default {
         archived: 'Archived',
         planned: 'Planned',
         cancelled: 'Cancelled',
-        achieved: 'Achieved',
+        achieved: 'Fully completed',
         partial: 'Partially achieved',
         no_data: 'No data',
         unverifiable: 'Unverifiable',
-        skipped: 'Skipped'
+        skipped: 'Skipped',
+        missed: 'Missed'
       },
       itemStatuses: {
         done: 'Done',
