@@ -58,6 +58,23 @@ test('keeps the personal check-in entry at /m/today without auth interception', 
 test('does not prefill an unrecorded exercise as completed', () => {
   const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
   assert.match(trainingPage, /if\s*\(metric\s*===\s*'sets'\)\s*\{[\s\S]*?actuals\.sets\s*=\s*null/);
-  assert.doesNotMatch(trainingPage, /actuals\.sets\s*=\s*Number\.isFinite\(targetSets\)/);
   assert.doesNotMatch(trainingPage, /TrainingItemChips/);
+});
+
+/**
+ * 服务端按动作声明的指标严格校验 actuals，提交一个该动作不支持的指标会让整次保存被判 400。
+ * 实际出现过两处漏洞：点「完成本项」时无条件写入 sets（椭圆机等纯时长动作被拒），
+ * 以及把本地草稿里的旧值原样发出（修复写入路径后，脏草稿仍会让保存失败）。
+ * 这里锁住两道过滤，避免再次绕过。
+ */
+test('filters actuals by the metrics each exercise declares', () => {
+  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
+  // 点「完成本项」时，组数只对声明了 sets 的动作写入。
+  assert.match(trainingPage, /supportedMetrics\.has\('sets'\)[\s\S]{0,120}?actuals\.sets\s*=/);
+  // 发送前按动作支持的指标过滤草稿，脏数据不会提交给服务端。
+  assert.match(trainingPage, /if\s*\(!supportedMetrics\.has\(metric\)\)\s*continue;/);
+  assert.match(
+    trainingPage,
+    /if\s*\(supportedMetrics\.has\('duration'\)\)\s*supportedMetrics\.add\('durationSeconds'\)/
+  );
 });

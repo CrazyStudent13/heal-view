@@ -249,7 +249,10 @@ const completedSets = computed(() => {
   const value = Number(props.actuals?.sets);
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
 });
-const usesSetsPicker = computed(() => ['大腿内外侧肌训练器', '平板支撑'].includes(props.item.exercise?.name));
+// 用组数选择器还是步进器，由动作是否声明 sets 指标决定，而不是按动作名硬编码，
+// 这样以后新增或改名动作时不会静默退化成步进器。
+const usesSetsPicker = computed(() => (props.item.exercise?.metrics || []).includes('sets'));
+
 const setsProgressText = computed(() =>
   t('mobile.setsProgress', { done: completedSets.value, target: targetSets.value })
 );

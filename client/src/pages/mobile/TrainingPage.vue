@@ -385,24 +385,27 @@ function setItemComplete(sessionId, sessionItemId, payload) {
 function targetActuals(item) {
   const targets = item?.targets || {};
   const supportedMetrics = new Set(item?.exercise?.metrics || []);
+  // 时长统一按秒记录：动作声明 duration 时，目标里的 duration 分钟数换算后存 durationSeconds。
+  if (supportedMetrics.has('duration')) supportedMetrics.add('durationSeconds');
   const actuals = {};
 
   for (const [metric, rawValue] of Object.entries(targets)) {
-    if (metric === 'duration') continue;
-    if (metric === 'durationSeconds') {
-      const seconds = targetDurationSeconds(targets);
-      if (seconds > 0) actuals.durationSeconds = seconds;
-      continue;
-    }
+    if (metric === 'duration' || metric === 'durationSeconds') continue;
     if (!supportedMetrics.has(metric)) continue;
     const value = Number(rawValue);
     if (Number.isFinite(value) && value > 0) actuals[metric] = value;
   }
 
-  const targetSets = Number(targets.sets);
-  actuals.sets = Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
+  // 组数只对声明了 sets 指标的动作有意义；椭圆机等纯时长/阻力动作提交 sets
+  // 会被服务端按「不支持的指标」拒绝整次保存，所以这里必须先过同一道过滤。
+  if (supportedMetrics.has('sets')) {
+    const targetSets = Number(targets.sets);
+    actuals.sets = Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
+  }
 
-  if (supportedMetrics.has('duration') && actuals.durationSeconds == null) {
+  // 动作支持的指标未必都写在计划 targets 里（椭圆机的目标只给了阻力等级和时长），
+  // 这里按目标补全，避免「完成本项」对这些动作写不出任何值而无法保存。
+  if (supportedMetrics.has('durationSeconds') && actuals.durationSeconds == null) {
     const seconds = targetDurationSeconds(targets);
     if (seconds > 0) actuals.durationSeconds = seconds;
   }
@@ -552,9 +555,15 @@ function buildPayload(session) {
     const current = itemDraft(session.sessionId, item.sessionItemId);
     const state = itemState(session, item);
     const actuals = {};
+    // 服务端会按动作支持的指标严格校验，这里必须先过同一道过滤：
+    // 本地草稿可能残留旧版本写入的无效指标（例如椭圆机的 sets），
+    // 原样提交会让整次保存被判 400。过滤后草稿里的脏数据自然失效。
+    const supportedMetrics = new Set(item?.exercise?.metrics || []);
+    if (supportedMetrics.has('duration')) supportedMetrics.add('durationSeconds');
     for (const [metric, value] of Object.entries(current.actuals || {})) {
       // duration 只是编辑用的拆分字段，真实存储只认 durationSeconds。
       if (metric === 'duration') continue;
+      if (!supportedMetrics.has(metric)) continue;
       // 空值表示「这项没记」，直接省略，由服务端按未记录处理。
       if (value === null || value === undefined || value === '' || Number(value) <= 0) continue;
       actuals[metric] = Number(value);
