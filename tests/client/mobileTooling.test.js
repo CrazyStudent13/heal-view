@@ -78,3 +78,22 @@ test('filters actuals by the metrics each exercise declares', () => {
     /if\s*\(supportedMetrics\.has\('duration'\)\)\s*supportedMetrics\.add\('durationSeconds'\)/
   );
 });
+
+/**
+ * 没有 sets 目标的动作（椭圆机等）永远不会有 sets 值，完成度只能看「有没有记录值」，
+ * 否则点「完成本项」后状态仍是 skipped，当天进度少一项、整天保存不上去。
+ */
+test('marks exercises without a sets target by their recorded values', () => {
+  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
+  assert.doesNotMatch(trainingPage, /targetSets === 0\)\s*return\s*\{\s*status:\s*done > 0/);
+  assert.match(
+    trainingPage,
+    /targetSets === 0\)\s*\{[\s\S]{0,400}?skipped[\s\S]{0,120}?recorded \? 'done' : 'skipped'/
+  );
+
+  const panel = fs.readFileSync(path.join(mobileRoot, 'components/TrainingItemPanel.vue'), 'utf8');
+  // 面板的完成高亮同样要按「有记录值」判断，否则倒计时记完时长仍显示未记录。
+  assert.match(panel, /targetSets\.value > 0 \? completedSets\.value >= targetSets\.value : hasRecordedActuals\.value/);
+  // 倒计时不得给不支持 sets 的动作写 sets（会被服务端拒收）。
+  assert.match(panel, /if\s*\(usesSetsPicker\.value\)\s*\{[\s\S]{0,160}?actuals\.sets\s*=/);
+});

@@ -256,13 +256,21 @@ function itemDraft(sessionId, sessionItemId) {
  * 做满目标组数 → 完成；做了但没做满 → 部分完成；一组没做 → 跳过。
  */
 function itemState(session, item) {
+  const draft = itemDraft(session.sessionId, item.sessionItemId);
   const target = Number(item.targets?.sets);
   const targetSets = Number.isFinite(target) && target > 0 ? Math.round(target) : 0;
-  const raw = Number(itemDraft(session.sessionId, item.sessionItemId).actuals?.sets);
+  const raw = Number(draft.actuals?.sets);
   const done = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
 
-  // 没有组数目标的动作（例如纯时长类）只有做了和没做两种结果。
-  if (targetSets === 0) return { status: done > 0 ? 'done' : 'skipped', done: 0, target: 0 };
+  // 没有组数目标的动作（例如椭圆机这类纯时长/阻力动作）只能靠「有没有记录值」判断，
+  // 因为它根本没有 sets 可依据；显式点过「跳过本项」的仍然算跳过。
+  if (targetSets === 0) {
+    const recorded = Object.values(draft?.actuals || {}).some(
+      (value) => value !== null && value !== undefined && value !== '' && Number(value) > 0
+    );
+    const skipped = Boolean((draft?.skipReason || '').trim());
+    return { status: !skipped && recorded ? 'done' : 'skipped', done: 0, target: 0 };
+  }
   if (done === 0) return { status: 'skipped', done: 0, target: targetSets };
   return { status: done >= targetSets ? 'done' : 'partial', done, target: targetSets };
 }

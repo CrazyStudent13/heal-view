@@ -253,6 +253,13 @@ const completedSets = computed(() => {
 // 这样以后新增或改名动作时不会静默退化成步进器。
 const usesSetsPicker = computed(() => (props.item.exercise?.metrics || []).includes('sets'));
 
+// 椭圆机这类纯时长/阻力动作没有 sets 可依据，完成度只能看「有没有记录值」，
+// 否则倒计时记完时长仍然显示未记录、也无法计入当天进度。
+const hasRecordedActuals = computed(() =>
+  Object.values(props.actuals || {}).some(
+    (value) => value !== null && value !== undefined && value !== '' && Number(value) > 0
+  )
+);
 const setsProgressText = computed(() =>
   t('mobile.setsProgress', { done: completedSets.value, target: targetSets.value })
 );
@@ -263,11 +270,16 @@ const setsPickerOptions = computed(() =>
   }))
 );
 
-// 完成度完全由组数决定，面板上的按钮高亮也读同一个值，避免两处状态各说各话。
+// 有组数目标时完成度由组数决定；没有组数目标的动作（椭圆机等）看是否记录了实际值。
+// 面板上的按钮高亮和标记都读同一处，避免两处状态各说各话。
 const isComplete = computed(() =>
-  targetSets.value > 0 ? completedSets.value >= targetSets.value : completedSets.value > 0
+  targetSets.value > 0 ? completedSets.value >= targetSets.value : hasRecordedActuals.value
 );
-const isMarkedSkipped = computed(() => completedSets.value === 0 && Boolean(props.skipReason));
+const isMarkedSkipped = computed(() =>
+  targetSets.value > 0
+    ? completedSets.value === 0 && Boolean(props.skipReason)
+    : !hasRecordedActuals.value && Boolean(props.skipReason)
+);
 const hasDuration = computed(() => {
   const metrics = new Set(props.item.exercise?.metrics || []);
   return metrics.has('duration') || metrics.has('durationSeconds') || targetDurationSeconds() > 0;
@@ -362,13 +374,15 @@ function stopTimer() {
 function finishTimer() {
   stopTimer();
   timerFinished.value = true;
-  emit('update', {
-    actuals: {
-      ...props.actuals,
-      durationSeconds: timerDuration.value || readyDuration.value,
-      sets: Math.min(targetSets.value || Number.MAX_SAFE_INTEGER, completedSets.value + 1)
-    }
-  });
+  const actuals = {
+    ...props.actuals,
+    durationSeconds: timerDuration.value || readyDuration.value
+  };
+  // 只有声明了 sets 指标的动作才递增组数；椭圆机等动作带上 sets 会被服务端拒收。
+  if (usesSetsPicker.value) {
+    actuals.sets = Math.min(targetSets.value || Number.MAX_SAFE_INTEGER, completedSets.value + 1);
+  }
+  emit('update', { actuals });
 }
 
 function closeTimer() {
