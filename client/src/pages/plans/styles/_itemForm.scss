@@ -1,0 +1,40 @@
+/**
+ * 训练项目编辑表单的公共样式：选动作的下拉、目标输入区的标题、批量排课的星期与日历提示。
+ *
+ * 引入方：PlanBatchRuleEditor、SessionFormDialog、BatchSessionDialog。
+ * 新建计划弹窗只填计划信息，不引入这里。
+ *
+ * 星期选项和日历提示只有两个批量排课入口用得上，训练课弹窗会白带这一小段；
+ * 同属「训练项目编辑表单」就放在一起，不再为几十字节多拆一个文件。
+ */
+
+.exercise-select {
+  width: 100%;
+}
+
+.training-items-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekday-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.calendar-notice {
+  margin: -4px 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.calendar-notice--warning {
+  color: var(--el-color-warning);
+}

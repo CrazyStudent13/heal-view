@@ -181,3 +181,39 @@
 | 实现方式 | 增加 ESLint flat config、Prettier 配置和根目录 `format`/`format:check`/`lint` 脚本；通过 Husky + lint-staged 在提交前只格式化暂存文件；新增 GitHub Actions workflow，串联格式、静态检查、i18n、测试和客户端构建 |
 | 验证方式 | `pnpm format:check`、`pnpm lint`、`pnpm check:i18n`、`pnpm test`、`pnpm build:client` |
 | 结果 | 本地质量检查全部通过；现有遗留代码的非阻断风格告警已关闭或降为不影响退出码的规则，后续新增代码可逐步收紧规则 |
+
+## 2026-10-14 第十二阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 拆分 3878 行的计划总览页：把四个弹窗及其交互拆成独立组件，让单文件回到可读规模 |
+| 实现方式 | 新增 `pages/plans/components/` 下的 `PlanFormDialog`、`PlanBatchRuleEditor`、`SessionFormDialog`、`BatchSessionDialog`、`PhaseReviewDialog` 和共用的 `TrainingItemTargets`；共用逻辑抽到 `pages/plans/composables/`（`useTrainingItemEditor`、`useChinaCalendar`、`usePlanLabels`）；弹窗共用样式片段放 `pages/plans/styles/_dialogShared.scss`；写库请求留在页面，弹窗用 `submit` 上报载荷；同时删除计划页中已经不存在的旧阶段结构样式 |
+| 验证方式 | `pnpm lint`、`pnpm --filter heal-view-client build`、`node --test tests/client/index.test.js`，并用临时 SSR 冒烟脚本渲染页面与四个弹窗，核对无运行时错误和 Vue 警告 |
+| 结果 | 计划总览页 3878 → 2009 行，弹窗与共用逻辑拆到 10 个新文件；静态检查、构建和 35 项客户端测试通过；未做真实浏览器的视觉核对 |
+
+## 2026-10-14 第十三阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 继续拆分计划总览页：把详情抽屉、训练日历、日期明细、计划反馈和计划列表也拆成组件，并修掉上一轮误删的抽屉头部对齐规则 |
+| 实现方式 | 新增 `pages/plans/components/` 下的 `PlanListTable`、`PlanDetailDrawer`、`PlanCalendarTab`、`PlanCalendarDayDetail`、`PlanReviewTab`；达成度、覆盖率与百分比格式化收敛到 `usePlanProgress`，训练日历的月份/选中日期/格子收敛到 `usePlanCalendar`，生命周期标签并入 `usePlanLabels`；恢复 `.plan-detail-header` 的 `justify-content: space-between`（上一轮清理死样式时与 `.phase-header` 一起被删掉，导致详情头部四个按钮贴住标题）；`tests/client/trainingExercise.test.js` 的源码断言改为读取整个 plans 模块，不再绑死单个文件 |
+| 验证方式 | `pnpm lint`、`pnpm --filter heal-view-client build`、`node --test tests/client/index.test.js`、`pnpm --filter heal-view-client check:i18n`，并用临时 SSR 冒烟脚本渲染 12 个场景（页面、列表、抽屉两态、日历页签、日期明细、反馈页签两态、四个弹窗） |
+| 结果 | 计划总览页 2009 → 415 行，计划模块共 21 个文件、单个文件最大 476 行；冒烟过程中发现并修复抽屉缺少图标导入（编辑/归档/新增训练单元/删除四个按钮图标不显示）的问题；静态检查、构建、i18n 和 35 项客户端测试通过；视觉仍建议在真实浏览器里过一遍 |
+
+## 2026-10-14 第十四阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 把计划总览页剩下的数据层也搬出去，让页面回到「薄视图」：只接状态、渲染组件 |
+| 实现方式 | 新增 `pages/plans/composables/usePlanWorkspace.js`，按 `useImportWorkflow` 的既有模式集中页面状态（列表、详情、体重数据、弹窗开关、加载与保存中状态）、接口调用（计划/训练单元/阶段/反馈的增删改查）、`?planId=` 深链打开抽屉、列表错误提示和特殊错误码处理，并自己 `onMounted` 拉取；页面只解构这个 composable 并把状态接到组件上 |
+| 验证方式 | `pnpm lint`、`pnpm --filter heal-view-client build`、`node --test tests/client/index.test.js`、`pnpm --filter heal-view-client check:i18n`，SSR 冒烟脚本扩到 13 个场景（新增带 `?planId=` 的总览页） |
+| 结果 | 计划总览页 415 → 172 行（模板 73 行、脚本 50 行、样式 48 行），计划模块 22 个文件；页面不再直接依赖 `fitnessApi`，数据与交互集中在 `usePlanWorkspace`；静态检查、构建、i18n 和 35 项客户端测试通过；仍未做真实浏览器视觉核对 |
+
+## 2026-10-14 第十五阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 拆开计划弹窗的共用样式片段：它同时装了 scoped 表单规则和一段全局的 `.session-dialog` 滚动样式，前者被 4 个弹窗各存一份、后者根本不该由不拥有该弹窗的组件输出 |
+| 实现方式 | `_dialogShared.scss` 只留四个弹窗都用的通用规则（`h3/h4/p` 归零、`.full-width`）；新增 `_itemForm.scss` 装训练项目编辑表单规则（`.exercise-select`、`.training-items-heading`、`.weekday-options`、`.calendar-notice`），由三个训练项目弹窗引入；新增 `_sessionDialogScroll.scss` 装 `:global(.session-dialog ...)` 的滚动与滚动条规则，只由 `SessionFormDialog`、`BatchSessionDialog` 引入；`PlanFormDialog` 不再引入训练项目规则 |
+| 验证方式 | `pnpm lint`、`pnpm --filter heal-view-client build`、`node --test tests/client/index.test.js`、`check:i18n`，并核对构建产物里选择器的副本数（`.full-width` 4 份、训练项目规则 3 份、全局滚动规则 1 份）和计划页 CSS chunk 体积 |
+| 结果 | 计划页 CSS chunk 31060 → 30588 字节（-472）；全局滚动规则仍只有一份（打包会去重），训练课弹窗滚动行为不变；顺带修正了上一轮记录里夸大的重复占比（实际约 2%，之前把会被去重的全局规则也算成了重复）；静态检查、构建、i18n 和 35 项客户端测试通过 |

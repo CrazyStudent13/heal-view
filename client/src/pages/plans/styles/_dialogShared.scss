@@ -1,0 +1,18 @@
+/**
+ * 计划弹窗的公共底座：只有所有弹窗都用得上的规则才放这里。
+ *
+ * 引入方：PlanFormDialog、PlanBatchRuleEditor、SessionFormDialog、BatchSessionDialog。
+ * 训练项目编辑器的样式在 `_itemForm.scss`，训练课弹窗的全局滚动样式在 `_sessionDialogScroll.scss`。
+ * 按用途拆开是因为 scoped 样式每个组件各存一份、没法去重：
+ * 只用来填日期的计划弹窗不该白带一整套训练项目编辑样式。
+ */
+
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+.full-width {
+  width: 100%;
+}

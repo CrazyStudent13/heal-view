@@ -1,0 +1,37 @@
+/**
+ * 训练课弹窗（`.session-dialog`）正文的滚动样式。
+ *
+ * 这里的规则是全局的：滚动容器是 Element Plus 的 `.el-dialog__body`，
+ * 弹窗内容被打上组件作用域标记后够不到它，只能按类名全局命中。
+ * 所以它不该混在按作用域复制的公共片段里——那会让不拥有 `.session-dialog` 的弹窗
+ * 也去输出一段全局样式。只有真正带这个类名的两个弹窗引入本文件。
+ *
+ * 全局规则在打包阶段会去重，体积上没有重复负担。
+ */
+
+/* 训练课弹窗正文自己滚：比整页滚动更稳，弹窗头尾始终留在视口里。 */
+:global(.session-dialog .el-dialog__body) {
+  max-height: calc(88vh - 130px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-darker) transparent;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+}
+
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-thumb) {
+  border-radius: 6px;
+  background: var(--el-border-color-darker);
+}
+
+:global(.session-dialog .el-dialog__body::-webkit-scrollbar-button) {
+  display: none;
+}
