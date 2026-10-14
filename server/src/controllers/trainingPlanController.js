@@ -6,6 +6,9 @@ import { computePlanAdherence, resolvePlanLifecycle, summarizePlanAdherence } fr
 
 const PHASE_STATUSES = new Set(['planned', 'active', 'paused', 'completed', 'cancelled']);
 const SESSION_STATUSES = new Set(['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped']);
+// 全局训练单元页的筛选项：只保留"练完没有"这一类结果，待开始是时间位置、无数据和无法验证是
+// 数据问题，都不参与筛选。未完成不是存量状态，是过期且推导结果仍为 planned（见下面的口径）。
+const SESSION_COMPLETION_STATUSES = new Set(['achieved', 'partial', 'skipped', 'missed']);
 const MAX_FATIGUE_LEVEL = 10;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -243,7 +246,7 @@ function getPhaseExecutionSummary(phaseId, planId, startDate, endDate) {
   };
 }
 
-function serializeSession(row) {
+function serializeSession(row, derivedStatus = '') {
   const executionStatus = row.execution_status || '';
   const itemCount = Number(row.session_item_count ?? row.item_count ?? 0);
   const loggedItemCount = Number(row.logged_item_count ?? 0);
@@ -254,7 +257,8 @@ function serializeSession(row) {
     sequence: Number(row.sequence),
     name: row.name || '',
     notes: row.notes || '',
-    status: effectiveSessionStatus(row.status, executionStatus, itemCount, loggedItemCount),
+    // 调用方（训练单元列表）已经按有氧匹配算过状态时用它的，否则退回只看执行记录的口径。
+    status: derivedStatus || effectiveSessionStatus(row.status, executionStatus, itemCount, loggedItemCount),
     plannedStatus: row.status,
     execution: executionStatus
       ? {
@@ -272,9 +276,9 @@ function serializeSession(row) {
   };
 }
 
-function serializeSessionListItem(row) {
+function serializeSessionListItem(row, derivedStatus = '') {
   return {
-    ...serializeSession(row),
+    ...serializeSession(row, derivedStatus),
     planName: row.plan_name,
     itemCount: Number(row.item_count),
     exercises: parseJson(row.exercises, [])
@@ -354,6 +358,49 @@ function deriveSessionStatus({
   if (statuses.some((status) => status === 'achieved' || status === 'partial')) return 'partial';
   if (statuses.some((status) => status === 'unverifiable')) return 'unverifiable';
   return 'no_data';
+}
+
+/**
+ * 把训练单元行和它的项目行交给同一个推导口径。
+ * 计划列表、计划详情和全局训练单元页共用这里，避免三处各推一份状态。
+ * @param {object} session 训练单元行，需带 item_count、logged_item_count、execution_status
+ * @param {Array<object>} sessionItems 该训练单元的项目行
+ * @param {Map<number, object>} matches 项目 id → 有氧匹配结果
+ * @param {string} today 今天的日期
+ * @returns {{ status: string, autoMatches: Array<object> }} 派生状态与其中的自动匹配结果
+ */
+function deriveStatusForSession(session, sessionItems, matches, today) {
+  const manualItems = sessionItems.filter((item) => item.verification_mode === 'manual');
+  const autoMatches = sessionItems
+    .filter((item) => item.verification_mode !== 'manual')
+    .map((item) => matches.get(Number(item.id)))
+    .filter(Boolean);
+  const status = deriveSessionStatus({
+    // 列表查询取的是 s.*（status），汇总查询把它别名成 planned_status，两处都能用。
+    plannedStatus: session.planned_status ?? session.status,
+    scheduledDate: session.scheduled_date,
+    today,
+    executionStatus: session.execution_status || '',
+    itemCount: Number(session.item_count) || 0,
+    loggedItemCount: Number(session.logged_item_count) || 0,
+    manualItemCount: manualItems.length,
+    pendingManualItemCount: manualItems.filter((item) => !Number(item.item_log_count)).length,
+    autoMatches
+  });
+  return { status, autoMatches };
+}
+
+/**
+ * 列表展示和筛选用的完成状态：过期了但推导结果还是 planned 的训练单元算未完成，
+ * 和训练日历上的 missed 是同一个口径。
+ * "无数据"不并进未完成：那是缺导入数据，不是判定没练，两者在系统里一直是分开的。
+ * @param {string} status 派生状态
+ * @param {string} scheduledDate 训练单元日期
+ * @param {string} today 今天的日期
+ * @returns {string} 展示状态
+ */
+function completionStatusOf(status, scheduledDate, today) {
+  return status === 'planned' && scheduledDate && scheduledDate < today ? 'missed' : status;
 }
 
 /**
@@ -448,22 +495,7 @@ function computePlanStats(planIds, today, preloadedRecords = null) {
   const buckets = new Map();
   for (const session of sessionRows) {
     const sessionItems = itemsBySession.get(Number(session.id)) || [];
-    const manualItems = sessionItems.filter((item) => item.verification_mode === 'manual');
-    const autoMatches = sessionItems
-      .filter((item) => item.verification_mode !== 'manual')
-      .map((item) => matches.get(Number(item.id)))
-      .filter(Boolean);
-    const status = deriveSessionStatus({
-      plannedStatus: session.planned_status,
-      scheduledDate: session.scheduled_date,
-      today,
-      executionStatus: session.execution_status || '',
-      itemCount: Number(session.item_count) || 0,
-      loggedItemCount: Number(session.logged_item_count) || 0,
-      manualItemCount: manualItems.length,
-      pendingManualItemCount: manualItems.filter((item) => !Number(item.item_log_count)).length,
-      autoMatches
-    });
+    const { status, autoMatches } = deriveStatusForSession(session, sessionItems, matches, today);
 
     const planId = Number(session.plan_id);
     const bucket = buckets.get(planId) || { autoMatches: [], sessions: [], sportTypes: new Set() };
@@ -645,22 +677,19 @@ export function listTrainingSessions(req, res) {
       conditions.push('p.id = ?');
       params.push(Number(planId));
     }
-    if (SESSION_STATUSES.has(status)) {
-      conditions.push('s.status = ?');
-      params.push(status);
-    }
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const total = Number(
-      queryRow(
-        `SELECT COUNT(*) AS total
-         FROM training_sessions s
-         JOIN training_plans p ON p.id = s.plan_id
-         ${whereClause}`,
-        params
-      )?.total || 0
-    );
+    const today = todayDateKey();
+    // 状态里含读取时才算的有氧匹配结果，SQL 筛不出来，所以按日期和计划取出候选行，
+    // 派生完状态再过滤和分页；不能让 SQL 先分页，否则筛选结果和 total 都会对不上。
     const rows = queryRows(
       `SELECT s.*, p.name AS plan_name,
+        log.id AS execution_id,
+        log.status AS execution_status,
+        log.source AS execution_source,
+        log.completed_at AS execution_completed_at,
+        log.session_feel AS execution_session_feel,
+        log.discomfort AS execution_discomfort,
+        log.note AS execution_note,
         (SELECT COUNT(*) FROM training_session_items item_count WHERE item_count.session_id = s.id) AS item_count,
         (SELECT COUNT(*) FROM training_session_log_items logged_item
           JOIN training_session_logs logged_log ON logged_log.id = logged_item.session_log_id
@@ -671,16 +700,68 @@ export function listTrainingSessions(req, res) {
           WHERE item.session_id = s.id) AS exercises
        FROM training_sessions s
        JOIN training_plans p ON p.id = s.plan_id
+       LEFT JOIN training_session_logs log ON log.session_id = s.id
        ${whereClause}
-       ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC
-       LIMIT ? OFFSET ?`,
-      [...params, pageSize, (page - 1) * pageSize]
+       ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC`,
+      params
     );
-    return res.json({ sessions: rows.map(serializeSessionListItem), total, page, pageSize });
+
+    const statuses = deriveSessionListStatuses(rows, today, whereClause, params);
+    const filtered = SESSION_COMPLETION_STATUSES.has(status)
+      ? rows.filter((row) => statuses.get(Number(row.id)) === status)
+      : rows;
+    const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+    return res.json({
+      sessions: pageRows.map((row) => serializeSessionListItem(row, statuses.get(Number(row.id)))),
+      total: filtered.length,
+      page,
+      pageSize
+    });
   } catch (error) {
     console.error('Error listing training sessions:', error);
     return res.status(500).json({ error: 'Failed to fetch training sessions' });
   }
+}
+
+/**
+ * 批量推导训练单元列表里每一行的完成状态。
+ * 有氧匹配依赖导入的运动记录，只能读取时算；项目行用同一套筛选条件和训练单元一起取出，
+ * 避免按 id 列表拼一条可能超过 SQLite 参数上限的 IN 查询。
+ * @param {Array<object>} sessionRows 候选训练单元行
+ * @param {string} today 今天的日期
+ * @param {string} whereClause 列表的筛选条件（引用 s.scheduled_date 和 p.id）
+ * @param {Array<*>} params whereClause 的参数
+ * @returns {Map<number, string>} 训练单元 id → 展示状态（含未完成）
+ */
+function deriveSessionListStatuses(sessionRows, today, whereClause, params) {
+  const statuses = new Map();
+  if (sessionRows.length === 0) return statuses;
+  const itemRows = queryRows(
+    `SELECT i.id, i.session_id, i.verification_mode, i.targets,
+       s.scheduled_date AS scheduled_date,
+       e.sport_types AS exercise_sport_types,
+       (SELECT COUNT(*) FROM training_session_log_items item_log
+          JOIN training_session_logs item_log_head ON item_log_head.id = item_log.session_log_id
+          WHERE item_log.session_item_id = i.id) AS item_log_count
+     FROM training_session_items i
+     JOIN training_exercises e ON e.id = i.exercise_id
+     JOIN training_sessions s ON s.id = i.session_id
+     JOIN training_plans p ON p.id = s.plan_id
+     ${whereClause}`,
+    params
+  );
+  const dateKeys = sessionRows
+    .map((row) => row.scheduled_date)
+    .filter(Boolean)
+    .sort();
+  const records = loadNormalizedSportRecords(dateKeys[0], dateKeys.at(-1));
+  const matches = evaluateAutoMatches(itemRows, records, today);
+  const itemsBySession = Map.groupBy(itemRows, (row) => Number(row.session_id));
+  for (const session of sessionRows) {
+    const { status } = deriveStatusForSession(session, itemsBySession.get(Number(session.id)) || [], matches, today);
+    statuses.set(Number(session.id), completionStatusOf(status, session.scheduled_date, today));
+  }
+  return statuses;
 }
 
 export function getTrainingPlan(req, res) {

@@ -154,6 +154,10 @@ export function getTrainingPlan(id, config = {}) {
   return apiClient.get(`/training-plans/${id}`, config);
 }
 
+/**
+ * 全局训练单元列表。status 只接受完成状态（achieved / partial / skipped / missed），
+ * 服务端按读取时推导的状态过滤，所以筛选、total 和分页是同一份结果。
+ */
 export function getTrainingSessions(params = {}, config = {}) {
   return apiClient.get('/training-sessions', { ...config, params });
 }

@@ -231,3 +231,20 @@ training_phase_reviews
 ### 为什么初始化脚本要处理改名
 
 `seedTrainingExercises()` 每次服务启动都会跑，它按 `name` 匹配。目录改名后如果只做插入，旧行会留在库里变成“纯器械名”的僵尸项目，目录里还会出现近似重复的两行。所以初始化脚本必须知道旧名到新名的映射，并把改名放在写入之前。
+
+## 2026-10-15 训练单元列表只按完成状态筛选
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 全局训练单元页（`/plans/sessions`）的「按状态筛选」把六种状态混在一起：待开始是时间位置，无数据和无法验证是数据问题，都不是“练完没有”。更实际的毛病是列表状态取自 `training_sessions.status`（只记录人工结论），筛选也在 SQL 里按这一列过滤，于是导入数据匹配出的达标在列表和筛选里都查不到，和计划详情、日历对不上 |
+| 实现方式 | 筛选项收敛为四个完成状态 `achieved` / `partial` / `skipped` / `missed`：`client/src/pages/plans/composables/usePlanLabels.js` 新增 `SESSION_COMPLETION_STATUSES`，页面改用它并复用 `usePlanLabels` 的标签与配色，删掉页面内自己那两份重复实现。`listTrainingSessions` 不再用 SQL 过滤状态，改为取出候选行后由新增的 `deriveSessionListStatuses` 派生状态（内部复用 `deriveStatusForSession`，和计划列表、详情同一个口径），再用 `completionStatusOf` 把“已过期且推导结果仍是 planned”换算成 `missed`（和训练日历上的 `missed` 同一口径）；过滤放在分页之前，所以 `total` 和结果一致。列表行也改为返回派生状态，`plans.sessions.filterStatus` 文案改为「按完成状态筛选」 |
+| 验证方式 | `node --test tests/server/trainingPlanAdherence.test.js`（12 项，新增一项覆盖达标 / 部分达标 / 已跳过 / 未完成 / 无数据 / 待开始六种派生结果、过滤后的分页，以及 `planned`、`no_data`、`unverifiable` 传进来不再生效）；`pnpm test`（38）、`pnpm test:server`（83）、`pnpm test:client`（36）、`pnpm check:i18n`（868 key）、`pnpm lint`、`pnpm check:plan-module`、`pnpm build:client` |
+| 结果 | 全部通过。列表标签、筛选结果和分页 `total` 现在是同一份派生状态，也不再和计划详情、日历互相矛盾 |
+
+### 未完成为什么不并入无数据
+
+未完成只收“已过期且推导结果仍是 `planned`”的训练单元，也就是人工项目一直没确认、或这个单元根本没有项目。
+自动项目当天没有任何导入记录属于**无数据**，它不会被算成未完成——`aerobicMatching.js` 一开头就定下
+“数据缺失不判定成失败”，达成度口径也一直把两者分开。所以筛「未完成」看到的是系统确认没练的日子，
+要把“缺数据”的日子也一起看，用「全部状态」浏览即可。
+

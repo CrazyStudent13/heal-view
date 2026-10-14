@@ -310,7 +310,7 @@ export default {
       pageDescription: '按日期查看计划中的训练单元',
       filterDate: '按日期筛选',
       filterPlan: '按计划筛选',
-      filterStatus: '按状态筛选',
+      filterStatus: '按完成状态筛选',
       allPlans: '全部计划',
       allStatuses: '全部状态',
       date: '日期',

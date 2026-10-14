@@ -14,6 +14,7 @@ import {
   createTrainingSession,
   getTrainingPlan,
   listTrainingPlans,
+  listTrainingSessions,
   updateTrainingPlan,
   updateTrainingPlanArchived
 } from '../../server/src/controllers/trainingPlanController.js';
@@ -133,6 +134,15 @@ function planFromList(planId, query = {}) {
   assert.equal(response.statusCode, 200, JSON.stringify(response.body));
   return response.body.plans.find((plan) => plan.id === planId) || null;
 }
+
+function sessionList(query = {}) {
+  const response = responseRecorder();
+  listTrainingSessions({ query }, response);
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  return response.body;
+}
+
+const listedSessionIds = (body) => body.sessions.map((session) => session.id);
 
 function planDetail(planId) {
   const response = responseRecorder();
@@ -500,5 +510,97 @@ test('flips a past training day to fulfilled when it is backfilled through the e
     assert.equal(after.adherence.rate, 1);
     assert.equal(after.adherence.tier, 'complete');
     assert.equal(planDetail(plan.id).sessions[0].status, 'achieved');
+  });
+});
+
+// 全局训练单元页只按完成状态筛选，而且筛的是推导出来的状态：
+// s.status 存的是人工结论，导入数据匹配出的达标和部分达标从不写回，SQL 里根本筛不到。
+test('filters the global session list by derived completion status', async () => {
+  await withTempDatabase(async (db) => {
+    const today = todayDateKey();
+    const aerobicId = insertAerobicExercise(db, { name: 'Brisk walking', sportTypes: ['walking'] });
+    const manualId = insertManualExercise(db, { name: 'Plank' });
+    const plan = createPlan({ startDate: shiftDays(today, -12), endDate: shiftDays(today, 10) });
+
+    // 达标两天：只能靠导入记录推出来，存量的 s.status 一直是 planned。
+    const achievedNewest = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -6),
+      items: [{ exerciseId: aerobicId, targets: { duration: 30, distance: 3 } }]
+    });
+    insertSportRecord(db, { date: shiftDays(today, -6), duration: 1900, distance: 3400 });
+    const achievedOlder = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -7),
+      items: [{ exerciseId: aerobicId, targets: { duration: 30, distance: 3 } }]
+    });
+    insertSportRecord(db, { date: shiftDays(today, -7), duration: 1900, distance: 3400 });
+    // 有记录但没达到目标 → 部分达标。
+    const partial = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -5),
+      items: [{ exerciseId: aerobicId, targets: { duration: 30, distance: 3 } }]
+    });
+    insertSportRecord(db, { date: shiftDays(today, -5), duration: 1500, distance: 1500 });
+    // 全人工项目、过去的日子、还没打卡 → 未完成。
+    const missed = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -4),
+      items: [{ exerciseId: manualId, targets: { sets: 3 } }]
+    });
+    // 自动项目但当天没有任何导入记录 → 无数据，不并进未完成。
+    const noData = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -3),
+      items: [{ exerciseId: aerobicId, targets: { duration: 30 } }]
+    });
+    // 还没到的日子保持待开始。
+    const upcoming = createSession(plan.id, {
+      scheduledDate: shiftDays(today, 3),
+      items: [{ exerciseId: aerobicId, targets: { duration: 30 } }]
+    });
+    // 人工项目全部跳过 → 已跳过，执行记录优先于"没打卡"。
+    const skipped = createSession(plan.id, {
+      scheduledDate: shiftDays(today, -9),
+      items: [{ exerciseId: manualId, targets: { sets: 3 } }]
+    });
+    const skippedDay = responseRecorder();
+    getTrainingExecution({ query: { date: shiftDays(today, -9) } }, skippedDay);
+    const skippedItem = skippedDay.body.sessions.find((entry) => entry.planId === plan.id).items[0];
+    const skippedSave = responseRecorder();
+    saveTrainingSessionExecution(
+      {
+        params: { id: skipped.id },
+        body: { status: 'skipped', items: [{ sessionItemId: skippedItem.sessionItemId, status: 'skipped' }] }
+      },
+      skippedSave
+    );
+    assert.equal(skippedSave.statusCode, 200, JSON.stringify(skippedSave.body));
+
+    const listed = sessionList({ planId: String(plan.id) });
+    assert.equal(listed.total, 7);
+    const statusById = new Map(listed.sessions.map((session) => [session.id, session.status]));
+    assert.equal(statusById.get(achievedNewest.id), 'achieved');
+    assert.equal(statusById.get(achievedOlder.id), 'achieved');
+    assert.equal(statusById.get(partial.id), 'partial');
+    assert.equal(statusById.get(skipped.id), 'skipped');
+    assert.equal(statusById.get(missed.id), 'missed');
+    assert.equal(statusById.get(noData.id), 'no_data');
+    assert.equal(statusById.get(upcoming.id), 'planned');
+
+    // 四个完成状态各筛各的；过滤发生在分页之前，所以 total 也是过滤后的数量。
+    assert.equal(sessionList({ planId: String(plan.id), status: 'achieved' }).total, 2);
+    assert.deepEqual(listedSessionIds(sessionList({ planId: String(plan.id), status: 'achieved' })), [
+      achievedNewest.id,
+      achievedOlder.id
+    ]);
+    assert.deepEqual(listedSessionIds(sessionList({ planId: String(plan.id), status: 'partial' })), [partial.id]);
+    assert.deepEqual(listedSessionIds(sessionList({ planId: String(plan.id), status: 'skipped' })), [skipped.id]);
+    assert.deepEqual(listedSessionIds(sessionList({ planId: String(plan.id), status: 'missed' })), [missed.id]);
+
+    const paged = sessionList({ planId: String(plan.id), status: 'achieved', page: '2', pageSize: '1' });
+    assert.equal(paged.total, 2);
+    assert.deepEqual(listedSessionIds(paged), [achievedOlder.id]);
+
+    // 待开始、无数据、无法验证已经不再是筛选项：传进来不生效，退回"全部"。
+    for (const ignored of ['planned', 'no_data', 'unverifiable']) {
+      const body = sessionList({ planId: String(plan.id), status: ignored });
+      assert.equal(body.total, 7, `${ignored} 不该再参与筛选`);
+    }
   });
 });

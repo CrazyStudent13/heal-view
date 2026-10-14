@@ -312,7 +312,7 @@ export default {
       pageDescription: 'View all scheduled training sessions by date',
       filterDate: 'Filter by date',
       filterPlan: 'Filter by plan',
-      filterStatus: 'Filter by status',
+      filterStatus: 'Filter by completion',
       allPlans: 'All plans',
       allStatuses: 'All statuses',
       date: 'Date',

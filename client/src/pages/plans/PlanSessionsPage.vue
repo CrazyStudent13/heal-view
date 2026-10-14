@@ -94,10 +94,12 @@ import { onMounted, ref } from 'vue';
 import { Refresh } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { useLocaleStore } from '@/stores/localeStore.js';
+import { usePlanLabels, SESSION_COMPLETION_STATUSES } from '@/pages/plans/composables/usePlanLabels.js';
 import { getTrainingPlans, getTrainingSessions } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
 
 const { t } = useLocaleStore();
+const { statusLabel, statusTagType } = usePlanLabels();
 const router = useRouter();
 const loading = ref(false);
 const error = ref('');
@@ -110,19 +112,9 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const pageSizes = [10, 20, 50];
-const sessionStatuses = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
+// 只按完成情况筛选，选项和口径集中放在 usePlanLabels，避免和服务端的推导规则各演化一份。
+const sessionStatuses = SESSION_COMPLETION_STATUSES;
 const durationParts = ['hours', 'minutes', 'seconds'];
-
-function statusLabel(value) {
-  return t(`plans.manager.statuses.${value}`);
-}
-
-function statusTagType(value) {
-  if (['achieved'].includes(value)) return 'success';
-  if (['partial'].includes(value)) return 'warning';
-  if (['skipped'].includes(value)) return 'danger';
-  return 'info';
-}
 
 function metricLabel(metric) {
   return t(`plans.exercise.metricOptions.${metric}`);

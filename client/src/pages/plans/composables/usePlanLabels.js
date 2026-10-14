@@ -5,6 +5,13 @@ import { useLocaleStore } from '@/stores/localeStore.js';
 export const SESSION_STATUSES = ['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped'];
 
 /**
+ * 全局训练单元页的完成状态筛选项：只留"练完没有"这一类结果。
+ * 待开始是时间位置、无数据和无法验证是数据问题，混进来只会和列表对不上；
+ * missed 不是存量状态，由服务端按"已过期且推导结果仍是待开始"换算，和日历同一口径。
+ */
+export const SESSION_COMPLETION_STATUSES = ['achieved', 'partial', 'skipped', 'missed'];
+
+/**
  * 计划模块共用的文案与配色：状态标签、生命周期标签、星期选项。
  * 计划页、计划详情和各弹窗都要用同一套，集中在这里以免各自演化。
  */
