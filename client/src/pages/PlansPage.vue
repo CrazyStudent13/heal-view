@@ -118,6 +118,21 @@
         <el-table-column :label="t('plans.exercise.verification')" width="110"
           ><template #default="{ row }">{{ verificationLabel(row.verificationMode) }}</template></el-table-column
         >
+        <el-table-column :label="t('plans.exercise.sportTypes')" min-width="170">
+          <template #default="{ row }">
+            <template v-if="row.verificationMode !== 'manual' && row.sportTypes?.length">
+              <el-tag
+                v-for="sportType in row.sportTypes"
+                :key="sportType"
+                size="small"
+                type="success"
+                class="metric-tag"
+                >{{ sportTypeLabel(sportType) }}</el-tag
+              >
+            </template>
+            <span v-else class="sport-types-empty">{{ t('common.empty') }}</span>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('plans.exercise.status')" width="88"
           ><template #default="{ row }"
             ><el-tag :type="row.enabled ? 'success' : 'info'">{{
@@ -273,6 +288,33 @@
               >
             </div>
           </el-form-item>
+          <el-form-item v-if="form.verificationMode !== 'manual'" class="sport-types-field">
+            <template #label>
+              <span class="field-label-with-help">
+                <span>{{ t('plans.exercise.sportTypes') }}</span>
+                <el-tooltip :content="t('plans.exercise.sportTypesHint')" placement="top">
+                  <el-icon class="field-help-icon" tabindex="0" :aria-label="t('plans.exercise.sportTypesHint')">
+                    <QuestionFilled />
+                  </el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-select
+              v-model="form.sportTypes"
+              class="full-width"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              :placeholder="t('plans.exercise.sportTypesPlaceholder')"
+            >
+              <el-option
+                v-for="sportType in sportTypeOptions"
+                :key="sportType"
+                :label="sportTypeLabel(sportType)"
+                :value="sportType"
+              />
+            </el-select>
+          </el-form-item>
         </div>
       </el-form>
       <template #footer
@@ -286,7 +328,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { CircleCheck, CircleClose, Delete as DeleteIcon, Refresh } from '@element-plus/icons-vue';
+import { CircleCheck, CircleClose, Delete as DeleteIcon, QuestionFilled, Refresh } from '@element-plus/icons-vue';
 import MdiArmFlex from '@iconify-vue/mdi/arm-flex';
 import MdiBadminton from '@iconify-vue/mdi/badminton';
 import MdiBasketball from '@iconify-vue/mdi/basketball';
@@ -376,6 +418,8 @@ const iconOptions = [
 const iconComponents = Object.fromEntries(iconOptions.map((option) => [option.value, option.component]));
 const iconLabels = Object.fromEntries(iconOptions.map((option) => [option.value, option.labelKey]));
 const defaultIcon = 'mdi:fitness-center';
+// 可选的运动类型由服务端提供，前端只负责翻译，避免两边各维护一份清单。
+const sportTypeOptions = ref([]);
 const form = reactive({
   name: '',
   icon: defaultIcon,
@@ -385,6 +429,7 @@ const form = reactive({
   equipmentMode: 'bodyweight',
   equipment: '',
   metrics: [],
+  sportTypes: [],
   purpose: ''
 });
 const autoFilledName = ref('');
@@ -445,6 +490,7 @@ const categoryLabel = (value) => t(`plans.exercise.categories.${value}`);
 const sceneLabel = (value) => t(`plans.exercise.scenes.${value}`);
 const verificationLabel = (value) => t(`plans.exercise.verificationModes.${value}`);
 const metricLabel = (value) => t(`plans.exercise.metricOptions.${value}`);
+const sportTypeLabel = (value) => t(`plans.exercise.sportTypeOptions.${value}`);
 const equipmentRequirement = (exercise) =>
   exercise.equipmentMode === 'equipment' ? exercise.equipment : t('plans.exercise.equipmentModes.bodyweight');
 const iconComponent = (value) => iconComponents[value] || MdiFitnessCenter;
@@ -455,6 +501,7 @@ async function loadExercises() {
   try {
     const response = await getTrainingExercises();
     exercises.value = response.exercises || [];
+    sportTypeOptions.value = response.sportTypeOptions || [];
   } catch (requestError) {
     error.value = requestError.message || t('plans.exercise.loadFailed');
   } finally {
@@ -490,6 +537,7 @@ function resetForm() {
     equipmentMode: 'bodyweight',
     equipment: '',
     metrics: [],
+    sportTypes: [],
     purpose: ''
   });
 }
@@ -523,6 +571,7 @@ function openEdit(exercise) {
     equipmentMode: exercise.equipmentMode || 'bodyweight',
     equipment: exercise.equipment || '',
     metrics: Array.isArray(exercise.metrics) ? [...exercise.metrics] : [],
+    sportTypes: Array.isArray(exercise.sportTypes) ? [...exercise.sportTypes] : [],
     purpose: exercise.purpose
   });
   dialogVisible.value = true;
@@ -747,7 +796,12 @@ onMounted(loadExercises);
 }
 .exercise-form-layout {
   display: grid;
-  grid-template-areas: 'category verification scene' 'equipment-mode equipment equipment' 'purpose purpose purpose' 'metrics metrics metrics';
+  grid-template-areas:
+    'category verification scene'
+    'equipment-mode equipment equipment'
+    'purpose purpose purpose'
+    'metrics metrics metrics'
+    'sport-types sport-types sport-types';
   grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 18px;
   align-items: start;
@@ -773,11 +827,27 @@ onMounted(loadExercises);
 .metrics-field {
   grid-area: metrics;
 }
+.sport-types-field {
+  grid-area: sport-types;
+  margin-bottom: 0;
+}
 .full-width {
   width: 100%;
 }
 .metrics-field {
   margin-bottom: 0;
+}
+.field-label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-help-icon {
+  color: var(--text-secondary);
+  cursor: help;
+}
+.sport-types-empty {
+  color: var(--text-secondary);
 }
 .metric-grid {
   display: grid;

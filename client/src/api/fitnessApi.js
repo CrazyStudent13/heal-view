@@ -142,8 +142,12 @@ export function deleteTrainingExercises(ids) {
   return apiClient.delete('/training-exercises', { data: { ids } });
 }
 
-export function getTrainingPlans(config = {}) {
-  return apiClient.get('/training-plans', config);
+/**
+ * 计划列表。归档是一种"我不想再看到它"的意图，默认不返回已归档计划，
+ * 需要显式传 includeArchived 才带上（服务端会把这些计划排在最后）。
+ */
+export function getTrainingPlans(params = {}, config = {}) {
+  return apiClient.get('/training-plans', { ...config, params });
 }
 
 export function getTrainingPlan(id, config = {}) {
@@ -168,6 +172,11 @@ export function createTrainingPlanWithSessions(payload) {
 
 export function updateTrainingPlan(id, plan) {
   return apiClient.put(`/training-plans/${id}`, plan);
+}
+
+/** 归档 / 取消归档。归档位与由日期推导的生命周期正交，所以单独一个端点。 */
+export function setTrainingPlanArchived(id, archived) {
+  return apiClient.patch(`/training-plans/${id}/archived`, { archived });
 }
 
 export function deleteTrainingPlan(id) {

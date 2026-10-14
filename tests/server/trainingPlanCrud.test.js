@@ -63,8 +63,7 @@ test('creates and reads a plan with phases and dated training sessions', async (
           name: 'Autumn recovery',
           goal: 'Build consistency',
           startDate: '2026-09-01',
-          endDate: '2026-10-31',
-          status: 'active'
+          endDate: '2026-10-31'
         }
       },
       planResponse
@@ -151,8 +150,7 @@ test('creates and reads a plan with phases and dated training sessions', async (
           plan: {
             name: 'October recovery',
             startDate: '2026-10-01',
-            endDate: '2026-10-31',
-            status: 'draft'
+            endDate: '2026-10-31'
           },
           sessions: [
             {
@@ -209,7 +207,8 @@ test('creates and reads a plan with phases and dated training sessions', async (
     const listedComposedPlan = listResponse.body.plans.find((plan) => plan.id === composedResponse.body.id);
     assert.equal(listedComposedPlan.sessionCount, 3);
     assert.equal(listedComposedPlan.trainingDayCount, 2);
-    assert.equal(listedComposedPlan.completedTrainingDayCount, 0);
+    // 没有任何执行记录，达成度只能靠导入数据；这天没数据就是没打卡。
+    assert.equal(listedComposedPlan.adherence.fulfilledDays, 0);
 
     const composedPhaseResponse = responseRecorder();
     createTrainingPhase(
@@ -282,8 +281,7 @@ test('appends batch exercises to existing training dates', async () => {
         body: {
           name: 'Batch append plan',
           startDate: '2026-09-01',
-          endDate: '2026-09-30',
-          status: 'active'
+          endDate: '2026-09-30'
         }
       },
       planResponse
@@ -393,8 +391,7 @@ test('plan calendar reflects saved mobile training execution', async () => {
         body: {
           name: 'Execution plan',
           startDate: '2026-10-01',
-          endDate: '2026-10-31',
-          status: 'active'
+          endDate: '2026-10-31'
         }
       },
       planResponse
@@ -448,7 +445,7 @@ test('plan calendar reflects saved mobile training execution', async () => {
     const listResponse = responseRecorder();
     listTrainingPlans({}, listResponse);
     const listedPlan = listResponse.body.plans.find((plan) => plan.id === planResponse.body.id);
-    assert.equal(listedPlan.completedTrainingDayCount, 1);
+    assert.equal(listedPlan.adherence.fulfilledDays, 1);
 
     const detailResponse = responseRecorder();
     getTrainingPlan({ params: { id: planResponse.body.id } }, detailResponse);
@@ -475,7 +472,7 @@ test('saves one phase review and returns its execution summary', async () => {
     const planResponse = responseRecorder();
     createTrainingPlan(
       {
-        body: { name: 'Review plan', startDate: '2026-09-01', endDate: '2026-09-30', status: 'active' }
+        body: { name: 'Review plan', startDate: '2026-09-01', endDate: '2026-09-30' }
       },
       planResponse
     );

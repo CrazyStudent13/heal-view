@@ -355,6 +355,71 @@ const migrations = [
     validate(db) {
       validateRequiredColumns(db, versionEightRequiredColumns);
     }
+  },
+  {
+    version: 9,
+    name: 'training exercise imported sport types',
+    up(db) {
+      // 有氧项目靠导入的运动记录自动验证完成情况，这里保存该项目认哪些导入运动类型。
+      // 存 JSON 数组是为了兼容同一种训练对应多种导入类型（例如室内步行同时认健走和户外步行）。
+      // SQLite 没有 ADD COLUMN IF NOT EXISTS，先探测再补，保证这套迁移可以重复执行。
+      const columns = new Set(
+        db
+          .prepare('PRAGMA table_info(training_exercises)')
+          .all()
+          .map((row) => row.name)
+      );
+      if (!columns.has('sport_types')) {
+        db.exec(`
+          ALTER TABLE training_exercises
+            ADD COLUMN sport_types TEXT NOT NULL DEFAULT '[]';
+        `);
+      }
+    },
+    validate(db) {
+      validateRequiredColumns(db, versionNineRequiredColumns);
+    }
+  },
+  {
+    version: 10,
+    name: 'split plan status into lifecycle and adherence',
+    up(db) {
+      // 计划原来只有一个 status 枚举，把"时间位置"（进行中）、"完成度"（已完成）和
+      // "用户意图"（归档）混在一起。现在拆成两个正交维度：
+      //   - 生命周期由日期推导，不落库，所以删掉 status 列；
+      //   - 达成度由训练单元和导入记录推导，也不落库；
+      //   - 只剩"我不想再看到它了"这一个推不出来的意图，用 archived_at 保存。
+      // 口径见 docs/todos/training-plan.md 的「计划的两个维度」。
+      //
+      // 这里用 ALTER TABLE DROP COLUMN 而不是重建表：training_phases 和 training_sessions
+      // 都以 ON DELETE CASCADE 指向 training_plans，重建表会连带删掉全部阶段和训练单元。
+      // 实测（外键开启）DROP COLUMN 走的是内部改写，不会触发级联，子表数据完好。
+      const columns = new Set(
+        db
+          .prepare('PRAGMA table_info(training_plans)')
+          .all()
+          .map((row) => row.name)
+      );
+      if (!columns.has('archived_at')) {
+        db.exec('ALTER TABLE training_plans ADD COLUMN archived_at INTEGER');
+      }
+      if (columns.has('status')) {
+        // 旧的 archived 是唯一能对应到新模型的取值，其余（draft/active/paused/completed）
+        // 都已由日期或达成度推导，直接丢弃。
+        db.exec(`
+          UPDATE training_plans SET archived_at = updated_at WHERE status = 'archived' AND archived_at IS NULL;
+          DROP INDEX IF EXISTS idx_training_plans_status;
+          ALTER TABLE training_plans DROP COLUMN status;
+        `);
+      }
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_training_plans_archived ON training_plans(archived_at);
+        CREATE INDEX IF NOT EXISTS idx_training_plans_dates ON training_plans(start_date, end_date);
+      `);
+    },
+    validate(db) {
+      validateVersionTenSchema(db);
+    }
   }
 ];
 
@@ -496,10 +561,22 @@ const versionEightRequiredColumns = {
   ]
 };
 
+const versionNineRequiredColumns = {
+  training_exercises: ['sport_types']
+};
+
+const versionTenRequiredColumns = {
+  training_plans: ['archived_at']
+};
+
 function validateVersionFourSchema(db) {
   validateRequiredColumns(db, {
     ...versionFourRequiredColumns,
-    training_sessions: versionFourRequiredColumns.training_sessions.filter((column) => column !== 'phase_id')
+    // v5 把训练单元改成直接挂计划，phase_id 不再存在。
+    training_sessions: versionFourRequiredColumns.training_sessions.filter((column) => column !== 'phase_id'),
+    // v10 把计划状态拆成生命周期和达成度，status 不再存在。
+    // 迁移完成后每次启动都会重跑历史版本的 validate，所以这里必须跟着放开。
+    training_plans: versionFourRequiredColumns.training_plans.filter((column) => column !== 'status')
   });
 
   const sessionColumns = new Set(
@@ -510,6 +587,25 @@ function validateVersionFourSchema(db) {
   );
   if (!sessionColumns.has('phase_id') && !sessionColumns.has('plan_id')) {
     throw new Error('Table training_sessions is missing its plan association');
+  }
+}
+
+/**
+ * 校验 v10 之后计划表的结构：归档位存在，且混淆的 status 已经删除。
+ * 只检查"新增的必需字段"会让漏删 status 的库静默通过，所以这里额外确认旧列确实不在了。
+ * @param {import('node:sqlite').DatabaseSync} db SQLite 数据库连接
+ */
+function validateVersionTenSchema(db) {
+  validateRequiredColumns(db, versionTenRequiredColumns);
+
+  const planColumns = new Set(
+    db
+      .prepare('PRAGMA table_info(training_plans)')
+      .all()
+      .map((row) => row.name)
+  );
+  if (planColumns.has('status')) {
+    throw new Error('Table training_plans still has the removed status column');
   }
 }
 

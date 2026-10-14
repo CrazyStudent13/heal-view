@@ -1,4 +1,5 @@
 import { databaseService } from '../services/database.js';
+import { SPORT_TYPE_KEYS, normalizeSportTypes } from '../utils/sportTypes.js';
 
 const CATEGORIES = new Set(['aerobic', 'strength', 'flexibility', 'balance', 'other']);
 const SCENES = new Set(['indoor', 'outdoor']);
@@ -38,6 +39,7 @@ function serializeExercise(row) {
     equipmentMode: row.equipment_mode,
     equipment: row.equipment || '',
     metrics: parseJson(row.metrics, []),
+    sportTypes: normalizeSportTypes(parseJson(row.sport_types, [])) || [],
     purpose: row.purpose || '',
     enabled: Boolean(row.enabled),
     createdAt: Number(row.created_at),
@@ -54,6 +56,7 @@ function validatePayload(payload = {}) {
   const equipmentMode = payload.equipmentMode || 'bodyweight';
   const equipment = typeof payload.equipment === 'string' ? payload.equipment.trim() : '';
   const metrics = Array.isArray(payload.metrics) ? [...new Set(payload.metrics)] : [];
+  const sportTypes = normalizeSportTypes(payload.sportTypes);
   const purpose = typeof payload.purpose === 'string' ? payload.purpose.trim() : '';
 
   const errors = {};
@@ -66,6 +69,7 @@ function validatePayload(payload = {}) {
     errors.equipment = 'Equipment is required and must be 80 characters or fewer';
   }
   if (!VERIFICATION_MODES.has(verificationMode)) errors.verificationMode = 'Invalid verification mode';
+  if (sportTypes === null) errors.sportTypes = 'Imported sport types must be known values';
   if (metrics.some((metric) => !METRICS.has(metric))) errors.metrics = 'Invalid metric';
   if (purpose.length > 500) errors.purpose = 'Purpose must be 500 characters or fewer';
 
@@ -80,6 +84,7 @@ function validatePayload(payload = {}) {
       equipmentMode,
       equipment: equipmentMode === 'equipment' ? equipment : '',
       metrics,
+      sportTypes: sportTypes || [],
       purpose
     }
   };
@@ -149,7 +154,7 @@ export function listTrainingExercises(req, res) {
         : result[0].values.map((values) =>
             serializeExercise(Object.fromEntries(result[0].columns.map((column, index) => [column, values[index]])))
           );
-    res.json({ exercises: rows });
+    res.json({ exercises: rows, sportTypeOptions: SPORT_TYPE_KEYS });
   } catch (error) {
     console.error('Error listing training exercises:', error);
     res.status(500).json({ error: 'Failed to fetch training exercises' });
@@ -177,8 +182,8 @@ export function createTrainingExercise(req, res) {
     const statement = databaseService.getDb();
     statement.run(
       `INSERT INTO training_exercises
-        (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, enabled, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, sport_types, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
       [
         value.name,
         value.icon,
@@ -189,6 +194,7 @@ export function createTrainingExercise(req, res) {
         value.equipment,
         JSON.stringify(value.metrics),
         value.purpose,
+        JSON.stringify(value.sportTypes),
         now,
         now
       ]
@@ -213,7 +219,7 @@ export function updateTrainingExercise(req, res) {
     const { value } = validation;
     databaseService.getDb().run(
       `UPDATE training_exercises
-       SET name = ?, icon = ?, category = ?, scene = ?, verification_mode = ?, equipment_mode = ?, equipment = ?, metrics = ?, purpose = ?, updated_at = ?
+       SET name = ?, icon = ?, category = ?, scene = ?, verification_mode = ?, equipment_mode = ?, equipment = ?, metrics = ?, purpose = ?, sport_types = ?, updated_at = ?
        WHERE id = ?`,
       [
         value.name,
@@ -225,6 +231,7 @@ export function updateTrainingExercise(req, res) {
         value.equipment,
         JSON.stringify(value.metrics),
         value.purpose,
+        JSON.stringify(value.sportTypes),
         now,
         id
       ]

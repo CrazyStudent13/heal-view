@@ -1,6 +1,8 @@
 import { databaseService } from '../services/database.js';
 import { normalizeActualValue, SKIP_REASONS } from '../utils/trainingMetrics.js';
 import { validateDateRange } from '../utils/requestValidation.js';
+import { evaluateAerobicItem } from '../services/aerobicMatching.js';
+import { loadNormalizedSportRecords, todayDateKey } from '../services/sportRecordRepository.js';
 
 const MAX_RANGE_DAYS = 62;
 const LOG_STATUSES = new Set(['completed', 'partial', 'skipped']);
@@ -208,6 +210,7 @@ const DAY_SESSIONS_SQL = `
     exercise.category AS exercise_category,
     exercise.equipment AS exercise_equipment,
     exercise.metrics AS exercise_metrics,
+    exercise.sport_types AS exercise_sport_types,
     item.id AS log_item_id,
     item.status AS log_item_status,
     item.actuals AS log_item_actuals,
@@ -234,22 +237,24 @@ const DAY_SESSIONS_SQL = `
   LEFT JOIN training_session_logs log ON log.session_id = s.id
   LEFT JOIN training_session_log_items item
     ON item.session_log_id = log.id AND item.session_item_id = db_item.id
-  WHERE s.scheduled_date >= ? AND s.scheduled_date <= ?
+  WHERE s.scheduled_date >= ? AND s.scheduled_date <= ? AND p.archived_at IS NULL
   ORDER BY s.scheduled_date, s.sequence, s.id, db_item.position, db_item.id
 `;
 
+// 归档是"我不想再看到它了"，所以归档计划里的训练单元既不出现在手机端今日训练，
+// 也不该还能通过单个训练单元的入口打开。
 const SESSION_DETAIL_SQL = DAY_SESSIONS_SQL.replace(
-  'WHERE s.scheduled_date >= ? AND s.scheduled_date <= ?',
-  'WHERE s.id = ?'
+  'WHERE s.scheduled_date >= ? AND s.scheduled_date <= ? AND p.archived_at IS NULL',
+  'WHERE s.id = ? AND p.archived_at IS NULL'
 );
 
 /**
- * 训练单元视图。只暴露需要人工确认的项目（manual）：
- * 自动验证项目由手表数据匹配确认，不该出现在手动确认流程里。
- * 自动项目数量单独返回，供前端提示「其余项目由手表自动确认」。
+ * 训练单元视图。手动项目进入人工确认流程，自动验证项目不进这个流程，
+ * 而是单独返回它们的导入数据匹配结果，让手机端能说明"手表那边到底确认了没有"。
  */
-function serializeDaySession(row, itemRows) {
+function serializeDaySession(row, itemRows, { records = [], today = todayDateKey() } = {}) {
   const manualRows = itemRows.filter((item) => item.verification_mode === 'manual');
+  const autoRows = itemRows.filter((item) => item.verification_mode !== 'manual');
   const items = manualRows.map((item) => ({
     sessionItemId: Number(item.session_item_id),
     exerciseId: Number(item.exercise_id),
@@ -276,6 +281,33 @@ function serializeDaySession(row, itemRows) {
       : null
   }));
 
+  const autoItems = autoRows.map((item) => {
+    const targets = parseJson(item.targets, {});
+    const match = evaluateAerobicItem({
+      targets,
+      sportTypes: parseJson(item.exercise_sport_types, []),
+      records,
+      scheduledDate: row.scheduled_date,
+      today
+    });
+    return {
+      sessionItemId: Number(item.session_item_id),
+      exercise: {
+        name: item.exercise_name,
+        icon: item.exercise_icon,
+        equipment: item.exercise_equipment || ''
+      },
+      targets,
+      status: match.status,
+      reason: match.reason,
+      progress: match.progress,
+      ambiguous: match.ambiguous,
+      candidateCount: match.candidateCount,
+      matchedMetrics: match.matchedMetrics,
+      record: match.record
+    };
+  });
+
   return {
     sessionId: Number(row.session_id),
     planId: Number(row.plan_id),
@@ -286,10 +318,11 @@ function serializeDaySession(row, itemRows) {
     planNotes: row.notes || '',
     plannedStatus: row.planned_status,
     itemCount: items.length,
-    autoItemCount: itemRows.length - manualRows.length,
+    autoItemCount: autoRows.length,
     doneCount: items.filter((item) => item.execution?.status === 'done').length,
     skippedCount: items.filter((item) => item.execution?.status === 'skipped').length,
     items,
+    autoItems,
     execution: row.log_id
       ? {
           id: Number(row.log_id),
@@ -304,7 +337,7 @@ function serializeDaySession(row, itemRows) {
   };
 }
 
-function groupDayRows(rows) {
+function groupDayRows(rows, context) {
   const sessions = new Map();
   for (const row of rows) {
     const bucket = sessions.get(row.session_id);
@@ -314,15 +347,22 @@ function groupDayRows(rows) {
     }
     sessions.set(row.session_id, { row, rows: [row] });
   }
-  return [...sessions.values()].map(({ row, rows: itemRows }) => serializeDaySession(row, itemRows));
+  return [...sessions.values()].map(({ row, rows: itemRows }) => serializeDaySession(row, itemRows, context));
 }
 
 function fetchSessionsForRange(startDate, endDate) {
-  return groupDayRows(queryRows(DAY_SESSIONS_SQL, [startDate, endDate]));
+  return groupDayRows(queryRows(DAY_SESSIONS_SQL, [startDate, endDate]), {
+    records: loadNormalizedSportRecords(startDate, endDate),
+    today: todayDateKey()
+  });
 }
 
 function fetchSessionDetail(sessionId) {
-  return groupDayRows(queryRows(SESSION_DETAIL_SQL, [sessionId]))[0] || null;
+  const rows = queryRows(SESSION_DETAIL_SQL, [sessionId]);
+  if (rows.length === 0) return null;
+  // 单个训练单元只覆盖一天，按这一天取导入记录即可。
+  const date = rows[0].scheduled_date;
+  return groupDayRows(rows, { records: loadNormalizedSportRecords(date, date), today: todayDateKey() })[0] || null;
 }
 
 function countAutomaticSessionItems(sessionId) {

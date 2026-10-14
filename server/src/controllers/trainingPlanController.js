@@ -1,7 +1,9 @@
 import { databaseService } from '../services/database.js';
 import { isTrainingMetric } from '../utils/trainingMetrics.js';
+import { evaluateAerobicItem, summarizeCoverage, summarizeItemResults } from '../services/aerobicMatching.js';
+import { loadNormalizedSportRecords, todayDateKey } from '../services/sportRecordRepository.js';
+import { computePlanAdherence, resolvePlanLifecycle, summarizePlanAdherence } from '../services/planAdherence.js';
 
-const PLAN_STATUSES = new Set(['draft', 'active', 'paused', 'completed', 'archived']);
 const PHASE_STATUSES = new Set(['planned', 'active', 'paused', 'completed', 'cancelled']);
 const SESSION_STATUSES = new Set(['planned', 'achieved', 'partial', 'no_data', 'unverifiable', 'skipped']);
 const MAX_FATIGUE_LEVEL = 10;
@@ -52,14 +54,12 @@ function validatePlanPayload(payload = {}) {
     goal: text(payload.goal, 1000),
     startDate: payload.startDate,
     endDate: payload.endDate,
-    status: payload.status || 'draft',
     notes: text(payload.notes, 2000)
   };
   const errors = {};
   if (!value.name) errors.name = 'Name is required and must be 100 characters or fewer';
   if (value.goal === null) errors.goal = 'Goal must be 1000 characters or fewer';
   if (value.notes === null) errors.notes = 'Notes must be 2000 characters or fewer';
-  if (!PLAN_STATUSES.has(value.status)) errors.status = 'Invalid plan status';
   validateDateRange(value.startDate, value.endDate, errors);
   return Object.keys(errors).length > 0 ? { errors } : { value };
 }
@@ -160,20 +160,21 @@ function validatePhaseReviewPayload(payload = {}) {
   return Object.keys(errors).length > 0 ? { errors } : { value };
 }
 
-function serializePlan(row) {
+function serializePlan(row, { today = todayDateKey(), stats = null } = {}) {
   return {
     id: Number(row.id),
     name: row.name,
     goal: row.goal || '',
     startDate: row.start_date,
     endDate: row.end_date,
-    status: row.status,
+    // 生命周期由日期推导，归档是独立的意图位，两者都不落库。
+    // 原来那个把"进行中/已完成/已归档"混在一起的 status 枚举已经在迁移 v10 删除。
+    ...resolvePlanLifecycle({ startDate: row.start_date, endDate: row.end_date, archivedAt: row.archived_at }, today),
     notes: row.notes || '',
     phaseCount: row.phase_count == null ? undefined : Number(row.phase_count),
     sessionCount: row.session_count == null ? undefined : Number(row.session_count),
     trainingDayCount: row.training_day_count == null ? undefined : Number(row.training_day_count),
-    completedTrainingDayCount:
-      row.completed_training_day_count == null ? undefined : Number(row.completed_training_day_count),
+    adherence: stats?.adherence ?? summarizePlanAdherence(),
     phaseName: row.phase_name || '',
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at)
@@ -292,8 +293,10 @@ function serializeItem(row) {
       name: row.exercise_name,
       icon: row.exercise_icon,
       category: row.exercise_category,
-      metrics: parseJson(row.exercise_metrics, [])
+      metrics: parseJson(row.exercise_metrics, []),
+      sportTypes: parseJson(row.exercise_sport_types, [])
     },
+    match: null,
     execution: row.log_item_id
       ? {
           status: row.log_item_status,
@@ -314,9 +317,205 @@ function effectiveSessionStatus(plannedStatus, executionStatus, itemCount = 0, l
   return plannedStatus;
 }
 
-function getPlan(id) {
-  const row = queryRow('SELECT * FROM training_plans WHERE id = ?', [id]);
-  return row ? serializePlan(row) : null;
+// —— 有氧训练自动匹配 ——
+// 匹配结果只在读取时计算，从不写回 training_sessions.status，
+// 这样重新导入或清空导入数据后结果会自然重算，历史计划也不会被导入数据改写。
+
+/**
+ * 把自动匹配结果汇总成训练单元状态。
+ * 人工确认优先：只要手机端或计划页留下过执行记录，就沿用人工判定，自动匹配不覆盖。
+ * 还有人工项目没确认时保持原状态，避免"器械还没打卡"被有氧数据带成已完成。
+ * @param {object} params 汇总入参
+ * @returns {string} 训练单元状态
+ */
+function deriveSessionStatus({
+  plannedStatus,
+  scheduledDate,
+  today,
+  executionStatus,
+  itemCount,
+  loggedItemCount,
+  manualItemCount,
+  pendingManualItemCount,
+  autoMatches
+}) {
+  // 有人工执行记录时完全沿用手工判定，自动匹配不参与。
+  if (executionStatus) return effectiveSessionStatus(plannedStatus, executionStatus, itemCount, loggedItemCount);
+  // 状态已经被手工设置过（例如直接标记完成）时不覆盖。
+  if (plannedStatus !== 'planned') return plannedStatus;
+  // 还有人工项目没确认，或者整个单元都是人工项目，都保持原状态。
+  if (pendingManualItemCount > 0) return plannedStatus;
+  if (manualItemCount === itemCount) return plannedStatus;
+  if (!scheduledDate || scheduledDate >= today) return plannedStatus;
+
+  const statuses = autoMatches.map((match) => match.status).filter(Boolean);
+  if (statuses.length === 0) return plannedStatus;
+  if (statuses.every((status) => status === 'achieved')) return 'achieved';
+  if (statuses.some((status) => status === 'achieved' || status === 'partial')) return 'partial';
+  if (statuses.some((status) => status === 'unverifiable')) return 'unverifiable';
+  return 'no_data';
+}
+
+/**
+ * 评估一批训练单元的自动验证项目。
+ * @param {Array<object>} itemRows 训练项目行，需带 scheduled_date、verification_mode、targets、exercise_sport_types
+ * @param {Array<object>} records 归一后的导入运动记录
+ * @param {string} today 今天的日期
+ * @returns {Map<number, object>} 训练项目 id → 匹配结果
+ */
+function evaluateAutoMatches(itemRows, records, today) {
+  const matches = new Map();
+  for (const row of itemRows) {
+    if (row.verification_mode === 'manual') continue;
+    matches.set(
+      Number(row.id),
+      evaluateAerobicItem({
+        targets: parseJson(row.targets, {}),
+        sportTypes: parseJson(row.exercise_sport_types, []),
+        records,
+        scheduledDate: row.scheduled_date,
+        today
+      })
+    );
+  }
+  return matches;
+}
+
+/**
+ * 计划列表用的批量统计：一次算完多个计划的数据覆盖率、达成度和加练日。
+ * 固定几条查询覆盖全部计划，避免按计划逐个查询。
+ *
+ * 达成度口径见 services/planAdherence.js：分母是已过期且不被 cancelled 阶段覆盖的训练日，
+ * 分子是履约日加加练日，所以比率可以超过 100%。
+ * @param {number[]} planIds 计划 id
+ * @param {string} today 今天的日期
+ * @param {Array<object>|null} preloadedRecords 已经读好的导入记录；详情页同一个区间会复用，传了就跳过重复读取
+ * @returns {Map<number, { coverage: object, adherence: object, extraDates: string[] }>} 计划 id → 统计
+ */
+function computePlanStats(planIds, today, preloadedRecords = null) {
+  const stats = new Map();
+  if (planIds.length === 0) return stats;
+  const placeholders = planIds.map(() => '?').join(', ');
+
+  const planRows = queryRows(
+    `SELECT id, start_date, end_date FROM training_plans WHERE id IN (${placeholders})`,
+    planIds
+  );
+  if (planRows.length === 0) return stats;
+
+  const cancelledPhaseRows = queryRows(
+    `SELECT plan_id, start_date, end_date FROM training_phases
+     WHERE plan_id IN (${placeholders}) AND status = 'cancelled'`,
+    planIds
+  );
+  const cancelledPhasesByPlan = Map.groupBy(cancelledPhaseRows, (row) => Number(row.plan_id));
+
+  const sessionRows = queryRows(
+    `SELECT s.id, s.plan_id, s.scheduled_date, s.status AS planned_status,
+       log.status AS execution_status,
+       (SELECT COUNT(*) FROM training_session_items counted_item WHERE counted_item.session_id = s.id) AS item_count,
+       (SELECT COUNT(*) FROM training_session_log_items logged_item
+          JOIN training_session_logs logged_log ON logged_log.id = logged_item.session_log_id
+          WHERE logged_log.session_id = s.id) AS logged_item_count
+     FROM training_sessions s
+     LEFT JOIN training_session_logs log ON log.session_id = s.id
+     WHERE s.plan_id IN (${placeholders})`,
+    planIds
+  );
+
+  const itemRows = queryRows(
+    `SELECT i.id, i.session_id, i.verification_mode, i.targets,
+       s.plan_id AS plan_id, s.scheduled_date AS scheduled_date,
+       e.sport_types AS exercise_sport_types,
+       (SELECT COUNT(*) FROM training_session_log_items item_log
+          JOIN training_session_logs item_log_head ON item_log_head.id = item_log.session_log_id
+          WHERE item_log.session_item_id = i.id) AS item_log_count
+     FROM training_session_items i
+     JOIN training_exercises e ON e.id = i.exercise_id
+     JOIN training_sessions s ON s.id = i.session_id
+     WHERE s.plan_id IN (${placeholders})`,
+    planIds
+  );
+
+  // 加练日可能落在没有任何训练单元的日子上，所以区间取计划自身的起止日期，
+  // 而不是训练单元的 MIN/MAX（那个区间不保证覆盖计划的头尾）。
+  const planStartDates = planRows.map((row) => row.start_date).sort();
+  const planEndDates = planRows.map((row) => row.end_date).sort();
+  const records = preloadedRecords ?? loadNormalizedSportRecords(planStartDates[0], planEndDates.at(-1));
+  const matches = evaluateAutoMatches(itemRows, records, today);
+  const itemsBySession = Map.groupBy(itemRows, (row) => Number(row.session_id));
+
+  const buckets = new Map();
+  for (const session of sessionRows) {
+    const sessionItems = itemsBySession.get(Number(session.id)) || [];
+    const manualItems = sessionItems.filter((item) => item.verification_mode === 'manual');
+    const autoMatches = sessionItems
+      .filter((item) => item.verification_mode !== 'manual')
+      .map((item) => matches.get(Number(item.id)))
+      .filter(Boolean);
+    const status = deriveSessionStatus({
+      plannedStatus: session.planned_status,
+      scheduledDate: session.scheduled_date,
+      today,
+      executionStatus: session.execution_status || '',
+      itemCount: Number(session.item_count) || 0,
+      loggedItemCount: Number(session.logged_item_count) || 0,
+      manualItemCount: manualItems.length,
+      pendingManualItemCount: manualItems.filter((item) => !Number(item.item_log_count)).length,
+      autoMatches
+    });
+
+    const planId = Number(session.plan_id);
+    const bucket = buckets.get(planId) || { autoMatches: [], sessions: [], sportTypes: new Set() };
+    bucket.autoMatches.push(...autoMatches);
+    // 达成度按派生状态算，保证和计划详情里日历上看到的判定完全一致。
+    bucket.sessions.push({ scheduledDate: session.scheduled_date, status });
+    for (const item of sessionItems) {
+      for (const sportType of parseJson(item.exercise_sport_types, [])) bucket.sportTypes.add(sportType);
+    }
+    buckets.set(planId, bucket);
+  }
+
+  for (const planRow of planRows) {
+    const planId = Number(planRow.id);
+    const bucket = buckets.get(planId) || { autoMatches: [], sessions: [], sportTypes: new Set() };
+    const adherence = computePlanAdherence({
+      startDate: planRow.start_date,
+      endDate: planRow.end_date,
+      today,
+      sessions: bucket.sessions,
+      cancelledPhaseRanges: (cancelledPhasesByPlan.get(planId) || []).map((row) => ({
+        startDate: row.start_date,
+        endDate: row.end_date
+      })),
+      records,
+      sportTypes: [...bucket.sportTypes]
+    });
+    stats.set(planId, {
+      coverage: summarizeCoverage(bucket.autoMatches),
+      adherence: {
+        eligibleDays: adherence.eligibleDays,
+        fulfilledDays: adherence.fulfilledDays,
+        extraDays: adherence.extraDays,
+        completedDays: adherence.completedDays,
+        rate: adherence.rate,
+        tier: adherence.tier
+      },
+      extraDates: adherence.extraDates
+    });
+  }
+  return stats;
+}
+
+/** 只取计划行，给存在性校验这类不需要统计的地方用，避免白算一遍达成度。 */
+function getPlanRow(id) {
+  return queryRow('SELECT * FROM training_plans WHERE id = ?', [id]);
+}
+
+/** 带生命周期和达成度的计划响应；列表和详情之外的写操作回应都用这个。 */
+function getPlan(id, today = todayDateKey()) {
+  const row = getPlanRow(id);
+  return row ? serializePlan(row, { today, stats: computePlanStats([Number(id)], today).get(Number(id)) }) : null;
 }
 
 function getPhase(id) {
@@ -364,23 +563,23 @@ function respondConflict(res, code, message) {
 
 export function listTrainingPlans(req, res) {
   try {
-    const rows = queryRows(`
+    // 归档的计划默认不出现在列表里：归档是"我不想再看到它了"这一个意图。
+    const includeArchived = String(req.query?.includeArchived ?? '') === 'true';
+    const today = todayDateKey();
+    const rows = queryRows(
+      `
       SELECT p.*,
         COUNT(DISTINCT ph.id) AS phase_count,
         COUNT(DISTINCT s.id) AS session_count,
         COUNT(DISTINCT s.scheduled_date) AS training_day_count,
-        COUNT(DISTINCT CASE
-          WHEN log.status IN ('completed', 'partial') OR (log.id IS NULL AND s.status IN ('achieved', 'partial'))
-          THEN s.scheduled_date
-        END) AS completed_training_day_count,
         (
           SELECT phase.name
           FROM training_phases phase
           WHERE phase.plan_id = p.id
           ORDER BY
             CASE
-              WHEN date('now') BETWEEN phase.start_date AND phase.end_date THEN 0
-              WHEN phase.start_date > date('now') THEN 1
+              WHEN ? BETWEEN phase.start_date AND phase.end_date THEN 0
+              WHEN phase.start_date > ? THEN 1
               ELSE 2
             END,
             phase.position,
@@ -391,12 +590,33 @@ export function listTrainingPlans(req, res) {
       FROM training_plans p
       LEFT JOIN training_phases ph ON ph.plan_id = p.id
       LEFT JOIN training_sessions s ON s.plan_id = p.id
-      LEFT JOIN training_session_logs log ON log.session_id = s.id
+      ${includeArchived ? '' : 'WHERE p.archived_at IS NULL'}
       GROUP BY p.id
-      ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END,
-        p.start_date DESC, p.id DESC
-    `);
-    return res.json({ plans: rows.map(serializePlan) });
+    `,
+      [today, today]
+    );
+    // 训练单元状态里包含了有氧自动匹配的结果，只在读取时计算，所以列表页要单独汇总一次。
+    const stats = computePlanStats(
+      rows.map((row) => Number(row.id)),
+      today
+    );
+    const plans = rows.map((row) => {
+      const plan = serializePlan(row, { today, stats: stats.get(Number(row.id)) });
+      return {
+        ...plan,
+        coverage: stats.get(Number(row.id))?.coverage || summarizeCoverage([])
+      };
+    });
+    // 排序也按推导出来的生命周期走，避免把同一套规则在 SQL 和 JS 里各写一份。
+    const lifecycleRank = { active: 0, draft: 1, ended: 2 };
+    plans.sort((left, right) => {
+      if (left.archived !== right.archived) return left.archived ? 1 : -1;
+      const byLifecycle = lifecycleRank[left.lifecycle] - lifecycleRank[right.lifecycle];
+      if (byLifecycle !== 0) return byLifecycle;
+      if (left.startDate !== right.startDate) return left.startDate < right.startDate ? 1 : -1;
+      return right.id - left.id;
+    });
+    return res.json({ plans });
   } catch (error) {
     console.error('Error listing training plans:', error);
     return res.status(500).json({ error: 'Failed to fetch training plans' });
@@ -465,8 +685,15 @@ export function listTrainingSessions(req, res) {
 
 export function getTrainingPlan(req, res) {
   try {
-    const plan = getPlan(Number(req.params.id));
-    if (!plan) return res.status(404).json({ error: 'Training plan not found' });
+    const today = todayDateKey();
+    const planId = Number(req.params.id);
+    const row = getPlanRow(planId);
+    if (!row) return res.status(404).json({ error: 'Training plan not found' });
+    // 详情页只需要一个计划的区间，先读一次导入记录，达成度统计和项目匹配共用同一份，
+    // 避免在同一个请求里把最重的那条查询跑两遍。
+    const sportRecords = loadNormalizedSportRecords(row.start_date, row.end_date);
+    const stats = computePlanStats([planId], today, sportRecords).get(planId);
+    const plan = serializePlan(row, { today, stats });
     const phases = queryRows('SELECT * FROM training_phases WHERE plan_id = ? ORDER BY position, start_date, id', [
       plan.id
     ]).map(serializePhase);
@@ -490,12 +717,14 @@ export function getTrainingPlan(req, res) {
       [plan.id]
     ).map(serializeSession);
     const sessionIds = sessions.map((session) => session.id);
-    const items =
+    const itemRows =
       sessionIds.length === 0
         ? []
         : queryRows(
             `SELECT i.*, e.name AS exercise_name, e.icon AS exercise_icon,
               e.category AS exercise_category, e.metrics AS exercise_metrics,
+              e.sport_types AS exercise_sport_types,
+              s.scheduled_date AS scheduled_date,
               log_item.id AS log_item_id,
               log_item.status AS log_item_status,
               log_item.actuals AS log_item_actuals,
@@ -503,19 +732,54 @@ export function getTrainingPlan(req, res) {
               log_item.note AS log_item_note
              FROM training_session_items i
              JOIN training_exercises e ON e.id = i.exercise_id
+             JOIN training_sessions s ON s.id = i.session_id
              LEFT JOIN training_session_logs log ON log.session_id = i.session_id
              LEFT JOIN training_session_log_items log_item
               ON log_item.session_log_id = log.id AND log_item.session_item_id = i.id
              WHERE i.session_id IN (${sessionIds.map(() => '?').join(', ')})
              ORDER BY i.position, i.id`,
             sessionIds
-          ).map(serializeItem);
+          );
+
+    const matches = evaluateAutoMatches(itemRows, sportRecords, today);
+    const items = itemRows.map((row) => {
+      const item = serializeItem(row);
+      const match = matches.get(item.id);
+      return match ? { ...item, match } : item;
+    });
 
     const itemsBySession = Map.groupBy(items, (item) => item.sessionId);
+    const resolvedSessions = sessions.map((session) => {
+      const sessionItems = itemsBySession.get(session.id) || [];
+      const manualItems = sessionItems.filter((item) => item.verificationMode === 'manual');
+      const autoMatches = sessionItems
+        .filter((item) => item.verificationMode !== 'manual' && item.match)
+        .map((item) => item.match);
+      return {
+        ...session,
+        items: sessionItems,
+        status: deriveSessionStatus({
+          plannedStatus: session.plannedStatus,
+          scheduledDate: session.scheduledDate,
+          today,
+          executionStatus: session.execution?.status || '',
+          itemCount: sessionItems.length,
+          loggedItemCount: sessionItems.filter((item) => item.execution).length,
+          manualItemCount: manualItems.length,
+          pendingManualItemCount: manualItems.filter((item) => !item.execution).length,
+          autoMatches
+        }),
+        autoSummary: summarizeItemResults(autoMatches)
+      };
+    });
+
     return res.json({
       ...plan,
       phases,
-      sessions: sessions.map((session) => ({ ...session, items: itemsBySession.get(session.id) || [] }))
+      coverage: stats?.coverage || summarizeCoverage([]),
+      // 加练日推不出来（它落在没有训练单元的日子上），单独返回，让详情页能解释比率为什么超过 100%。
+      extraTrainingDates: stats?.extraDates || [],
+      sessions: resolvedSessions
     });
   } catch (error) {
     console.error('Error getting training plan:', error);
@@ -530,9 +794,9 @@ export function createTrainingPlan(req, res) {
     const now = Date.now();
     const value = validation.value;
     databaseService.getDb().run(
-      `INSERT INTO training_plans (name, goal, start_date, end_date, status, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [value.name, value.goal, value.startDate, value.endDate, value.status, value.notes, now, now]
+      `INSERT INTO training_plans (name, goal, start_date, end_date, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [value.name, value.goal, value.startDate, value.endDate, value.notes, now, now]
     );
     const id = Number(queryRow('SELECT last_insert_rowid() AS id').id);
     return res.status(201).json(getPlan(id));
@@ -599,9 +863,9 @@ export function createTrainingPlanWithSessions(req, res) {
     db.run('BEGIN IMMEDIATE');
     transactionOpen = true;
     db.run(
-      `INSERT INTO training_plans (name, goal, start_date, end_date, status, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [plan.name, plan.goal, plan.startDate, plan.endDate, plan.status, plan.notes, now, now]
+      `INSERT INTO training_plans (name, goal, start_date, end_date, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [plan.name, plan.goal, plan.startDate, plan.endDate, plan.notes, now, now]
     );
     const planId = Number(queryRow('SELECT last_insert_rowid() AS id').id);
 
@@ -631,8 +895,21 @@ export function updateTrainingPlan(req, res) {
   if (validation.errors) return res.status(400).json({ error: 'Invalid training plan', fields: validation.errors });
   try {
     const id = Number(req.params.id);
-    if (!getPlan(id)) return res.status(404).json({ error: 'Training plan not found' });
+    const existing = getPlanRow(id);
+    if (!existing) return res.status(404).json({ error: 'Training plan not found' });
     const value = validation.value;
+
+    // 计划一旦开始就不能停止：已开始的计划只能延长。
+    // 缩短结束日期等于变相提前结束，要提前结束就用阶段级手段（取消阶段或删掉后续训练单元），
+    // 要整体放弃就用归档。见 docs/todos/training-plan.md 的「计划的两个维度」。
+    if (todayDateKey() >= existing.start_date && value.endDate < existing.end_date) {
+      return respondConflict(
+        res,
+        'PLAN_END_DATE_CANNOT_SHRINK',
+        'A started plan can only be extended; archive it or cancel phases to stop early'
+      );
+    }
+
     const outsidePhase = queryRow(
       'SELECT id FROM training_phases WHERE plan_id = ? AND (start_date < ? OR end_date > ?) LIMIT 1',
       [id, value.startDate, value.endDate]
@@ -650,13 +927,39 @@ export function updateTrainingPlan(req, res) {
         'Plan dates must include all existing training sessions'
       );
     databaseService.getDb().run(
-      `UPDATE training_plans SET name = ?, goal = ?, start_date = ?, end_date = ?, status = ?, notes = ?, updated_at = ?
+      `UPDATE training_plans SET name = ?, goal = ?, start_date = ?, end_date = ?, notes = ?, updated_at = ?
        WHERE id = ?`,
-      [value.name, value.goal, value.startDate, value.endDate, value.status, value.notes, Date.now(), id]
+      [value.name, value.goal, value.startDate, value.endDate, value.notes, Date.now(), id]
     );
     return res.json(getPlan(id));
   } catch (error) {
     console.error('Error updating training plan:', error);
+    return res.status(500).json({ error: 'Failed to update training plan' });
+  }
+}
+
+/**
+ * 归档或取消归档。归档是唯一推不出来的计划意图，所以它是独立的一个位，
+ * 而不是生命周期的一个取值：可以归档一个进行中的计划（放弃），它仍然是进行中。
+ */
+export function updateTrainingPlanArchived(req, res) {
+  const archived = req.body?.archived;
+  if (typeof archived !== 'boolean') {
+    return res.status(400).json({
+      error: 'Invalid training plan',
+      fields: { archived: 'archived must be a boolean' }
+    });
+  }
+  try {
+    const id = Number(req.params.id);
+    if (!getPlanRow(id)) return res.status(404).json({ error: 'Training plan not found' });
+    const now = Date.now();
+    databaseService
+      .getDb()
+      .run('UPDATE training_plans SET archived_at = ?, updated_at = ? WHERE id = ?', [archived ? now : null, now, id]);
+    return res.json(getPlan(id));
+  } catch (error) {
+    console.error('Error updating training plan archived state:', error);
     return res.status(500).json({ error: 'Failed to update training plan' });
   }
 }

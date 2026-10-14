@@ -15,9 +15,15 @@ export function seedTrainingExercises(service = databaseService) {
       ]);
       if (existing.length > 0) {
         const id = Number(existing[0].values[0][0]);
+        // 导入运动类型属于用户可改的配置：只在还没有值时补默认值，不覆盖用户的选择。
         db.run(
           `UPDATE training_exercises
-           SET icon = ?, category = ?, scene = ?, verification_mode = ?, equipment_mode = ?, equipment = ?, metrics = ?, purpose = ?, updated_at = ?
+           SET icon = ?, category = ?, scene = ?, verification_mode = ?, equipment_mode = ?, equipment = ?, metrics = ?, purpose = ?,
+               sport_types = CASE
+                 WHEN sport_types IS NULL OR sport_types = '' OR sport_types = '[]' THEN ?
+                 ELSE sport_types
+               END,
+               updated_at = ?
            WHERE id = ?`,
           [
             exercise.icon,
@@ -28,6 +34,7 @@ export function seedTrainingExercises(service = databaseService) {
             exercise.equipment,
             JSON.stringify(exercise.metrics),
             exercise.purpose,
+            JSON.stringify(exercise.sportTypes || []),
             now,
             id
           ]
@@ -36,8 +43,8 @@ export function seedTrainingExercises(service = databaseService) {
       } else {
         db.run(
           `INSERT INTO training_exercises
-            (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, enabled, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+            (name, icon, category, scene, verification_mode, equipment_mode, equipment, metrics, purpose, sport_types, enabled, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
           [
             exercise.name,
             exercise.icon,
@@ -48,6 +55,7 @@ export function seedTrainingExercises(service = databaseService) {
             exercise.equipment,
             JSON.stringify(exercise.metrics),
             exercise.purpose,
+            JSON.stringify(exercise.sportTypes || []),
             now,
             now
           ]

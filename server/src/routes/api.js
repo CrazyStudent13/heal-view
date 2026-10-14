@@ -44,6 +44,7 @@ import {
   saveTrainingPhaseReview,
   updateTrainingPhase,
   updateTrainingPlan,
+  updateTrainingPlanArchived,
   updateTrainingSession
 } from '../controllers/trainingPlanController.js';
 import { getChinaWorkdayCalendar } from '../controllers/chinaCalendarController.js';
@@ -112,6 +113,7 @@ router.post('/training-plans', createTrainingPlan);
 router.post('/training-plans/with-sessions', createTrainingPlanWithSessions);
 router.get('/training-plans/:id', getTrainingPlan);
 router.put('/training-plans/:id', updateTrainingPlan);
+router.patch('/training-plans/:id/archived', updateTrainingPlanArchived);
 router.delete('/training-plans/:id', deleteTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);
 router.post('/training-plans/:planId/phases', createTrainingPhase);

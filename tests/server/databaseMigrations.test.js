@@ -51,7 +51,7 @@ test('initializes an empty database at the latest schema version', () => {
     assert.equal(result.currentVersion, LATEST_DATABASE_VERSION);
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [1, 2, 3, 4, 5, 6, 7, 8]
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     );
     assert.deepEqual(tables, expectedTables);
   });
@@ -133,18 +133,20 @@ test('adds equipment fields to existing version 2 exercise data', () => {
     `);
 
     const result = migrateDatabase(db);
-    const row = db.prepare('SELECT name, equipment_mode, equipment FROM training_exercises').get();
+    const row = db.prepare('SELECT name, equipment_mode, equipment, sport_types FROM training_exercises').get();
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [3, 4, 5, 6, 7, 8]
+      [3, 4, 5, 6, 7, 8, 9, 10]
     );
     assert.deepEqual(
       { ...row },
       {
         name: 'Running',
         equipment_mode: 'bodyweight',
-        equipment: ''
+        equipment: '',
+        // 迁移只补默认值，已有项目不会被写成某个具体运动类型。
+        sport_types: '[]'
       }
     );
   });
@@ -200,7 +202,7 @@ test('moves existing training sessions from phases to their training plans', () 
 
     assert.deepEqual(
       result.applied.map((item) => item.version),
-      [5, 6, 7, 8]
+      [5, 6, 7, 8, 9, 10]
     );
     assert.deepEqual(
       { ...db.prepare('SELECT plan_id, scheduled_date, name FROM training_sessions').get() },
@@ -210,6 +212,67 @@ test('moves existing training sessions from phases to their training plans', () 
       { ...db.prepare('SELECT session_id, targets FROM training_session_items').get() },
       { session_id: 1, targets: '{"duration":30}' }
     );
+  });
+});
+
+test('splits plan status without cascading away phases and sessions', () => {
+  // 现有迁移测试用的都是裸连接（外键默认关闭），而生产在 database.js 里显式开启了外键。
+  // 计划表的子表都以 ON DELETE CASCADE 指向它，所以重建计划表在生产会连带删掉全部阶段和训练单元。
+  // 这个用例在外键开启的前提下跑 v10，把那条差异盖住。
+  withTemporaryDatabase((db) => {
+    db.exec('PRAGMA foreign_keys = ON');
+    migrateDatabase(db);
+
+    // 还原到 v10 之前：计划表仍带 status 枚举，并造出真实的子表数据。
+    db.exec(`
+      ALTER TABLE training_plans ADD COLUMN status TEXT NOT NULL DEFAULT 'draft';
+      PRAGMA user_version = 9;
+
+      INSERT INTO training_plans (name, start_date, end_date, status, created_at, updated_at)
+      VALUES ('进行中', '2026-07-01', '2026-12-31', 'active', 1, 1),
+             ('已归档', '2024-01-01', '2024-06-30', 'archived', 1, 5000),
+             ('已完成', '2025-01-01', '2025-06-30', 'completed', 1, 6000);
+
+      INSERT INTO training_phases (plan_id, name, start_date, end_date, created_at, updated_at)
+      VALUES (1, '基础', '2026-07-01', '2026-09-30', 1, 1);
+
+      INSERT INTO training_sessions (plan_id, scheduled_date, created_at, updated_at)
+      VALUES (1, '2026-07-01', 1, 1), (1, '2026-07-03', 1, 1);
+    `);
+
+    const result = migrateDatabase(db);
+
+    assert.deepEqual(
+      result.applied.map((item) => item.version),
+      [10]
+    );
+    // 子表数据必须原样保留：这正是"重建表"方案会毁掉的东西。
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM training_phases').get().count, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM training_sessions').get().count, 2);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+
+    const planColumns = db
+      .prepare('PRAGMA table_info(training_plans)')
+      .all()
+      .map((row) => row.name);
+    assert.equal(planColumns.includes('status'), false);
+    assert.equal(planColumns.includes('archived_at'), true);
+
+    // 只有 archived 能对应到新模型，其余取值由日期或达成度推导，直接丢弃。
+    assert.deepEqual(
+      db
+        .prepare('SELECT name, archived_at FROM training_plans ORDER BY id')
+        .all()
+        .map((row) => ({ ...row })),
+      [
+        { name: '进行中', archived_at: null },
+        { name: '已归档', archived_at: 5000 },
+        { name: '已完成', archived_at: null }
+      ]
+    );
+
+    // 迁移完成后每次启动都会重跑历史版本的 validate，所以再迁移一次必须不报错。
+    assert.deepEqual(migrateDatabase(db).applied, []);
   });
 });
 
