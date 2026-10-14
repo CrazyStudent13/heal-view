@@ -89,10 +89,16 @@ createTrainingPhase(
   phase
 );
 
+// 拆分后的器械按握法/方向各算一个项目，这里每个变体都给一条，方便直接对比记录效果。
 const strengthTemplate = [
-  { name: '肩膊推举器', targets: { weight: 30, repetitions: 12, sets: 3 } },
-  { name: '高拉背器', targets: { weight: 35, repetitions: 12, sets: 3 } },
-  { name: '大腿内外侧肌训练器', targets: { weight: 25, sets: 3 } },
+  { name: '肩膊推举器（正手）', targets: { weight: 30, repetitions: 12, sets: 3 } },
+  { name: '肩膊推举器（反手）', targets: { weight: 20, repetitions: 12, sets: 3 } },
+  { name: '蝶式拉背器（正拉）', targets: { weight: 20, repetitions: 12, sets: 3 } },
+  { name: '蝶式拉背器（反拉）', targets: { weight: 20, repetitions: 12, sets: 3 } },
+  { name: '高拉背器（正手）', targets: { weight: 35, repetitions: 12, sets: 3 } },
+  { name: '高拉背器（反手）', targets: { weight: 30, repetitions: 12, sets: 3 } },
+  { name: '大腿内外侧肌训练器（内收）', targets: { weight: 25, sets: 3 } },
+  { name: '大腿内外侧肌训练器（外展）', targets: { weight: 25, sets: 3 } },
   { name: '平板支撑', targets: { sets: 3, durationSeconds: 60 } }
 ];
 // 有氧日只用自动验证项目（室内步行由手表同步确认），
@@ -100,7 +106,12 @@ const strengthTemplate = [
 const cardioTemplate = [{ name: '室内步行', targets: { duration: 40, distance: 4 } }];
 
 function toItems(template) {
-  return template.map((entry) => ({ exerciseId: exerciseIdByName.get(entry.name), targets: entry.targets }));
+  return template.map((entry) => {
+    const exerciseId = exerciseIdByName.get(entry.name);
+    // 目录改名后这里最容易静默传 undefined，宁可让播种直接失败。
+    if (!exerciseId) throw new Error(`演示数据引用了不存在的运动项目：${entry.name}`);
+    return { exerciseId, targets: entry.targets };
+  });
 }
 
 // 隔天力量、隔天有氧交替；今天固定安排一次力量训练，方便直接试用确认流程。

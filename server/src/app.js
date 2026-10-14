@@ -61,7 +61,8 @@ async function startServer() {
     // idempotent and preserves user-created exercises.
     const exerciseSeed = seedTrainingExercises();
     console.log(
-      `Training exercise catalog initialized: ${exerciseSeed.created} created, ${exerciseSeed.updated} updated.`
+      `Training exercise catalog initialized: ${exerciseSeed.created} created, ${exerciseSeed.updated} updated, ` +
+        `${exerciseSeed.renamed} legacy renamed, ${exerciseSeed.retired} legacy retired.`
     );
 
     // Calendar refreshes are advisory and must never delay the API becoming available.
