@@ -6,5 +6,6 @@ import './asyncRequest.test.js';
 import './echartsInstance.test.js';
 import './dashboardRequests.test.js';
 import './trainingExercise.test.js';
+import './planModule.test.js';
 import './elementRegistration.test.js';
 import './mobileTooling.test.js';

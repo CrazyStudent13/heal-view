@@ -31,6 +31,10 @@ jobs:
         run: pnpm lint
       - name: Check i18n keys
         run: pnpm check:i18n
+      # 计划模块的结构自检 + SSR 冒烟：漏导入、漏监听、样式归属拆错这类问题
+      # 构建和 lint 都不报，只有 SSR 渲染时的 Vue 警告能抓到。
+      - name: Check plan module
+        run: pnpm check:plan-module
       - name: Run tests
         run: pnpm test
       - name: Build client

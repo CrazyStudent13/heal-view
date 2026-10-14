@@ -25,6 +25,7 @@
     "lint": "eslint client/src",
     "build:client": "pnpm --filter heal-view-client build",
     "check:i18n": "pnpm --filter heal-view-client check:i18n",
+    "check:plan-module": "pnpm --filter heal-view-client check:plan-module",
     "start:server": "pnpm --filter heal-view-server start",
     "import": "pnpm --filter heal-view-server import",
     "seed:training-exercises": "pnpm --filter heal-view-server seed-training-exercises",

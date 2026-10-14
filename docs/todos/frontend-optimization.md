@@ -217,3 +217,12 @@
 | 实现方式 | `_dialogShared.scss` 只留四个弹窗都用的通用规则（`h3/h4/p` 归零、`.full-width`）；新增 `_itemForm.scss` 装训练项目编辑表单规则（`.exercise-select`、`.training-items-heading`、`.weekday-options`、`.calendar-notice`），由三个训练项目弹窗引入；新增 `_sessionDialogScroll.scss` 装 `:global(.session-dialog ...)` 的滚动与滚动条规则，只由 `SessionFormDialog`、`BatchSessionDialog` 引入；`PlanFormDialog` 不再引入训练项目规则 |
 | 验证方式 | `pnpm lint`、`pnpm --filter heal-view-client build`、`node --test tests/client/index.test.js`、`check:i18n`，并核对构建产物里选择器的副本数（`.full-width` 4 份、训练项目规则 3 份、全局滚动规则 1 份）和计划页 CSS chunk 体积 |
 | 结果 | 计划页 CSS chunk 31060 → 30588 字节（-472）；全局滚动规则仍只有一份（打包会去重），训练课弹窗滚动行为不变；顺带修正了上一轮记录里夸大的重复占比（实际约 2%，之前把会被去重的全局规则也算成了重复）；静态检查、构建、i18n 和 35 项客户端测试通过 |
+
+## 2026-10-14 第十六阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 把这次拆分中靠临时脚本做的核对固化下来：漏图标导入、漏事件监听、样式归属拆错、composable 少返回状态、类名写错这几类问题，构建、lint、i18n 和现有测试都发现不了，只在真实浏览器里点到才暴露 |
+| 实现方式 | 新增 `client/scripts/check-plan-module.mjs`（`pnpm check:plan-module`）：未使用导入、页面解构 ↔ composable 返回值、子组件声明的事件是否都有监听（含 `v-model` → `update:*`）、模板类名是否有样式来源、样式类名是否还有使用方，最后用 SSR 渲染 13 个场景（页面两态、列表、抽屉两态、两个页签、日期明细、四个弹窗）并把非白名单的 Vue 运行时警告当失败；`--static` 跳过 SSR 只做结构核对。新增 `tests/client/planModule.test.js` 把静态部分接进 `pnpm test`，不需要改 CI workflow 就能被质量门禁覆盖 |
+| 验证方式 | 反向注入七类错误（漏图标导入、模板类名写错、父级漏监听、多返回一个没人用的状态、少返回一个被解构的状态、留下死样式、留下未使用的导入）逐个确认检查器都会红并给出可读提示；确认 `tests/client/planModule.test.js` 能红能绿；再跑 `pnpm lint`、`pnpm test`、`pnpm test:server`、`pnpm check:i18n`、`pnpm build:client`、`pnpm check:plan-module` |
+| 结果 | 模块结构回归从"靠人记着"变成一条命令；SSR 冒烟覆盖页面、列表、抽屉、页签、日期明细和四个弹窗，能抓到"图标没导入"这类只在运行时出现的警告；仍需 vite 的 SSR 部分没有进 CI，需要时可以按同样方式加一步 |
