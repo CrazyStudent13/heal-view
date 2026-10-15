@@ -19,6 +19,24 @@ function listVueFiles(directory) {
 
 const mobileFiles = listVueFiles(mobileRoot);
 
+/**
+ * 把移动端模块的源码拼在一起断言。
+ *
+ * 打卡页的 actuals 构造已经抽到 pages/mobile/trainingActuals.js，这些能力仍必须能在
+ * 移动端模块里找到，但不该再绑死在 TrainingPage.vue 这一个文件上。
+ * 这与 plans 模块里 trainingExercise.test.js 的做法一致（读整个模块目录而不是单个文件）。
+ */
+function readMobileModuleSource(directory = mobileRoot) {
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) return [readMobileModuleSource(target)];
+      return /\.(vue|js)$/.test(entry.name) ? [fs.readFileSync(target, 'utf8')] : [];
+    })
+    .join('\n');
+}
+
 test('keeps the Vant auto-import scoped to the mobile pages', () => {
   // 移动端用 Vant、桌面端继续用 Element Plus，Vant 必须被钉在移动端目录内，
   // 否则 Rollup 会顺着静态依赖把整个 Vant（约 89 KB gzip）重新挂回桌面端首屏。
@@ -104,9 +122,9 @@ test('keeps the personal check-in entry at /m/today without auth interception', 
 });
 
 test('does not prefill an unrecorded exercise as completed', () => {
-  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
-  assert.match(trainingPage, /if\s*\(metric\s*===\s*'sets'\)\s*\{[\s\S]*?actuals\.sets\s*=\s*null/);
-  assert.doesNotMatch(trainingPage, /TrainingItemChips/);
+  const mobileSource = readMobileModuleSource();
+  assert.match(mobileSource, /if\s*\(metric\s*===\s*'sets'\)\s*\{[\s\S]*?actuals\.sets\s*=\s*null/);
+  assert.doesNotMatch(mobileSource, /TrainingItemChips/);
 });
 
 /**
@@ -116,13 +134,13 @@ test('does not prefill an unrecorded exercise as completed', () => {
  * 这里锁住两道过滤，避免再次绕过。
  */
 test('filters actuals by the metrics each exercise declares', () => {
-  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
+  const mobileSource = readMobileModuleSource();
   // 点「完成本项」时，组数只对声明了 sets 的动作写入。
-  assert.match(trainingPage, /supportedMetrics\.has\('sets'\)[\s\S]{0,120}?actuals\.sets\s*=/);
+  assert.match(mobileSource, /supportedMetrics\.has\('sets'\)[\s\S]{0,120}?actuals\.sets\s*=/);
   // 发送前按动作支持的指标过滤草稿，脏数据不会提交给服务端。
-  assert.match(trainingPage, /if\s*\(!supportedMetrics\.has\(metric\)\)\s*continue;/);
+  assert.match(mobileSource, /if\s*\(!supportedMetrics\.has\(metric\)\)\s*continue;/);
   assert.match(
-    trainingPage,
+    mobileSource,
     /if\s*\(supportedMetrics\.has\('duration'\)\)\s*supportedMetrics\.add\('durationSeconds'\)/
   );
 });
@@ -132,10 +150,10 @@ test('filters actuals by the metrics each exercise declares', () => {
  * 否则点「完成本项」后状态仍是 skipped，当天进度少一项、整天保存不上去。
  */
 test('marks exercises without a sets target by their recorded values', () => {
-  const trainingPage = fs.readFileSync(path.join(mobileRoot, 'TrainingPage.vue'), 'utf8');
-  assert.doesNotMatch(trainingPage, /targetSets === 0\)\s*return\s*\{\s*status:\s*done > 0/);
+  const mobileSource = readMobileModuleSource();
+  assert.doesNotMatch(mobileSource, /targetSets === 0\)\s*return\s*\{\s*status:\s*done > 0/);
   assert.match(
-    trainingPage,
+    mobileSource,
     /targetSets === 0\)\s*\{[\s\S]{0,400}?skipped[\s\S]{0,120}?recorded \? 'done' : 'skipped'/
   );
 

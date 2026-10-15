@@ -210,6 +210,9 @@ import { useLocaleStore } from '@/stores/localeStore.js';
 import { getTrainingExecution, saveTrainingSessionExecution } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
 import TrainingItemPanel from '@/pages/mobile/components/TrainingItemPanel.vue';
+// actuals 的构造与清空是纯函数：服务端按动作声明的指标严格校验，写错键会让整次保存被判 400。
+// 抽到 trainingActuals.js 后可以直接断言，不必挂载页面。
+import { emptyActuals, targetActuals, targetDurationSeconds } from '@/pages/mobile/trainingActuals.js';
 
 const { t, currentLocale } = useLocaleStore();
 const route = useRoute();
@@ -366,14 +369,6 @@ function createItemDraft(item) {
   };
 }
 
-function targetDurationSeconds(targets) {
-  if (Number(targets.durationSeconds) > 0) return Math.round(Number(targets.durationSeconds));
-  if (Number(targets.duration) > 0) {
-    return Math.round(Number(targets.duration) * (targets.durationUnit === 'seconds' ? 1 : 60));
-  }
-  return 0;
-}
-
 function readStoredDraft(sessionId) {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -417,48 +412,6 @@ function setItemComplete(sessionId, sessionItemId, payload) {
   if (isComplete) patch.skipReason = '';
   if (typeof payload === 'object' && !isComplete && payload.skipReason) patch.skipReason = payload.skipReason;
   updateItem(sessionId, sessionItemId, patch);
-}
-
-function targetActuals(item) {
-  const targets = item?.targets || {};
-  const supportedMetrics = new Set(item?.exercise?.metrics || []);
-  // 时长统一按秒记录：动作声明 duration 时，目标里的 duration 分钟数换算后存 durationSeconds。
-  if (supportedMetrics.has('duration')) supportedMetrics.add('durationSeconds');
-  const actuals = {};
-
-  for (const [metric, rawValue] of Object.entries(targets)) {
-    if (metric === 'duration' || metric === 'durationSeconds') continue;
-    if (!supportedMetrics.has(metric)) continue;
-    const value = Number(rawValue);
-    if (Number.isFinite(value) && value > 0) actuals[metric] = value;
-  }
-
-  // 组数只对声明了 sets 指标的动作有意义；椭圆机等纯时长/阻力动作提交 sets
-  // 会被服务端按「不支持的指标」拒绝整次保存，所以这里必须先过同一道过滤。
-  if (supportedMetrics.has('sets')) {
-    const targetSets = Number(targets.sets);
-    actuals.sets = Number.isFinite(targetSets) && targetSets > 0 ? Math.round(targetSets) : 1;
-  }
-
-  // 动作支持的指标未必都写在计划 targets 里（椭圆机的目标只给了阻力等级和时长），
-  // 这里按目标补全，避免「完成本项」对这些动作写不出任何值而无法保存。
-  if (supportedMetrics.has('durationSeconds') && actuals.durationSeconds == null) {
-    const seconds = targetDurationSeconds(targets);
-    if (seconds > 0) actuals.durationSeconds = seconds;
-  }
-
-  return actuals;
-}
-
-function emptyActuals(item, currentActuals = {}) {
-  const keys = new Set([
-    ...Object.keys(currentActuals),
-    ...Object.keys(item?.targets || {}),
-    'sets',
-    'durationSeconds'
-  ]);
-  keys.delete('duration');
-  return Object.fromEntries([...keys].map((metric) => [metric, null]));
 }
 
 function itemKey(sessionId, sessionItemId) {

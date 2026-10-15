@@ -10,3 +10,4 @@ import './planModule.test.js';
 import './elementRegistration.test.js';
 import './mobileTooling.test.js';
 import './dailySportChartFormatters.test.js';
+import './trainingActuals.test.js';
