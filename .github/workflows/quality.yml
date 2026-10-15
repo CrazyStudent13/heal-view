@@ -39,3 +39,7 @@ jobs:
         run: pnpm test
       - name: Build client
         run: pnpm build:client
+      # 必须在 build 之后：该检查直接核对 dist 产物里的 CSS，用来发现"组件在、样式没了"
+      # 这类回归（lint / i18n / SSR 冒烟都发现不了），同时反向确认没有退化成全量引入。
+      - name: Check Element Plus on-demand styles
+        run: pnpm --filter heal-view-client check:element-styles
