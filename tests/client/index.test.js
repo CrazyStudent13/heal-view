@@ -9,3 +9,4 @@ import './trainingExercise.test.js';
 import './planModule.test.js';
 import './elementRegistration.test.js';
 import './mobileTooling.test.js';
+import './dailySportChartFormatters.test.js';
