@@ -253,7 +253,7 @@ training_phase_reviews
 | 项目 | 内容 |
 | --- | --- |
 | 优化目标 | 批量规则加错训练单元之后没有出口：全局训练单元页（`/plans/sessions`）只能按日期区间、计划、完成状态三个条件里单独挑，而且一行一行删——删掉一次批量生成的三四十个单元要来回翻页几十次。需要的是"先按多个条件把加错的那一批圈出来，再一次性删掉" |
-| 实现方式 | 服务端：`server/src/controllers/trainingPlan/sessionController.js` 抽出 `buildSessionFilter`（日期区间 / 所属计划 / 完成状态 / 打卡状态 / 训练内容，五个条件的 AND）和 `selectSessionMatches`（取筛选后的全部行 + 派生状态），列表与批量删除共用同一份条件；关键词只匹配**训练内容**（该单元里的训练项目名，`EXISTS` 子查询），单元名称和备注是自由文本、刻意不参与检索，关键词里的 `%`、`_` 用 `ESCAPE` 当字面量处理。打卡状态（`logged=true/false`）用 `EXISTS` / `NOT EXISTS (SELECT 1 FROM training_session_logs …)` 判断，不用列表里的 `log` 别名——同一份 whereClause 还会被项目行查询复用，那边没有 join 执行记录表。列表响应新增 `executionCount`（匹配结果里已有打卡记录的条数）。新增 `DELETE /training-sessions`，请求体二选一：`{ ids }`（勾选后删除，上限 1000，分片执行）或 `{ filter, expectedCount }`（按与列表完全相同的条件重新求交后删除，且必须声明调用方看到的条数，对不上返回 409），两种都走一个事务，训练项目与打卡记录由外键 `ON DELETE CASCADE` 清理。客户端：`client/src/pages/plans/PlanSessionsPage.vue` 工具栏最左侧是「训练内容搜索」输入框（回车/查询/清空触发），其后依次是日期区间、计划、完成状态、打卡状态，再加查询与重置；「已打卡」标签从完成状态列挪到日期列（日期 + 标签同一行）；筛选控件按"刚好看得全 placeholder"定宽（日期 232px、搜索 208px、计划 / 完成状态 / 打卡状态三个下拉各 156px——7 个汉字约 98px 加内边距与箭头约 44px，再宽只是白占地方），窄屏仍是整行。新增 `type="selection"` 多选列（`row-key` + `reserve-selection`，勾选可跨页累积）、行内单条删除，以及"删除选中 / 删除筛选结果"两个入口和共用的确认弹窗（复述条数、列出生效条件、提示其中多少条已有打卡记录、必须勾选"我确认"才能提交），条件删除会把弹窗里的条数作为 `expectedCount` 发出去，收到 409 时关掉弹窗重新拉列表；条件归一与摘要抽到 `client/src/utils/sessionFilters.js`。`client/scripts/check-plan-module.mjs` 的 SSR 冒烟补上这个页面的场景 |
+| 实现方式 | 服务端：`server/src/controllers/trainingPlan/sessionController.js` 抽出 `buildSessionFilter`（日期区间 / 所属计划 / 完成状态 / 打卡状态 / 训练内容，五个条件的 AND）和 `selectSessionMatches`（取筛选后的全部行 + 派生状态），列表与批量删除共用同一份条件；关键词只匹配**训练内容**（该单元里的训练项目名，`EXISTS` 子查询），单元名称和备注是自由文本、刻意不参与检索，关键词里的 `%`、`_` 用 `ESCAPE` 当字面量处理。打卡状态（`logged=true/false`）用 `EXISTS` / `NOT EXISTS (SELECT 1 FROM training_session_logs …)` 判断，不用列表里的 `log` 别名——同一份 whereClause 还会被项目行查询复用，那边没有 join 执行记录表。列表响应新增 `executionCount`（匹配结果里已有打卡记录的条数）。新增 `DELETE /training-sessions`，请求体二选一：`{ ids }`（勾选后删除，上限 1000，分片执行）或 `{ filter, expectedCount }`（按与列表完全相同的条件重新求交后删除，且必须声明调用方看到的条数，对不上返回 409），两种都走一个事务，训练项目与打卡记录由外键 `ON DELETE CASCADE` 清理。客户端：`client/src/pages/plans/PlanSessionsPage.vue` 工具栏最左侧是「训练内容搜索」输入框（回车/查询/清空触发），其后依次是日期区间、计划、完成状态、打卡状态，再加查询与重置；「已打卡」标签从完成状态列挪到日期列（日期 + 标签同一行）；筛选控件按"刚好看得全 placeholder"定宽（日期 224px、搜索 200px、计划 / 完成状态 / 打卡状态三个下拉各 156px——7 个汉字约 98px 加内边距与箭头约 44px，再宽只是白占地方），窄屏仍是整行。新增 `type="selection"` 多选列（`row-key` + `reserve-selection`，勾选可跨页累积）、行内单条删除，以及"删除选中 / 删除筛选结果"两个入口和共用的确认弹窗（复述条数、列出生效条件、提示其中多少条已有打卡记录、必须勾选"我确认"才能提交），条件删除会把弹窗里的条数作为 `expectedCount` 发出去，收到 409 时关掉弹窗重新拉列表；条件归一与摘要抽到 `client/src/utils/sessionFilters.js`。`client/scripts/check-plan-module.mjs` 的 SSR 冒烟补上这个页面的场景 |
 | 验证方式 | `node --test tests/server/trainingSessionBatchDelete.test.js`（4 项：五个条件的 AND、训练内容检索会命中项目名而名称/备注一律 0 条、打卡状态在补卡前后翻转并与完成状态正交、通配符转义、按 id 删除并级联清掉项目与打卡记录、按筛选条件跨页删除 12 条而留下不匹配的那条、数量对不上 409 且一行不删、重复提交被 409 挡住，以及空条件/空 ids/不带 expectedCount/expectedCount 非整数/认不出的条件（含 `logged=yes`）/超量 id 全部 400）；`node --test tests/client/sessionFilters.test.js`（4 项）；`pnpm test`（144，含 1 项跳过）、`pnpm test:server`（87，含 1 项跳过）、`pnpm test:client`（57）、`pnpm check:i18n`（901 key）、`pnpm lint`、`pnpm format:check`、`pnpm check:plan-module`（静态 + SSR 冒烟）、`pnpm build:client`；另外在临时库上真实启动服务，用 `node tools/verify-session-batch-delete.mjs` 跑通 35 项断言："创建 13 个单元 → 复合条件检索（total=12 / 首页 5 行）→ 按项目名再检索（13）→ 按备注检索（0）→ 按打卡状态检索（未打卡 13 / 已打卡 0）→ 非法请求被拒（含不带 expectedCount 与数量对不上且数据不动）→ 按筛选结果删 12 → 只剩 1 → 人工补卡 → 已打卡 1 / 未打卡 0 → 按「已打卡」筛选结果删 1 → 新建一个单元按 ids 删 1（不存在的 id 静默略过）→ 列表归零"；重启本机服务后只做只读探测（老代码 404、非法请求 400/409，真实数据一行未动） |
 | 结果 | 全部通过。列表看到多少行，"删除筛选结果"就删多少行（同一份条件、服务端重新求交，分页不影响）；破坏性入口对条件从严，认不出的条件报 400 而不是静默忽略；弹窗里会说明有多少条已打卡记录会一并消失 |
 
@@ -299,4 +299,51 @@ training_phase_reviews
 删除不行：`status=planned` 被静默忽略后，用户以为自己在删"待开始的那批"，实际删掉的是整个计划——
 这类入口宁可 400 也不能猜。同理，一个条件都不给的 `{ filter: {} }` 等于"删掉全部训练单元"，
 这个入口不存在这种用法，直接拒绝（`SESSION_DELETE_FILTER_REQUIRED`）。
+
+## 2026-10-16 训练单元内的训练内容批量删除
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 上一个功能解决了"整批训练单元删掉"，但没法只拿掉单元里的**某一部分训练内容**：比如批量规则把某个项目配错了、或者某个项目后来不练了，想把它从某个时间段的所有训练单元里一起去掉，此前只能逐个单元打开编辑弹窗删。需求原话是"删除这个时间段的训练单元下边的部分训练内容" |
+| 实现方式 | 服务端：把训练单元的复合条件层抽成新模块 `server/src/controllers/trainingPlan/sessionFilterQuery.js`（`buildSessionFilter` / `selectSessionMatches` / `validateSessionDeleteFilter` / `SESSION_COMPLETION_STATUSES`，`buildSessionFilter` 现在也返回 `conditions` 数组，方便调用方再叠自己的条件），`sessionController.js` 改为引用它；新增 `trainingPlan/sessionItemController.js`：`GET /training-session-items/delete-preview`（某个训练项目 + 当前单元条件 → `matchedSessionCount` / `matchedItemCount` / `deletableItemCount` / `skippedCount` / `executionItemCount`）与 `DELETE /training-session-items`（`{ ids }` 单条，或 `{ exerciseId, filter, expectedCount }` 按项目批删，数量对不上 409、不带 400、没有单元条件 400、项目不存在 404）；`planRepository` 增加 `findSessionItems` / `deleteSessionItems`；删除只动 `training_session_items`，刷卡项目行由外键级联清掉，训练单元本身只刷新 `updated_at`。列表投影的 `exercises` 补上项目 `id`、`position` 和 `logged`，展开行不用再发请求。客户端：`PlanSessionsPage.vue` 新增展开列（逐条列出训练内容 + 目标 + 已打卡标记 + 单条删除，展开状态用受控 `expand-row-keys` 记住，删完重新拉列表不会折回去），工具栏新增「删除训练内容」入口：选训练项目 → 显示作用范围（当前生效的筛选条件）与预览条数 → 必须勾选确认 → 带 `expectedCount` 提交；训练项目目录用 `getTrainingExercises()` 加载 |
+| 验证方式 | `node --test tests/server/trainingSessionItemDeletion.test.js`（5 项：列表行带上项目 id 与打卡标记、按项目 + 复合条件批删只动范围内的那几天、数量对不上 409 且一行不删、只剩一个项目的单元被跳过（按 id 删同样跳过）、按 id 删除时打卡项目行级联消失而单元与打卡记录保留、以及 13 种非法入参全部被拒且不改数据）；`node --test tests/client/sessionItemDeletion.test.js`（2 项）；`pnpm test`（151，含 1 项跳过）、`pnpm test:server`（92，含 1 项跳过）、`pnpm test:client`（59）、`pnpm check:i18n`（922 key）、`pnpm lint`、`pnpm format:check`、`pnpm check:plan-module`（静态 + SSR 冒烟）、`pnpm build:client`；临时库上 `node tools/verify-session-item-delete.mjs` 跑通 25 项断言（预览数字 → 数量确认拒绝 → 按项目批删 3 条跳过 1 个 → 范围外的计划不受影响 → 按 id 删最后一条被跳过 → 按 id 删掉一条 → 没有留下空单元） |
+| 结果 | 全部通过，并已由使用者在浏览器里手动走了一遍确认可用。作用范围和列表同源（同一份条件、同一份求交），不会出现"列表上是这 3 天、实际改的是别的单元"；新增的三条边界：不把单元删空、`expectedCount` 数量确认、作用范围必须有条件。下面「待确认的交互取舍」保留为后续可调整项，不影响现在这版可用 |
+
+### 工具栏为什么拆成"筛选区 + 操作区"
+
+加入第三个删除入口后，一行装不下了：筛选控件约 1112px + 三个按钮约 382px 刚好越过可用宽度，于是
+`margin-left: auto` 把按钮推到第二行、左边留一大片空白，看起来很错位。改法是让**筛选区自己换行**、
+操作区固定贴右：`.sessions-filters` 用 `flex: 1 1 560px`（可增可减），`.sessions-toolbar-actions` 用
+`flex: 0 0 auto` + `margin-left: auto`。这样宽屏是一行（筛选在左、按钮在右），窄一点时先牺牲筛选区的
+排布，只有窄到 560px 都放不下按钮才整体落到第二行；同时把日期 232→224、搜索 208→200、间距 12→10、
+未勾选时按钮文案从「删除选中（0）」改成「删除选中」，把总宽压到 1504px 左右，常见窗口下一行放得下。
+
+### 为什么作用范围要复用训练单元列表的条件
+
+"这个时间段里的训练单元"如果另写一套筛选（比如只认日期区间），两处口径迟早会漂移，用户也会遇到
+"列表上筛出来 12 个、实际改了 15 个"。所以把条件层抽成 `sessionFilterQuery.js`，列表、训练单元批删、
+训练内容批删三处共用；训练内容批删拿到的是**筛选后的训练单元 id 集合**，再在这个集合里找某个训练项目
+的记录，因此"列表看到的那批"就是"被改动的那批"。
+
+### 为什么绝不把训练单元删空
+
+某个单元只剩这一个项目时跳过它并把跳过数回报给界面，而不是顺手把单元也删掉：
+
+- 空单元没有任何目标可打卡，也会被既有的"单元至少要有一个训练项目"校验挡在编辑弹窗外面，属于半死状态；
+- "删内容"和"删单元"是两种意图，前者不该悄悄升级成后者。真想清掉这种单元，用训练单元的批量删除。
+
+删掉中间的项目不会重排剩下的 `position`（留空洞不影响顺序和追加逻辑），这是有意的：重排要重写整张表，
+而空洞没有任何可观察到的副作用。
+
+### 待确认的交互取舍（下次讨论）
+
+1. **入口位置**：现在放在全局训练单元页（按时间段批量最顺手）。计划详情里的"批量加课"旁边要不要也放
+   一个反向入口？
+2. **一次一个项目还是多个**：现在是"选一个训练项目 → 作用到范围内的全部单元"。要不要支持多选几个项目
+   一次删？
+3. **要不要允许不限范围的删除**：现在和训练单元批删一样要求至少一个条件（否则等于"从所有单元里删掉
+   这个项目"）。如果确实需要"这个项目我以后都不练了"，可以放开，但要把总数说清楚。
+4. **单条删除要不要二次确认**：展开行里每条项目一个「删除」，用的是 `el-popconfirm`（有确认气泡、不弹
+   弹窗）。如果觉得太轻，可以合并进批量弹窗的流程。
+5. **训练单元的 `position`**：目前保留空洞。如果将来有"按顺序展示/导出"的需求，再考虑重排。
 

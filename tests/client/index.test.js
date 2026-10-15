@@ -7,6 +7,7 @@ import './echartsInstance.test.js';
 import './dashboardRequests.test.js';
 import './trainingExercise.test.js';
 import './sessionFilters.test.js';
+import './sessionItemDeletion.test.js';
 import './planModule.test.js';
 import './elementRegistration.test.js';
 import './mobileTooling.test.js';

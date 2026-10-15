@@ -123,7 +123,15 @@ export function serializeSessionListItem(row, derivedStatus = '') {
     ...serializeSession(row, derivedStatus),
     planName: row.plan_name,
     itemCount: Number(row.item_count),
-    exercises: parseJson(row.exercises, [])
+    // 每一条都带 id、位置和"有没有打卡记录"：训练单元列表的展开行直接用它们做单条删除，
+    // 不必为展开再发一次请求。
+    exercises: parseJson(row.exercises, []).map((exercise) => ({
+      id: Number(exercise.id),
+      position: Number(exercise.position),
+      name: exercise.name,
+      targets: exercise.targets || {},
+      logged: Boolean(exercise.logged)
+    }))
   };
 }
 

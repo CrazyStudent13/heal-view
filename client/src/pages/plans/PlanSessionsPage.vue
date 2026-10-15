@@ -11,64 +11,66 @@
     </header>
 
     <div class="sessions-toolbar">
-      <el-input
-        v-model="search"
-        class="session-search-filter"
-        clearable
-        maxlength="60"
-        :placeholder="t('plans.sessions.filterSearch')"
-        :aria-label="t('plans.sessions.filterSearch')"
-        @keyup.enter="applyFilters"
-        @clear="applyFilters"
-      />
-      <el-date-picker
-        v-model="dateRange"
-        class="session-date-filter"
-        type="daterange"
-        value-format="YYYY-MM-DD"
-        :start-placeholder="t('nav.startDate')"
-        :end-placeholder="t('nav.endDate')"
-        :aria-label="t('plans.sessions.filterDate')"
-        @change="applyFilters"
-      />
-      <el-select
-        v-model="planId"
-        class="session-plan-filter"
-        clearable
-        :placeholder="t('plans.sessions.filterPlan')"
-        @change="applyFilters"
-      >
-        <el-option :label="t('plans.sessions.allPlans')" value="" />
-        <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
-      </el-select>
-      <el-select
-        v-model="status"
-        class="session-status-filter"
-        clearable
-        :placeholder="t('plans.sessions.filterStatus')"
-        @change="applyFilters"
-      >
-        <el-option :label="t('plans.sessions.allStatuses')" value="" />
-        <el-option
-          v-for="sessionStatus in sessionStatuses"
-          :key="sessionStatus"
-          :label="statusLabel(sessionStatus)"
-          :value="sessionStatus"
+      <div class="sessions-filters">
+        <el-input
+          v-model="search"
+          class="session-search-filter"
+          clearable
+          maxlength="60"
+          :placeholder="t('plans.sessions.filterSearch')"
+          :aria-label="t('plans.sessions.filterSearch')"
+          @keyup.enter="applyFilters"
+          @clear="applyFilters"
         />
-      </el-select>
-      <el-select
-        v-model="logged"
-        class="session-logged-filter"
-        clearable
-        :placeholder="t('plans.sessions.filterLogged')"
-        @change="applyFilters"
-      >
-        <el-option :label="t('plans.sessions.allLogged')" value="" />
-        <el-option :label="t('plans.sessions.logged')" value="true" />
-        <el-option :label="t('plans.sessions.loggedNo')" value="false" />
-      </el-select>
-      <el-button :icon="Search" @click="applyFilters">{{ t('common.query') }}</el-button>
-      <el-button :icon="RefreshLeft" @click="resetFilters">{{ t('common.reset') }}</el-button>
+        <el-date-picker
+          v-model="dateRange"
+          class="session-date-filter"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          :start-placeholder="t('nav.startDate')"
+          :end-placeholder="t('nav.endDate')"
+          :aria-label="t('plans.sessions.filterDate')"
+          @change="applyFilters"
+        />
+        <el-select
+          v-model="planId"
+          class="session-plan-filter"
+          clearable
+          :placeholder="t('plans.sessions.filterPlan')"
+          @change="applyFilters"
+        >
+          <el-option :label="t('plans.sessions.allPlans')" value="" />
+          <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
+        </el-select>
+        <el-select
+          v-model="status"
+          class="session-status-filter"
+          clearable
+          :placeholder="t('plans.sessions.filterStatus')"
+          @change="applyFilters"
+        >
+          <el-option :label="t('plans.sessions.allStatuses')" value="" />
+          <el-option
+            v-for="sessionStatus in sessionStatuses"
+            :key="sessionStatus"
+            :label="statusLabel(sessionStatus)"
+            :value="sessionStatus"
+          />
+        </el-select>
+        <el-select
+          v-model="logged"
+          class="session-logged-filter"
+          clearable
+          :placeholder="t('plans.sessions.filterLogged')"
+          @change="applyFilters"
+        >
+          <el-option :label="t('plans.sessions.allLogged')" value="" />
+          <el-option :label="t('plans.sessions.logged')" value="true" />
+          <el-option :label="t('plans.sessions.loggedNo')" value="false" />
+        </el-select>
+        <el-button :icon="Search" @click="applyFilters">{{ t('common.query') }}</el-button>
+        <el-button :icon="RefreshLeft" @click="resetFilters">{{ t('common.reset') }}</el-button>
+      </div>
       <div class="sessions-toolbar-actions">
         <el-button
           type="danger"
@@ -76,10 +78,13 @@
           :icon="DeleteIcon"
           :disabled="selectedCount === 0"
           @click="openSelectedDeleteDialog"
-          >{{ t('plans.sessions.batchDelete', { count: selectedCount }) }}</el-button
+          >{{ selectedDeleteLabel }}</el-button
         >
         <el-button type="danger" :icon="DeleteIcon" :loading="previewing" @click="openFilteredDeleteDialog">{{
           t('plans.sessions.batchDeleteFiltered')
+        }}</el-button>
+        <el-button type="danger" plain :icon="DeleteIcon" @click="openItemDeleteDialog">{{
+          t('plans.sessions.itemDeleteButton')
         }}</el-button>
       </div>
     </div>
@@ -99,8 +104,40 @@
         height="100%"
         class="sessions-table"
         row-key="id"
+        :expand-row-keys="expandedRowKeys"
         @selection-change="handleSelectionChange"
+        @expand-change="handleExpandChange"
       >
+        <el-table-column type="expand" width="44">
+          <template #default="{ row }">
+            <div class="session-items-panel">
+              <p v-if="row.exercises.length === 0" class="session-items-empty">{{ t('plans.sessions.itemsEmpty') }}</p>
+              <div v-for="item in row.exercises" :key="item.id" class="session-item-row">
+                <span class="session-item-name">{{ item.name }}</span>
+                <span class="session-item-targets">{{ targetsText(item.targets) }}</span>
+                <el-tag v-if="item.logged" class="session-item-logged" size="small" type="info" effect="plain">{{
+                  t('plans.sessions.logged')
+                }}</el-tag>
+                <el-popconfirm
+                  :title="
+                    item.logged
+                      ? t('plans.sessions.confirmDeleteItemLogged', { name: item.name })
+                      : t('plans.sessions.confirmDeleteItem', { name: item.name })
+                  "
+                  :width="280"
+                  confirm-button-type="danger"
+                  :confirm-button-text="t('common.delete')"
+                  :cancel-button-text="t('common.cancel')"
+                  @confirm="removeSessionItem(item)"
+                >
+                  <template #reference
+                    ><el-button link type="danger">{{ t('common.delete') }}</el-button></template
+                  >
+                </el-popconfirm>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column type="selection" width="48" reserve-selection />
         <el-table-column :label="t('plans.sessions.date')" width="164">
           <template #default="{ row }">
@@ -213,6 +250,72 @@
         >
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="itemDeleteDialogVisible"
+      :title="t('plans.sessions.itemDeleteTitle')"
+      width="min(600px, calc(100vw - 32px))"
+      @closed="resetItemDeleteDialog"
+    >
+      <div class="session-item-delete-dialog">
+        <el-select
+          v-model="itemDeleteExerciseId"
+          class="session-item-exercise-select"
+          filterable
+          :placeholder="t('plans.sessions.itemExercisePlaceholder')"
+          @change="loadItemDeletePreview"
+        >
+          <el-option v-for="exercise in exercises" :key="exercise.id" :label="exercise.name" :value="exercise.id" />
+        </el-select>
+        <p v-if="hasActiveFilters" class="session-item-delete-scope">
+          {{ t('plans.sessions.conditionSummary', { conditions: conditionSummary }) }}
+        </p>
+        <el-alert
+          v-else
+          class="session-item-delete-warning"
+          type="info"
+          show-icon
+          :closable="false"
+          :title="t('plans.sessions.itemDeleteFilterRequired')"
+        />
+        <div v-if="hasActiveFilters && itemDeletePreview" class="session-item-delete-summary">
+          <p class="session-item-delete-count">
+            {{
+              t('plans.sessions.itemDeleteSummary', {
+                sessions: itemDeletePreview.matchedSessionCount,
+                items: itemDeletePreview.deletableItemCount,
+                name: itemDeletePreview.exerciseName
+              })
+            }}
+          </p>
+          <p v-if="itemDeletePreview.skippedCount > 0" class="session-item-delete-count">
+            {{ t('plans.sessions.itemDeleteSkipped', { count: itemDeletePreview.skippedCount }) }}
+          </p>
+          <el-alert
+            v-if="itemDeletePreview.executionItemCount > 0"
+            class="session-item-delete-warning"
+            type="warning"
+            show-icon
+            :closable="false"
+            :title="t('plans.sessions.itemDeleteHasExecution', { count: itemDeletePreview.executionItemCount })"
+          />
+        </div>
+        <p class="session-item-delete-hint">{{ t('plans.sessions.itemDeleteHint') }}</p>
+        <el-checkbox v-model="itemDeleteConfirmed" class="session-item-delete-confirm">{{
+          t('plans.sessions.itemDeleteConfirmLabel', { count: itemDeletePreview?.deletableItemCount ?? 0 })
+        }}</el-checkbox>
+      </div>
+      <template #footer>
+        <el-button @click="itemDeleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button
+          type="danger"
+          :loading="itemDeleteSubmitting"
+          :disabled="!itemDeleteConfirmed || !canSubmitItemDelete"
+          @click="confirmItemDelete"
+          >{{ t('common.delete') }}</el-button
+        >
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -225,9 +328,12 @@ import { useLocaleStore } from '@/stores/localeStore.js';
 import { usePlanLabels, SESSION_COMPLETION_STATUSES } from '@/pages/plans/composables/usePlanLabels.js';
 import {
   deleteTrainingSession,
+  deleteTrainingSessionItems,
   deleteTrainingSessions,
   deleteTrainingSessionsByFilter,
+  getTrainingExercises,
   getTrainingPlans,
+  getTrainingSessionItemDeletePreview,
   getTrainingSessions
 } from '@/api/fitnessApi.js';
 import { normalizeRequestError } from '@/utils/requestState.js';
@@ -266,6 +372,19 @@ const deleting = ref(false);
 const previewing = ref(false);
 const deleteScope = ref({ mode: 'ids', count: 0, executionCount: 0 });
 
+// 训练内容（训练项目）级别的删除：展开行做单条，工具栏入口按"训练项目 + 当前筛选条件"批量。
+// 展开的单元用受控的 expand-row-keys 记住，删完一条重新拉列表后不会自动折叠回去。
+const expandedRowKeys = ref([]);
+const exercises = ref([]);
+const itemDeleteDialogVisible = ref(false);
+const itemDeleteExerciseId = ref(null);
+const itemDeletePreview = ref(null);
+const itemDeleteConfirmed = ref(false);
+const itemDeleteSubmitting = ref(false);
+const canSubmitItemDelete = computed(
+  () => hasActiveFilters.value && (itemDeletePreview.value?.deletableItemCount ?? 0) > 0
+);
+
 /**
  * 实际生效的检索条件（最近一次请求的快照）。
  *
@@ -276,6 +395,12 @@ const appliedFilters = ref(emptySessionFilters());
 const hasActiveFilters = computed(() => hasSessionFilters(appliedFilters.value));
 const selectedCount = computed(() => selectedSessions.value.length);
 const selectedIds = computed(() => selectedSessions.value.map((session) => session.id));
+// 没勾选时不显示「（0）」：那只是占宽度，还让人以为这个按钮坏掉了。
+const selectedDeleteLabel = computed(() =>
+  selectedCount.value > 0
+    ? t('plans.sessions.batchDelete', { count: selectedCount.value })
+    : t('plans.sessions.batchDeleteEmpty')
+);
 
 const selectedDatesText = computed(() => {
   const dates = [...new Set(selectedSessions.value.map((session) => session.scheduledDate))].sort();
@@ -403,6 +528,12 @@ function handleSelectionChange(rows) {
   selectedSessions.value = rows;
 }
 
+/** 展开状态自己拿住：重新拉列表（例如删掉一条训练内容）之后展开行不会折回去。 */
+function handleExpandChange(row, expanded) {
+  const rows = Array.isArray(expanded) ? expanded : expanded ? [...expandedRowKeys.value, row] : [];
+  expandedRowKeys.value = [...new Set(rows.map((item) => item.id))];
+}
+
 function clearSelection() {
   selectedSessions.value = [];
   tableRef.value?.clearSelection();
@@ -510,9 +641,111 @@ async function removeSession(row) {
   }
 }
 
+/**
+ * 展开行里删掉一条训练内容。
+ * 服务端不会把训练单元删空：只剩这一条时会跳过，这里照实提示而不是谎报成功。
+ */
+async function removeSessionItem(item) {
+  try {
+    const result = await deleteTrainingSessionItems({ ids: [item.id] });
+    if (result.deletedCount === 0) {
+      ElMessage.warning(t('plans.sessions.itemDeleteLastOne', { name: item.name }));
+      return;
+    }
+    ElMessage.success(t('plans.sessions.itemDeleteSingleSuccess', { name: item.name }));
+    await loadSessions();
+  } catch (requestError) {
+    ElMessage.error(itemDeleteErrorMessage(requestError));
+  }
+}
+
+async function openItemDeleteDialog() {
+  itemDeleteDialogVisible.value = true;
+  itemDeleteExerciseId.value = null;
+  itemDeletePreview.value = null;
+  itemDeleteConfirmed.value = false;
+  if (exercises.value.length === 0) {
+    try {
+      const response = await getTrainingExercises();
+      exercises.value = response.exercises;
+    } catch (requestError) {
+      ElMessage.error(normalizeRequestError(requestError, t) || t('plans.sessions.itemDeleteFailed'));
+    }
+  }
+}
+
+/** 选定训练项目后按当前生效的条件数一遍：数字来自服务端，和真正执行时求交的是同一份。 */
+async function loadItemDeletePreview() {
+  itemDeletePreview.value = null;
+  itemDeleteConfirmed.value = false;
+  if (!itemDeleteExerciseId.value || !hasActiveFilters.value) return;
+  try {
+    itemDeletePreview.value = await getTrainingSessionItemDeletePreview({
+      exerciseId: itemDeleteExerciseId.value,
+      ...requestFilters(appliedFilters.value)
+    });
+  } catch (requestError) {
+    ElMessage.error(itemDeleteErrorMessage(requestError));
+  }
+}
+
+async function confirmItemDelete() {
+  const preview = itemDeletePreview.value;
+  if (!itemDeleteConfirmed.value || !preview || !canSubmitItemDelete.value) return;
+  itemDeleteSubmitting.value = true;
+  try {
+    const result = await deleteTrainingSessionItems({
+      exerciseId: itemDeleteExerciseId.value,
+      filter: requestFilters(appliedFilters.value),
+      // 数量确认：把弹窗里给用户看的条数带上，服务端对不上就 409。
+      expectedCount: preview.deletableItemCount
+    });
+    ElMessage.success(
+      t('plans.sessions.itemDeleteSuccess', { count: result.deletedCount, sessions: result.affectedSessionCount })
+    );
+    if (result.skippedCount > 0) {
+      ElMessage.info(t('plans.sessions.itemDeleteSkippedResult', { count: result.skippedCount }));
+    }
+    itemDeleteDialogVisible.value = false;
+    await loadSessions();
+  } catch (requestError) {
+    ElMessage.error(itemDeleteErrorMessage(requestError));
+    if (requestError.code === 'SESSION_ITEM_DELETE_COUNT_CHANGED') {
+      itemDeleteDialogVisible.value = false;
+      await loadSessions();
+    }
+  } finally {
+    itemDeleteSubmitting.value = false;
+  }
+}
+
+/** 训练内容删除的错误码逐条给文案。 */
+function itemDeleteErrorMessage(requestError) {
+  if (requestError.code === 'SESSION_ITEM_DELETE_COUNT_CHANGED') {
+    return t('plans.sessions.itemDeleteCountChanged', { count: requestError.details?.matchedCount ?? 0 });
+  }
+  const messageKeys = {
+    SESSION_ITEM_FILTER_REQUIRED: 'plans.sessions.itemDeleteFilterRequired',
+    SESSION_ITEM_DELETE_COUNT_REQUIRED: 'plans.sessions.itemDeleteCountRequired',
+    SESSION_ITEM_EXERCISE_REQUIRED: 'plans.sessions.itemExercisePlaceholder',
+    SESSION_ITEM_EXERCISE_NOT_FOUND: 'plans.sessions.itemDeleteExerciseMissing',
+    SESSION_ITEM_DELETE_TOO_MANY: 'plans.sessions.itemDeleteTooMany',
+    SESSION_FILTER_INVALID: 'plans.sessions.batchDeleteFilterInvalid'
+  };
+  const messageKey = messageKeys[requestError.code];
+  if (messageKey) return t(messageKey);
+  return normalizeRequestError(requestError, t) || t('plans.sessions.itemDeleteFailed');
+}
+
 function resetDeleteDialog() {
   deleteConfirmed.value = false;
   deleteScope.value = { mode: 'ids', count: 0, executionCount: 0 };
+}
+
+function resetItemDeleteDialog() {
+  itemDeleteExerciseId.value = null;
+  itemDeletePreview.value = null;
+  itemDeleteConfirmed.value = false;
 }
 
 onMounted(async () => {
@@ -557,17 +790,30 @@ p {
   color: var(--text-secondary);
   font-size: 14px;
 }
+/*
+ * 筛选区 + 右侧操作区。工具栏宽度不够时，**先让筛选控件自己换行**，三个操作按钮始终贴在工具栏
+ * 右端（flex: 0 0 auto + margin-left: auto），不会被挤到单独一行、左边留一大片空白。
+ * 只有窄到筛选区连 560px 都放不下时，按钮才会整体落到第二行（窄屏另有整行规则）。
+ */
 .sessions-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   flex: 0 0 auto;
-  gap: 12px;
+  gap: 10px;
   padding: 18px 0;
 }
+.sessions-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1 1 560px;
+  min-width: 0;
+  gap: 10px;
+}
 .sessions-toolbar :deep(.el-date-editor.session-date-filter) {
-  width: 232px !important;
-  flex: 0 0 232px !important;
+  width: 224px !important;
+  flex: 0 0 224px !important;
 }
 /*
  * 三个下拉按"刚好看得全 placeholder（按完成状态筛选 / 按打卡状态筛选 / 按计划筛选）"来定宽：
@@ -579,12 +825,14 @@ p {
   width: 156px;
 }
 .sessions-toolbar :deep(.el-input.session-search-filter) {
-  width: 208px;
+  width: 200px;
 }
 .sessions-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
   margin-left: auto;
 }
 .sessions-selection {
@@ -614,6 +862,34 @@ p {
   gap: 6px;
 }
 .session-logged-tag {
+  flex: 0 0 auto;
+}
+/* 展开行：逐条列出这个单元的训练内容，每条都能单独删掉。 */
+.session-items-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px 10px 52px;
+}
+.session-items-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.session-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.session-item-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.session-item-targets {
+  color: var(--text-secondary);
+}
+.session-item-logged {
   flex: 0 0 auto;
 }
 .sessions-pagination {
@@ -658,6 +934,43 @@ p {
 .session-delete-confirm {
   height: auto;
 }
+.session-item-delete-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.session-item-delete-dialog :deep(.el-select.session-item-exercise-select) {
+  width: 100%;
+}
+.session-item-delete-scope {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.session-item-delete-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.session-item-delete-count {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+.session-item-delete-warning {
+  align-items: flex-start;
+}
+.session-item-delete-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.session-item-delete-confirm {
+  height: auto;
+}
 @media (max-width: 640px) {
   .sessions-page {
     height: auto;
@@ -678,7 +991,11 @@ p {
   .sessions-toolbar :deep(.el-date-editor.session-date-filter) {
     flex: 1 1 100% !important;
   }
+  .sessions-filters {
+    flex: 1 1 100%;
+  }
   .sessions-toolbar-actions {
+    flex: 1 1 100%;
     margin-left: 0;
   }
   .sessions-pagination {

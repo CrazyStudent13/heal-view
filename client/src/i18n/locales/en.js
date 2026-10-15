@@ -329,6 +329,7 @@ export default {
       selectedCount: '{count} sessions selected',
       clearSelection: 'Clear selection',
       batchDelete: 'Delete selected ({count})',
+      batchDeleteEmpty: 'Delete selected',
       batchDeleteFiltered: 'Delete filtered',
       batchDeleteTitle: 'Delete training sessions',
       batchDeleteScopeSelected: 'This will delete the {count} selected training sessions.',
@@ -354,7 +355,32 @@ export default {
       batchDeleteCountChanged: 'The matching data changed (now {count}), please confirm again before deleting',
       batchDeleteFilterInvalid: 'The filters are invalid, please filter again',
       batchDeleteTooMany: 'At most 1000 training sessions can be deleted at once, use the filters instead',
-      confirmDelete: 'Delete the training session on {date}?'
+      confirmDelete: 'Delete the training session on {date}?',
+      itemsEmpty: 'This session has no training content yet',
+      confirmDeleteItem: 'Delete the training content "{name}"?',
+      confirmDeleteItemLogged: 'Delete the training content "{name}"? It has a check-in record, which disappears too.',
+      itemDeleteButton: 'Delete content',
+      itemDeleteTitle: 'Delete training content',
+      itemExercisePlaceholder: 'Select the training exercise to delete',
+      itemDeleteFilterRequired:
+        'Deleting training content needs a scope: narrow the sessions with the filters above first',
+      itemDeleteSummary: 'This will delete {items} "{name}" entries from {sessions} training sessions',
+      itemDeleteSkipped:
+        '{count} training sessions only contain this exercise and are skipped (a session is never left empty)',
+      itemDeleteHasExecution: '{count} of them already have a check-in record, and those records disappear too',
+      itemDeleteHint:
+        'Only the selected training content is removed; the training sessions stay. The training calendar and plan adherence are recalculated, and this cannot be undone.',
+      itemDeleteConfirmLabel: 'I confirm deleting these {count} training content entries',
+      itemDeleteSingleSuccess: 'Deleted "{name}"',
+      itemDeleteSuccess: 'Deleted {count} training content entries from {sessions} training sessions',
+      itemDeleteSkippedResult: '{count} training sessions only contain this exercise and were skipped',
+      itemDeleteLastOne:
+        '"{name}" is the only training content of this session, skipped (a session is never left empty)',
+      itemDeleteCountChanged: 'The matching data changed (now {count}), please confirm again before deleting',
+      itemDeleteCountRequired: 'Deleting training content requires the expected count, please refresh and retry',
+      itemDeleteExerciseMissing: 'This training exercise is no longer in the catalog, please refresh and retry',
+      itemDeleteTooMany: 'At most 1000 training content entries can be deleted at once, use the filters instead',
+      itemDeleteFailed: 'Failed to delete the training content'
     },
     exercise: {
       title: 'Exercises',

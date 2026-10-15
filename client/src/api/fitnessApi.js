@@ -178,6 +178,25 @@ export function deleteTrainingSessionsByFilter(filter, expectedCount) {
   return apiClient.delete('/training-sessions', { data: { filter, expectedCount } });
 }
 
+/**
+ * 训练单元内"训练内容"（训练项目）的删除预览。
+ * filter 的字段和列表完全一致（日期区间 / 计划 / 完成状态 / 打卡状态 / 训练内容关键词），
+ * 所以它数出来的就是当前列表上那批训练单元里的、某个训练项目的条数。
+ */
+export function getTrainingSessionItemDeletePreview(params = {}, config = {}) {
+  return apiClient.get('/training-session-items/delete-preview', { ...config, params });
+}
+
+/**
+ * 批量删除训练内容。两种入参互斥：
+ * - `{ ids }`：删掉明确点选的几条（列表展开行里的单条删除）；
+ * - `{ exerciseId, filter, expectedCount }`：在筛选出的训练单元里删掉某个训练项目的全部记录。
+ * 只剩最后一个项目的训练单元会被跳过（服务端回报 skippedCount），不会留下空单元。
+ */
+export function deleteTrainingSessionItems(payload) {
+  return apiClient.delete('/training-session-items', { data: payload });
+}
+
 export function getChinaWorkdayCalendar(params, config = {}) {
   return apiClient.get('/china-workday-calendar', { ...config, params });
 }

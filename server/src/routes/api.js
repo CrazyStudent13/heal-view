@@ -50,6 +50,10 @@ import {
 } from '../controllers/trainingPlanController.js';
 import { getChinaWorkdayCalendar } from '../controllers/chinaCalendarController.js';
 import {
+  deleteTrainingSessionItems,
+  previewTrainingSessionItemDeletion
+} from '../controllers/trainingPlan/sessionItemController.js';
+import {
   getTrainingExecution,
   getTrainingExecutionHistory,
   getTrainingSessionExecution,
@@ -119,6 +123,9 @@ router.delete('/training-plans/:id', deleteTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);
 // 批量删除：按显式 ids 或按和列表相同的复合条件（"删掉筛选结果"）。
 router.delete('/training-sessions', deleteTrainingSessions);
+// 训练单元内的训练项目批量删除：预览 + 删除（按项目 id 或"某个训练项目 + 同一套单元条件"）。
+router.get('/training-session-items/delete-preview', previewTrainingSessionItemDeletion);
+router.delete('/training-session-items', deleteTrainingSessionItems);
 router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
 router.get('/training-phases/:id/review', getTrainingPhaseReview);

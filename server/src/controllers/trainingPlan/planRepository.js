@@ -75,3 +75,24 @@ export function appendSessionItems(db, sessionId, items, now) {
   );
   saveSessionItems(db, sessionId, items, now, Number(row?.max_position ?? -1) + 1);
 }
+
+/**
+ * 按 id 取训练项目行（只要 id 和所属单元），用于批量删除前的存在性判断。
+ * 调用方自己分片，这里的 IN 列表不超过 SQLite 的参数上限。
+ */
+export function findSessionItems(ids) {
+  if (ids.length === 0) return [];
+  return queryRows(
+    `SELECT id, session_id FROM training_session_items WHERE id IN (${ids.map(() => '?').join(', ')})`,
+    ids
+  );
+}
+
+/**
+ * 删除训练项目行。引用它的打卡项目行（training_session_log_items）由外键 ON DELETE CASCADE
+ * 清理，训练单元和它的执行记录本身不动。
+ */
+export function deleteSessionItems(db, ids) {
+  if (ids.length === 0) return;
+  db.run(`DELETE FROM training_session_items WHERE id IN (${ids.map(() => '?').join(', ')})`, ids);
+}

@@ -23,6 +23,10 @@ import {
   updateTrainingSession
 } from './trainingPlan/sessionController.js';
 import {
+  deleteTrainingSessionItems,
+  previewTrainingSessionItemDeletion
+} from './trainingPlan/sessionItemController.js';
+import {
   isValidDate,
   validatePhasePayload,
   validatePhaseReviewPayload,
@@ -39,11 +43,13 @@ export {
   deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
+  deleteTrainingSessionItems,
   deleteTrainingSessions,
   getTrainingPlan,
   getTrainingPhaseReview,
   listTrainingPlans,
   listTrainingSessions,
+  previewTrainingSessionItemDeletion,
   saveTrainingPhaseReview,
   updateTrainingPhase,
   updateTrainingPlan,
