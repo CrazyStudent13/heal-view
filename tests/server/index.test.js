@@ -10,6 +10,7 @@ import './trainingPlanCrud.test.js';
 import './aerobicMatching.test.js';
 import './planAdherence.test.js';
 import './trainingPlanAdherence.test.js';
+import './trainingSessionBatchDelete.test.js';
 import './trainingExecution.test.js';
 import './jsonSafe.test.js';
 import './apiSmoke.test.js';

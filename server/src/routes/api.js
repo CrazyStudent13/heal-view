@@ -37,6 +37,7 @@ import {
   deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
+  deleteTrainingSessions,
   getTrainingPlan,
   getTrainingPhaseReview,
   listTrainingPlans,
@@ -116,6 +117,8 @@ router.put('/training-plans/:id', updateTrainingPlan);
 router.patch('/training-plans/:id/archived', updateTrainingPlanArchived);
 router.delete('/training-plans/:id', deleteTrainingPlan);
 router.get('/training-sessions', listTrainingSessions);
+// 批量删除：按显式 ids 或按和列表相同的复合条件（"删掉筛选结果"）。
+router.delete('/training-sessions', deleteTrainingSessions);
 router.post('/training-plans/:planId/phases', createTrainingPhase);
 router.put('/training-phases/:id', updateTrainingPhase);
 router.get('/training-phases/:id/review', getTrainingPhaseReview);

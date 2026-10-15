@@ -501,7 +501,8 @@ async function buildRouter(pathname) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: { render: () => null } },
-      { path: '/plans/overview', component: { render: () => null } }
+      { path: '/plans/overview', component: { render: () => null } },
+      { path: '/plans/sessions', component: { render: () => null } }
     ]
   });
   router.push(pathname);
@@ -571,6 +572,7 @@ async function checkSmokeRender() {
   try {
     const [
       PlanOverviewPage,
+      PlanSessionsPage,
       PlanListTable,
       PlanDetailDrawer,
       PlanCalendarTab,
@@ -582,6 +584,7 @@ async function checkSmokeRender() {
       PhaseReviewDialog
     ] = await Promise.all([
       load('PlanOverviewPage.vue'),
+      load('PlanSessionsPage.vue'),
       load('components/PlanListTable.vue'),
       load('components/PlanDetailDrawer.vue'),
       load('components/PlanCalendarTab.vue'),
@@ -602,6 +605,13 @@ async function checkSmokeRender() {
         ['plan-manager', 'plan-content-header', 'plan-table-region']
       ],
       ['计划总览页（?planId=）', PlanOverviewPage, {}, '/plans/overview?planId=9', ['plan-table-region']],
+      [
+        '全局训练单元页',
+        PlanSessionsPage,
+        {},
+        '/plans/sessions',
+        ['sessions-toolbar-actions', 'session-search-filter', 'sessions-table-region']
+      ],
       [
         '计划列表',
         PlanListTable,

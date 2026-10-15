@@ -156,10 +156,26 @@ export function getTrainingPlan(id, config = {}) {
 
 /**
  * 全局训练单元列表。status 只接受完成状态（achieved / partial / skipped / missed），
- * 服务端按读取时推导的状态过滤，所以筛选、total 和分页是同一份结果。
+ * logged 是打卡状态（'true' 已打卡 / 'false' 未打卡），search 只匹配训练内容（单元里的训练项目名）；
+ * 几个条件是 AND 关系。服务端按读取时推导的状态过滤，所以筛选、total 和分页是同一份结果。
+ * 返回里的 executionCount 是匹配结果中已有打卡记录的条数，删除前用它提示会连带消失的记录。
  */
 export function getTrainingSessions(params = {}, config = {}) {
   return apiClient.get('/training-sessions', { ...config, params });
+}
+
+/** 按勾选的训练单元 id 批量删除；训练项目和打卡记录由服务端级联清理。 */
+export function deleteTrainingSessions(ids) {
+  return apiClient.delete('/training-sessions', { data: { ids } });
+}
+
+/**
+ * 按复合筛选条件批量删除（"删掉筛选结果"）。
+ * 服务端用和列表完全相同的条件重新求交，所以不依赖客户端把跨页的 id 全捞回来；
+ * expectedCount 是确认弹窗里给用户看的那个条数，服务端求交后对不上就返回 409 拒绝执行。
+ */
+export function deleteTrainingSessionsByFilter(filter, expectedCount) {
+  return apiClient.delete('/training-sessions', { data: { filter, expectedCount } });
 }
 
 export function getChinaWorkdayCalendar(params, config = {}) {

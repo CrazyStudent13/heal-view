@@ -18,6 +18,7 @@ import {
   createTrainingSession,
   createTrainingSessionsBatch,
   deleteTrainingSession,
+  deleteTrainingSessions,
   listTrainingSessions,
   updateTrainingSession
 } from './trainingPlan/sessionController.js';
@@ -38,6 +39,7 @@ export {
   deleteTrainingPlan,
   deleteTrainingPhase,
   deleteTrainingSession,
+  deleteTrainingSessions,
   getTrainingPlan,
   getTrainingPhaseReview,
   listTrainingPlans,
