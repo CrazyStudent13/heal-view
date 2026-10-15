@@ -37,25 +37,6 @@ jobs:
         run: pnpm check:plan-module
       - name: Run tests
         run: pnpm test
-      # ⚠️ 临时诊断步骤（定位完即删）：把失败用例通过 annotation 暴露出来。
-      # 本仓库的 job 日志需要管理员权限才能通过 API 读取，annotation 可以。
-      - name: Diagnose test failure
-        if: failure()
-        run: |
-          set +e
-          pnpm test > /tmp/t.txt 2>&1
-          {
-            echo "failing subtests:"
-            grep -E "^not ok" /tmp/t.txt | head -20
-            echo ""
-            echo "detail:"
-            grep -E "^ +(error|code|expected|actual|operator):|AssertionError|Cannot find|SyntaxError|TypeError|ReferenceError|Error:" /tmp/t.txt | head -40
-            echo ""
-            echo "tail:"
-            tail -30 /tmp/t.txt
-          } > /tmp/msg.txt
-          body=$(sed ':a;N;$!ba;s/\n/%0A/g' /tmp/msg.txt)
-          echo "::error title=CI test failure::$body"
       - name: Build client
         run: pnpm build:client
       # 必须在 build 之后：该检查直接核对 dist 产物里的 CSS，用来发现"组件在、样式没了"
