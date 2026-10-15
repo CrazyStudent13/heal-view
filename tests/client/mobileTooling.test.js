@@ -20,11 +20,59 @@ function listVueFiles(directory) {
 const mobileFiles = listVueFiles(mobileRoot);
 
 test('keeps the Vant auto-import scoped to the mobile pages', () => {
-  // 移动端用 Vant、桌面端继续用 Element Plus，扫描范围必须限定在移动端目录，
-  // 否则两套组件库会互相污染。
+  // 移动端用 Vant、桌面端继续用 Element Plus，Vant 必须被钉在移动端目录内，
+  // 否则 Rollup 会顺着静态依赖把整个 Vant（约 89 KB gzip）重新挂回桌面端首屏。
+  //
+  // P2 把 unplugin-vue-components 的 include 放宽到全部 .vue 之后，「Vant 只作用于移动端」
+  // 不再由 include 表达（该插件的 include/exclude 是全局的，无法按 resolver 分别限定，
+  // 且它的 resolve 只收到组件名、拿不到文件路径，没法用 filename 包一层 VantResolver）。
+  // 现在改由 vite.config.js 里的 enforceVantScope 插件按文件路径硬性拦截。
   assert.match(viteConfigSource, /unplugin-vue-components\/vite/);
   assert.match(viteConfigSource, /VantResolver/);
-  assert.match(viteConfigSource, /include:\s*\[\s*\/src\\\/pages\\\/mobile/);
+  assert.match(viteConfigSource, /ElementPlusResolver/, 'Element Plus 必须同时启用 resolver，覆盖全部 .vue');
+  assert.match(viteConfigSource, /enforceVantScope\(/, 'Vant 的文件范围护栏必须仍然注册');
+  assert.match(viteConfigSource, /name:\s*['"]heal-view:enforce-vant-scope['"]/);
+});
+
+test('resolves Vant components from the mobile pages only and rejects them anywhere else', async () => {
+  // 直接取 vite.config.js 里真正注册的那个插件，用它的 transform 钩子做正向/反向验证。
+  const { default: config } = await import('../../client/vite.config.js');
+  const resolved = typeof config === 'function' ? await config({ mode: 'test', command: 'build' }) : config;
+  const plugin = (resolved.plugins || []).flat().find((p) => p && p.name === 'heal-view:enforce-vant-scope');
+  assert.ok(plugin, 'vite.config.js 里必须注册 heal-view:enforce-vant-scope 插件');
+  assert.equal(plugin.enforce, 'pre');
+
+  const mobileRoot = path.join(clientRoot, 'src/pages/mobile');
+  const vantSource = "import { Button } from 'vant';\nexport default { components: { VanButton: Button } };";
+
+  const allowed = [
+    path.join(mobileRoot, 'MobileLayout.vue'),
+    path.join(mobileRoot, 'components/TrainingItemPanel.vue'),
+    `${path.join(mobileRoot, 'TrainingPage.vue')}?vue&type=script&setup=true&lang.js`,
+    // vant 自身解析出来的文件
+    path.join(clientRoot, 'node_modules/vant/es/button/index.mjs')
+  ];
+  for (const id of allowed) {
+    plugin.transform(vantSource, id); // 不应抛错
+  }
+
+  const rejected = [
+    path.join(clientRoot, 'src/main.js'),
+    path.join(clientRoot, 'src/App.vue'),
+    path.join(clientRoot, 'src/pages/LoginPage.vue'),
+    path.join(clientRoot, 'src/components/charts/DailySportChart.vue'),
+    // 前缀相同但不是移动端目录
+    path.join(clientRoot, 'src/pages/mobileBackup/LegacyPage.vue')
+  ];
+  for (const id of rejected) {
+    assert.throws(() => plugin.transform(vantSource, id), /只允许在 src\/pages\/mobile\//, `${id} 必须被拒绝`);
+  }
+
+  // 桌面端文件里没有 Vant import 时不应误报
+  plugin.transform(
+    "import { ref } from 'vue';\nimport { ElButton } from 'element-plus';",
+    path.join(clientRoot, 'src/main.js')
+  );
 });
 
 test('routes every Vant component through the mobile pages only', () => {

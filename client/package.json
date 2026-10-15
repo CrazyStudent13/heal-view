@@ -8,6 +8,8 @@
     "build": "vite build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:plan-module": "node scripts/check-plan-module.mjs",
+    "check:element-styles": "node scripts/check-element-plus-styles.mjs",
+    "measure:assets": "node scripts/measure-assets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

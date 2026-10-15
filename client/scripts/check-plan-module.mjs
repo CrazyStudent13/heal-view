@@ -433,33 +433,67 @@ const weightData = {
 };
 
 /**
- * Element Plus 的弹窗和抽屉在打开之前不渲染内容，SSR 拿不到内部模板。
- * 用同名桩件顶替，把 header/default/footer 插槽强制渲染出来。
+ * Element Plus 的弹窗和抽屉在打开之前不渲染内容；就算打开，它们也会把内容 Teleport 到
+ * <body>，而 renderToString 只输出传入组件自身的渲染结果，Teleport 出去的内容不在里面。
+ * 两种情况下 SSR 都拿不到弹窗/抽屉的内部模板。
+ *
+ * 做法：把 `element-plus/es` 别名到一个虚拟模块，它转发 Element Plus 的全部导出，
+ * 只把 ElDialog / ElDrawer 换成同名桩件，强制渲染 header/default/footer 插槽。
+ *
+ * 必须做成模块别名，而不是 app.component('ElDialog', ...)：
+ * unplugin-vue-components 的 ElementPlusResolver 现在会给模板里出现的 <el-dialog> /
+ * <el-drawer> 直接注入 `import { ElDialog } from 'element-plus/es'`，
+ * 组件内的本地 import 优先级高于 app.component 的全局注册，全局桩件会被直接绕过。
  */
-const StubDialog = defineComponent({
-  name: 'ElDialog',
-  props: { modelValue: { type: Boolean, default: false }, title: { type: String, default: '' } },
-  setup(props, { slots }) {
-    return () => {
-      if (!props.modelValue) return null;
-      return h('div', { class: 'stub-dialog', 'data-title': props.title }, [
-        slots.header
-          ? slots.header({ titleId: 'stub-title-id', titleClass: 'el-dialog__title' })
-          : h('h2', props.title),
-        slots.default ? slots.default() : null,
-        slots.footer ? slots.footer() : null
-      ]);
-    };
-  }
-});
+const VIRTUAL_ELEMENT_PLUS = 'virtual:element-plus-with-dialog-stubs';
 
-const StubDrawer = defineComponent({
-  name: 'ElDrawer',
-  props: { modelValue: { type: Boolean, default: false } },
-  setup(props, { slots }) {
-    return () => (props.modelValue ? h('div', { class: 'stub-drawer' }, slots.default ? slots.default() : null) : null);
+function elementPlusStubPlugin() {
+  const resolvedId = `\0${VIRTUAL_ELEMENT_PLUS}`;
+  return {
+    name: 'heal-view:element-plus-dialog-stubs',
+    enforce: 'pre',
+    resolveId(id) {
+      if (id === VIRTUAL_ELEMENT_PLUS) return resolvedId;
+      return null;
+    },
+    load(id) {
+      if (id !== resolvedId) return null;
+      // 必须指向 element-plus/es/index.mjs 这个真实入口，不能写 'element-plus/es'：
+      // 下面 resolve.alias 把 /^element-plus\/es$/ 映射到了本虚拟模块自己，
+      // 写成 'element-plus/es' 就变成"自己 export * 自己"，所有具名导出都会变成
+      // undefined，表现为大量 Invalid vnode type / Component is missing template。
+      return `export * from 'element-plus/es/index.mjs';
+
+const __renderStub = (props, slots) => {
+  if (!props.modelValue) return null;
+  const children = [];
+  if (slots.header) children.push(slots.header({ titleId: 'stub-title-id', titleClass: 'el-dialog__title' }));
+  if (slots.default) children.push(slots.default());
+  if (slots.footer) children.push(slots.footer());
+  return children;
+};
+
+export const ElDialog = {
+  name: 'ElDialog',
+  inheritAttrs: false,
+  props: { modelValue: { type: Boolean, default: false }, title: { type: String, default: '' } },
+  setup(__props, { slots }) {
+    return () => __renderStub(__props, slots);
   }
-});
+};
+
+export const ElDrawer = {
+  name: 'ElDrawer',
+  inheritAttrs: false,
+  props: { modelValue: { type: Boolean, default: false } },
+  setup(__props, { slots }) {
+    return () => __renderStub(__props, slots);
+  }
+};
+`;
+    }
+  };
+}
 
 async function buildRouter(pathname) {
   const { createMemoryHistory, createRouter } = await import('vue-router');
@@ -501,8 +535,6 @@ async function renderScenario(component, props, pathname) {
       const registered = ElementPlus[exportName];
       if (registered) app.component(registered.name || exportName, registered);
     }
-    app.component('ElDialog', StubDialog);
-    app.component('ElDrawer', StubDrawer);
     return { html: await renderToString(app), messages };
   } catch (error) {
     return { html: '', messages: [...messages, ['throw', error?.stack || String(error)]] };
@@ -518,7 +550,20 @@ async function checkSmokeRender() {
     root: clientRoot,
     appType: 'custom',
     logLevel: 'error',
-    server: { middlewareMode: true }
+    server: { middlewareMode: true },
+    plugins: [elementPlusStubPlugin()],
+    resolve: {
+      alias: [{ find: /^element-plus\/es$/, replacement: VIRTUAL_ELEMENT_PLUS }]
+    },
+    ssr: {
+      // Element Plus 改为按需引入后，每个 .vue 都会带上
+      // `element-plus/es/components/<x>/style/css` 这类样式引入（最终 import theme-chalk/*.css）。
+      // Vite 的 SSR 默认把 element-plus 整包外部化交给 Node 加载，Node 无法执行 .css，
+      // 冒烟会在 `Unknown file extension ".css"` 处直接崩掉，根本走不到渲染逻辑。
+      // 把 element-plus 拉回 Vite 的转换管线后，SSR 下 CSS 被处理成空模块，
+      // 既不影响渲染结果，冒烟也能继续跑到组件逻辑。
+      noExternal: ['element-plus']
+    }
   });
 
   const load = async (file) => (await server.ssrLoadModule(`/src/pages/plans/${file}`)).default;
