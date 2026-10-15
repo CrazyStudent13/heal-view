@@ -333,8 +333,6 @@ const heartRateChartRef = ref(null);
 let heartRateChart = null;
 let isUnmounted = false;
 
-const heartRateZones = ref(createHeartRateZones());
-
 const hasDetailCards = computed(() => {
   if (!selectedRecord.value) return false;
   return (
@@ -552,7 +550,6 @@ function handleRowSelect(row) {
   if (row) {
     nextTick(() => {
       initHeartRateChart();
-      updateHeartRateZones(row);
     });
   }
 }
@@ -716,32 +713,6 @@ function initHeartRateChart() {
   heartRateChart.setOption(option);
 }
 
-// Update heart rate zones
-function updateHeartRateZones(record) {
-  if (!record) return;
-
-  // Parse heart rate zones from record if available
-  const zones = record.hrZones || {};
-
-  heartRateZones.value = createHeartRateZones(zones);
-}
-
-function createHeartRateZones(zones = {}) {
-  return [
-    { name: t('sport.zone.warmup'), duration: zones.warmup || 0, color: '#5470c6' },
-    { name: t('sport.zone.fatBurn'), duration: zones.fatBurn || 0, color: '#91cc75' },
-    { name: t('sport.zone.aerobic'), duration: zones.aerobic || 0, color: '#fac858' },
-    { name: t('sport.zone.anaerobic'), duration: zones.anaerobic || 0, color: '#ee6666' },
-    { name: t('sport.zone.extreme'), duration: zones.extreme || 0, color: '#73c0de' }
-  ];
-}
-
-// Get zone percentage
-function getZonePercentage(duration) {
-  if (!selectedRecord.value || !selectedRecord.value.duration) return 0;
-  return Math.min((duration / selectedRecord.value.duration) * 100, 100);
-}
-
 // Get pace bar width
 function getPaceBarWidth(pace) {
   if (!pace) return 0;
@@ -787,7 +758,6 @@ watch(
           selectedRecord.value = sportRecords.value[0];
           nextTick(() => {
             initHeartRateChart();
-            updateHeartRateZones(sportRecords.value[0]);
           });
         }
       }
@@ -809,7 +779,6 @@ watch(
   () => localeStore.currentLocale,
   () => {
     if (!selectedRecord.value) return;
-    updateHeartRateZones(selectedRecord.value);
     nextTick(initHeartRateChart);
   }
 );
@@ -1207,54 +1176,6 @@ onBeforeUnmount(() => {
 .chart-container--fill {
   height: 100%;
   min-height: 380px;
-}
-
-.hr-zones-section {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  margin-bottom: 0;
-  border: 0;
-}
-
-.zones-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.zone-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.zone-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-}
-
-.zone-name {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.zone-duration {
-  color: var(--text-secondary);
-}
-
-.zone-bar-container {
-  height: 12px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.zone-bar {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.3s ease;
 }
 
 /* Slide fade animation */
