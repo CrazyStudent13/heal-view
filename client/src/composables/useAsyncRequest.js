@@ -10,11 +10,7 @@ export function useAsyncRequest(options = {}) {
   const isIdle = computed(() => pendingCount.value === 0);
 
   async function run(request, runOptions = {}) {
-    const {
-      fallback = null,
-      rethrow = false,
-      normalizeError = normalizeRequestError
-    } = runOptions;
+    const { fallback = null, rethrow = false, normalizeError = normalizeRequestError } = runOptions;
 
     pendingCount.value += 1;
     loading.value = true;
@@ -24,9 +20,10 @@ export function useAsyncRequest(options = {}) {
       return await request();
     } catch (requestError) {
       if (!isAbortError(requestError)) {
-        error.value = normalizeError === normalizeRequestError
-          ? normalizeError(requestError, translate) || fallbackError
-          : normalizeError(requestError) || fallbackError;
+        error.value =
+          normalizeError === normalizeRequestError
+            ? normalizeError(requestError, translate) || fallbackError
+            : normalizeError(requestError) || fallbackError;
       }
       if (rethrow) throw requestError;
       return fallback;

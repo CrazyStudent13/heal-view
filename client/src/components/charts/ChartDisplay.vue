@@ -1,29 +1,16 @@
 <!-- 模块：图表展示容器，根据当前图表类型和视图模式切换具体图表。 -->
 <template>
-  <div
-    class="chart-display"
-    role="region"
-    :aria-label="chartAriaLabel"
-    :aria-busy="loading"
-  >
-    <AsyncState
-      v-if="errorMessage"
-      class="chart-error"
-      :error="errorMessage"
-    />
+  <div class="chart-display" role="region" :aria-label="chartAriaLabel" :aria-busy="loading">
+    <AsyncState v-if="errorMessage" class="chart-error" :error="errorMessage" />
 
     <!-- Single day mode: show different content based on chart type -->
     <template v-if="viewMode === 'single'">
       <!-- Default to sport records when no specific chart selected -->
-      <DailySportChart
-        v-if="chartType === 'sport' || chartType === 'steps'"
-      />
-      
+      <DailySportChart v-if="chartType === 'sport' || chartType === 'steps'" />
+
       <!-- Show time series heart rate chart for single day mode -->
-      <SingleDayHeartRateChart
-        v-if="chartType === 'heartrate'"
-      />
-      
+      <SingleDayHeartRateChart v-if="chartType === 'heartrate'" />
+
       <!-- Show personal data view -->
       <PersonalDataView
         v-if="chartType === 'personal'"
@@ -31,17 +18,14 @@
         :chart-data="chartData"
         :loading="loading"
       />
-      
+
       <!-- Show other charts when explicitly selected (no calories in single mode) -->
       <SleepTimelineChart
         v-if="chartType === 'sleep' && hasDetailedSleepData"
         :data="sleepTimelineData"
         :avg-heart-rate="singleAvgHeartRate"
       />
-      <SleepChart
-        v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData"
-        :data="chartData"
-      />
+      <SleepChart v-if="chartType === 'sleep' && !hasDetailedSleepData && hasSleepSummaryData" :data="chartData" />
       <ChartPanel
         v-if="chartType === 'sleep' && !hasDetailedSleepData && !hasSleepSummaryData"
         :empty="!loading"
@@ -168,7 +152,7 @@ const chartAriaLabel = computed(() => {
 });
 
 const summaryData = computed(() => {
-  return props.chartType === 'weight' ? (props.weightData?.dailyData || []) : props.chartData;
+  return props.chartType === 'weight' ? props.weightData?.dailyData || [] : props.chartData;
 });
 
 const hasDetailedSleepData = computed(() => {
@@ -178,8 +162,9 @@ const hasDetailedSleepData = computed(() => {
 const hasSleepSummaryData = computed(() => {
   if (!hasData.value) return false;
   return props.chartData.some((item) => {
-    return ['sleepHours', 'deepSleepHours', 'lightSleepHours', 'remSleepHours', 'awakeSleepHours']
-      .some((key) => Number(item?.[key]) > 0);
+    return ['sleepHours', 'deepSleepHours', 'lightSleepHours', 'remSleepHours', 'awakeSleepHours'].some(
+      (key) => Number(item?.[key]) > 0
+    );
   });
 });
 
@@ -224,4 +209,3 @@ const singleAvgHeartRate = computed(() => {
   min-height: 240px;
 }
 </style>
-

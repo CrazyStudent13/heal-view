@@ -19,11 +19,14 @@ export function useProfileAccess() {
 
   async function loadSettings() {
     auth.error = '';
-    await settingsState.run(async () => {
-      const settings = await auth.fetchSettings();
-      if (pageActive) enabled.value = settings.enabled;
-      return settings;
-    }, { fallback: null });
+    await settingsState.run(
+      async () => {
+        const settings = await auth.fetchSettings();
+        if (pageActive) enabled.value = settings.enabled;
+        return settings;
+      },
+      { fallback: null }
+    );
   }
 
   function syncProtectionPreview(value) {
@@ -72,5 +75,17 @@ export function useProfileAccess() {
     auth.fetchStatus().catch(() => {});
   });
 
-  return { auth, enabled, password, confirmPassword, validationField, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut };
+  return {
+    auth,
+    enabled,
+    password,
+    confirmPassword,
+    validationField,
+    settingsLoading,
+    settingsError,
+    loadSettings,
+    syncProtectionPreview,
+    save,
+    signOut
+  };
 }

@@ -12,7 +12,7 @@ const localeRegistry = [
 ];
 
 export const localeOptions = localeRegistry.map(({ code, labelKey }) => ({ code, labelKey }));
-export const supportedLocales = localeRegistry.map(locale => locale.code);
+export const supportedLocales = localeRegistry.map((locale) => locale.code);
 
 export function normalizeLocale(locale) {
   if (supportedLocales.includes(locale)) return locale;
@@ -24,7 +24,7 @@ export function normalizeLocale(locale) {
 
 export function getElementPlusLocale(locale) {
   const normalized = normalizeLocale(locale);
-  return localeRegistry.find(item => item.code === normalized)?.elementLocale || zhCnElement;
+  return localeRegistry.find((item) => item.code === normalized)?.elementLocale || zhCnElement;
 }
 
 const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : '';
@@ -36,7 +36,7 @@ export const i18n = createI18n({
   globalInjection: false,
   locale: initialLocale,
   fallbackLocale: DEFAULT_LOCALE,
-  messages: Object.fromEntries(localeRegistry.map(item => [item.code, item.messages])),
+  messages: Object.fromEntries(localeRegistry.map((item) => [item.code, item.messages])),
   missingWarn: Boolean(import.meta.env?.DEV),
   fallbackWarn: false
 });
@@ -72,7 +72,10 @@ export function formatDate(value, options = {}) {
 
 export function formatDateTime(value) {
   const date = toDate(value);
-  if (Number.isNaN(date.getTime())) return String(value ?? '').replace('T', ' ').slice(0, 19);
+  if (Number.isNaN(date.getTime()))
+    return String(value ?? '')
+      .replace('T', ' ')
+      .slice(0, 19);
   return new Intl.DateTimeFormat(i18n.global.locale.value, {
     year: 'numeric',
     month: '2-digit',

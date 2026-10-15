@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import {
-  DEFAULT_LOCALE,
-  getElementPlusLocale,
-  i18n,
-  localeOptions,
-  normalizeLocale
-} from '@/i18n';
+import { DEFAULT_LOCALE, getElementPlusLocale, i18n, localeOptions, normalizeLocale } from '@/i18n';
 
 export const useLocaleStore = defineStore('locale', () => {
   const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : '';

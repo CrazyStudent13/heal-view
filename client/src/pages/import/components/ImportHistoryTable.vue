@@ -36,7 +36,13 @@
           <el-button class="action-link view-link" type="primary" link :icon="View" @click="$emit('view', row)">
             {{ t('common.view') }}
           </el-button>
-          <el-button class="action-link delete-link" type="danger" link :icon="Delete" @click="$emit('delete', row.importId || row.id)">
+          <el-button
+            class="action-link delete-link"
+            type="danger"
+            link
+            :icon="Delete"
+            @click="$emit('delete', row.importId || row.id)"
+          >
             {{ t('common.delete') }}
           </el-button>
           <el-button
@@ -102,14 +108,16 @@ function platformLabel(value) {
 }
 
 function statusMeta(status) {
-  return {
-    pending: { label: t('import.statusPending'), type: 'warning' },
-    queued: { label: t('import.statusPending'), type: 'warning' },
-    partial: { label: t('import.statusPartial'), type: 'warning' },
-    success: { label: t('import.statusSuccess'), type: 'success' },
-    completed: { label: t('import.statusCompleted'), type: 'success' },
-    failed: { label: t('import.statusFailed'), type: 'danger' }
-  }[status] || { label: status || t('common.unknown'), type: 'info' };
+  return (
+    {
+      pending: { label: t('import.statusPending'), type: 'warning' },
+      queued: { label: t('import.statusPending'), type: 'warning' },
+      partial: { label: t('import.statusPartial'), type: 'warning' },
+      success: { label: t('import.statusSuccess'), type: 'success' },
+      completed: { label: t('import.statusCompleted'), type: 'success' },
+      failed: { label: t('import.statusFailed'), type: 'danger' }
+    }[status] || { label: status || t('common.unknown'), type: 'info' }
+  );
 }
 
 function canImport(row) {
@@ -124,7 +132,8 @@ function formatSize(size) {
   const value = Number(size);
   if (!Number.isFinite(value)) return '--';
   if (value < 1024) return `${formatNumber(value)} B`;
-  if (value < 1024 * 1024) return `${formatNumber(value / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} KB`;
+  if (value < 1024 * 1024)
+    return `${formatNumber(value / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} KB`;
   return `${formatNumber(value / 1024 / 1024, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MB`;
 }
 

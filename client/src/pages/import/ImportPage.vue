@@ -1,8 +1,5 @@
 <template>
-  <DataImportPage
-    @imported="dashboard.handleImportCompleted"
-    @view-dashboard="handleViewDashboard"
-  />
+  <DataImportPage @imported="dashboard.handleImportCompleted" @view-dashboard="handleViewDashboard" />
 </template>
 
 <script setup>

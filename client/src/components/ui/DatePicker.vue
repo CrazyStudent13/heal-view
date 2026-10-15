@@ -21,11 +21,11 @@ const localeStore = useLocaleStore();
 
 const selectedDate = computed({
   get: () => dateStore.selectedDate || '',
-  set: value => dateStore.selectDate(value)
+  set: (value) => dateStore.selectDate(value)
 });
 
 const { t } = localeStore;
-const dateFormat = computed(() => localeStore.currentLocale === 'en' ? 'MM/DD/YYYY (ddd)' : 'YYYY-MM-DD (dddd)');
+const dateFormat = computed(() => (localeStore.currentLocale === 'en' ? 'MM/DD/YYYY (ddd)' : 'YYYY-MM-DD (dddd)'));
 
 function disabledDate(time) {
   return time.getTime() > Date.now();

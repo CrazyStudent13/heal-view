@@ -30,17 +30,24 @@ function clearTimer() {
   }
 }
 
-watch(() => props.active, active => {
-  clearTimer();
-  if (!active) {
-    visible.value = false;
-    return;
-  }
-  showTimer = setTimeout(() => {
-    visible.value = true;
-    showTimer = null;
-  }, Math.max(0, props.delay));
-}, { immediate: true });
+watch(
+  () => props.active,
+  (active) => {
+    clearTimer();
+    if (!active) {
+      visible.value = false;
+      return;
+    }
+    showTimer = setTimeout(
+      () => {
+        visible.value = true;
+        showTimer = null;
+      },
+      Math.max(0, props.delay)
+    );
+  },
+  { immediate: true }
+);
 
 onBeforeUnmount(clearTimer);
 </script>
@@ -80,15 +87,27 @@ onBeforeUnmount(clearTimer);
 }
 
 .dashboard-loading-fade-enter-active,
-.dashboard-loading-fade-leave-active { transition: opacity 0.16s ease; }
+.dashboard-loading-fade-leave-active {
+  transition: opacity 0.16s ease;
+}
 .dashboard-loading-fade-enter-from,
-.dashboard-loading-fade-leave-to { opacity: 0; }
+.dashboard-loading-fade-leave-to {
+  opacity: 0;
+}
 
-@keyframes dashboard-loading-spin { to { transform: rotate(360deg); } }
+@keyframes dashboard-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-loading-overlay__spinner { animation: none; }
+  .dashboard-loading-overlay__spinner {
+    animation: none;
+  }
   .dashboard-loading-fade-enter-active,
-  .dashboard-loading-fade-leave-active { transition: none; }
+  .dashboard-loading-fade-leave-active {
+    transition: none;
+  }
 }
 </style>

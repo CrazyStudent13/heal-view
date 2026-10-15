@@ -17,29 +17,29 @@
         <el-radio-button value="compare">{{ t('nav.multiDayShort') }}</el-radio-button>
       </el-radio-group>
     </div>
-    
+
     <!-- Skeleton loading state -->
     <div v-if="loading" class="cards-list">
       <el-card class="card-item" shadow="hover" v-for="i in 5" :key="i">
         <div class="card-content">
           <el-skeleton :rows="0" animated>
             <template #image>
-              <el-skeleton-item variant="circle" style="width: 48px; height: 48px;" />
+              <el-skeleton-item variant="circle" style="width: 48px; height: 48px" />
             </template>
             <template #default>
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <el-skeleton-item variant="text" style="width: 60%;" />
-                <el-skeleton-item variant="text" style="width: 40%;" />
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <el-skeleton-item variant="text" style="width: 60%" />
+                <el-skeleton-item variant="text" style="width: 40%" />
               </div>
             </template>
           </el-skeleton>
         </div>
       </el-card>
     </div>
-    
+
     <div class="cards-list" v-else-if="hasData">
       <!-- Personal data card - only show in single mode -->
-      <MetricCard 
+      <MetricCard
         v-if="!isCompareMode"
         class="card-item clickable"
         role="button"
@@ -56,10 +56,12 @@
           <span class="card-icon personal">👤</span>
         </template>
         <template #label>{{ t('data.personalInfo') }}</template>
-        <template #value>{{ userProfile && userProfile.weight ? `${userProfile.weight} ${t('settings.units.kg')}` : t('data.viewDetails') }}</template>
+        <template #value>{{
+          userProfile && userProfile.weight ? `${userProfile.weight} ${t('settings.units.kg')}` : t('data.viewDetails')
+        }}</template>
       </MetricCard>
-      
-      <MetricCard 
+
+      <MetricCard
         v-if="isCompareMode"
         class="card-item clickable"
         role="button"
@@ -78,8 +80,8 @@
         <template #label>{{ t('data.avgWeight') }}</template>
         <template #value>{{ displayData.avgWeight }} {{ t('settings.units.kg') }}</template>
       </MetricCard>
-      
-      <MetricCard 
+
+      <MetricCard
         class="card-item clickable"
         role="button"
         tabindex="0"
@@ -98,7 +100,7 @@
         <template #value>{{ formatSteps(displayData.avgSteps) }}</template>
       </MetricCard>
 
-      <MetricCard 
+      <MetricCard
         class="card-item clickable"
         role="button"
         tabindex="0"
@@ -117,7 +119,7 @@
         <template #value>{{ displayData.avgHeartRate }} {{ t('settings.units.bpm') }}</template>
       </MetricCard>
 
-      <MetricCard 
+      <MetricCard
         class="card-item clickable"
         role="button"
         tabindex="0"
@@ -136,7 +138,7 @@
         <template #value>{{ displayData.avgSleepHours }} {{ t('settings.units.hours') }}</template>
       </MetricCard>
 
-      <MetricCard 
+      <MetricCard
         v-if="isCompareMode"
         class="card-item clickable"
         role="button"
@@ -157,12 +159,7 @@
       </MetricCard>
     </div>
 
-    <AsyncState
-      v-else
-      :empty="true"
-      :empty-description="t('chart.selectDate')"
-      :empty-image-size="100"
-    />
+    <AsyncState v-else :empty="true" :empty-description="t('chart.selectDate')" :empty-image-size="100" />
   </div>
 </template>
 
@@ -217,29 +214,37 @@ function isPositiveNumber(value) {
 
 const displayData = computed(() => {
   if (props.chartData.length === 0) {
-      return {
-        avgSteps: 0,
-        avgCalories: 0,
-        avgHeartRate: 0,
-        avgStress: 0,
-        avgSleepHours: 0,
-        avgWeight: '--'
-      };
-    }
+    return {
+      avgSteps: 0,
+      avgCalories: 0,
+      avgHeartRate: 0,
+      avgStress: 0,
+      avgSleepHours: 0,
+      avgWeight: '--'
+    };
+  }
 
   if (isCompareMode.value) {
-    const avgSteps = Math.round(props.chartData.reduce((acc, item) => acc + (Number(item.steps) || 0), 0) / props.chartData.length);
-    const avgCalories = Math.round(props.chartData.reduce((acc, item) => acc + (Number(item.calories) || 0), 0) / props.chartData.length);
-    const heartRateItems = props.chartData.filter(item => isPositiveNumber(item.avgHeartRate));
-    const avgHeartRate = heartRateItems.length > 0
-      ? Math.round(heartRateItems.reduce((acc, item) => acc + Number(item.avgHeartRate), 0) / heartRateItems.length)
-      : 0;
-    const avgSleepHours = (props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length).toFixed(1);
+    const avgSteps = Math.round(
+      props.chartData.reduce((acc, item) => acc + (Number(item.steps) || 0), 0) / props.chartData.length
+    );
+    const avgCalories = Math.round(
+      props.chartData.reduce((acc, item) => acc + (Number(item.calories) || 0), 0) / props.chartData.length
+    );
+    const heartRateItems = props.chartData.filter((item) => isPositiveNumber(item.avgHeartRate));
+    const avgHeartRate =
+      heartRateItems.length > 0
+        ? Math.round(heartRateItems.reduce((acc, item) => acc + Number(item.avgHeartRate), 0) / heartRateItems.length)
+        : 0;
+    const avgSleepHours = (
+      props.chartData.reduce((acc, item) => acc + (item.sleepHours || 0), 0) / props.chartData.length
+    ).toFixed(1);
 
-    const avgWeightItems = props.chartData.filter(item => isPositiveNumber(item.avgWeight));
-    const avgWeight = avgWeightItems.length > 0
-      ? (avgWeightItems.reduce((acc, item) => acc + Number(item.avgWeight), 0) / avgWeightItems.length).toFixed(1)
-      : '--';
+    const avgWeightItems = props.chartData.filter((item) => isPositiveNumber(item.avgWeight));
+    const avgWeight =
+      avgWeightItems.length > 0
+        ? (avgWeightItems.reduce((acc, item) => acc + Number(item.avgWeight), 0) / avgWeightItems.length).toFixed(1)
+        : '--';
 
     return { avgSteps, avgCalories, avgHeartRate, avgSleepHours, avgWeight };
   } else {
@@ -249,7 +254,7 @@ const displayData = computed(() => {
       avgCalories: item.calories || 0,
       avgHeartRate: item.avgHeartRate || 0,
       avgSleepHours: item.sleepHours || 0,
-      avgWeight: item.avgWeight || 0,
+      avgWeight: item.avgWeight || 0
     };
   }
 });
@@ -413,4 +418,3 @@ function formatSteps(num) {
   }
 }
 </style>
-

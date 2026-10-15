@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="async-state"
-    :class="`async-state--${state}`"
-    :aria-busy="loading"
-    aria-live="polite"
-  >
+  <div class="async-state" :class="`async-state--${state}`" :aria-busy="loading" aria-live="polite">
     <div v-if="loading" class="async-state__loading">
       <el-icon class="async-state__loading-icon is-loading" aria-hidden="true">
         <Loading />
@@ -13,13 +8,7 @@
     </div>
 
     <div v-else-if="errorMessage" class="async-state__error">
-      <el-alert
-        :title="resolvedErrorTitle"
-        :description="errorMessage"
-        type="error"
-        show-icon
-        :closable="false"
-      />
+      <el-alert :title="resolvedErrorTitle" :description="errorMessage" type="error" show-icon :closable="false" />
       <el-button
         v-if="showRetry"
         class="async-state__retry"
@@ -38,7 +27,6 @@
       :description="resolvedEmptyDescription"
       :image-size="emptyImageSize"
     />
-
   </div>
 </template>
 

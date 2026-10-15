@@ -41,7 +41,7 @@ const updateChart = () => {
 
   const bmi = props.profileData.bmi || 0;
   const bmiRef = props.profileData.bmiReference;
-  
+
   if (!bmiRef) return;
 
   const { textColor } = themeColors.value;
@@ -89,7 +89,7 @@ const updateChart = () => {
     },
     series: [
       // Background ranges
-      ...ranges.map(range => ({
+      ...ranges.map((range) => ({
         type: 'bar',
         stack: 'range',
         barWidth: 40,
@@ -98,12 +98,14 @@ const updateChart = () => {
           color: range.color,
           opacity: 0.3
         },
-        data: [{
-          value: range.end - range.start,
-          itemStyle: {
-            color: range.color
+        data: [
+          {
+            value: range.end - range.start,
+            itemStyle: {
+              color: range.color
+            }
           }
-        }],
+        ],
         z: 1
       })),
       // User's BMI marker
@@ -132,7 +134,10 @@ const updateChart = () => {
       // Vertical line at user's BMI
       {
         type: 'line',
-        data: [[bmi, -0.5], [bmi, 0.5]],
+        data: [
+          [bmi, -0.5],
+          [bmi, 0.5]
+        ],
         lineStyle: {
           color: '#333',
           width: 2,
@@ -147,10 +152,14 @@ const updateChart = () => {
   chartInstance.value.setOption(option, true);
 };
 
-watch(() => props.profileData, () => {
-  if (chartInstance.value) updateChart();
-  else initChart();
-}, { deep: true });
+watch(
+  () => props.profileData,
+  () => {
+    if (chartInstance.value) updateChart();
+    else initChart();
+  },
+  { deep: true }
+);
 watch(themeColors, updateChart);
 
 onMounted(() => {
@@ -174,4 +183,3 @@ onBeforeUnmount(() => {
   min-height: 300px;
 }
 </style>
-

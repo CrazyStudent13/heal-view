@@ -20,7 +20,8 @@
         <el-descriptions :column="2" border size="large">
           <el-descriptions-item>
             <template #label>{{ t('personal.height') }} / {{ t('personal.weight') }}</template>
-            {{ profileData.height || '--' }} {{ t('settings.units.cm') }} / {{ profileData.weight || '--' }} {{ t('settings.units.kg') }}
+            {{ profileData.height || '--' }} {{ t('settings.units.cm') }} / {{ profileData.weight || '--' }}
+            {{ t('settings.units.kg') }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('personal.sex')">
             {{ profileData.sex === 'male' ? t('personal.male') : t('personal.female') }}
@@ -60,13 +61,17 @@
 
           <div class="blood-pressure-line">
             <div class="blood-pressure-summary">
-              <span class="blood-pressure-value">{{ bloodPressureSummary.latestSystolic }}/{{ bloodPressureSummary.latestDiastolic }}</span>
+              <span class="blood-pressure-value"
+                >{{ bloodPressureSummary.latestSystolic }}/{{ bloodPressureSummary.latestDiastolic }}</span
+              >
               <span class="blood-pressure-unit">mmHg</span>
               <span class="blood-pressure-inline-meta">
-                {{ t('personal.bloodPressureSummary', {
-                  count: bloodPressureSummary.count,
-                  heartRate: bloodPressureSummary.latestHeartRate || '--'
-                }) }}
+                {{
+                  t('personal.bloodPressureSummary', {
+                    count: bloodPressureSummary.count,
+                    heartRate: bloodPressureSummary.latestHeartRate || '--'
+                  })
+                }}
               </span>
             </div>
             <el-button
@@ -110,11 +115,16 @@
           </el-descriptions-item>
           <el-descriptions-item
             v-if="profileData.initialWeight && profileData.targetWeight"
-            :label="t('personal.weightToLose')">
+            :label="t('personal.weightToLose')"
+          >
             {{ (profileData.initialWeight - profileData.targetWeight).toFixed(1) }} kg
           </el-descriptions-item>
           <el-descriptions-item :label="t('personal.dailyCalGoal')">
-            {{ profileData.dailyCalGoal ? `${profileData.dailyCalGoal} ${t('settings.units.kcal')}` : t('personal.notSet') }}
+            {{
+              profileData.dailyCalGoal
+                ? `${profileData.dailyCalGoal} ${t('settings.units.kcal')}`
+                : t('personal.notSet')
+            }}
           </el-descriptions-item>
           <el-descriptions-item v-if="profileData.vo2Max" :label="t('personal.vo2Max')">
             {{ profileData.vo2Max }} ml/kg/min
@@ -184,8 +194,8 @@ const bloodPressureStatusLabel = computed(() => {
   return status === 'high'
     ? t('personal.bpHigh')
     : status === 'elevated'
-      ? t('personal.bpElevated')
-      : t('personal.bpNormal');
+    ? t('personal.bpElevated')
+    : t('personal.bpNormal');
 });
 
 const bloodPressureTagType = computed(() => {
@@ -227,10 +237,18 @@ const bmiTooltipContent = computed(() => {
     ${t('weight.bmiFormula')} &nbsp; ${t('weight.bmiDesc')}（${ref.userHeight}cm）
     <table style="margin-top:6px;border-collapse:collapse;width:100%;text-align:center">
       <tr>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t('weight.bmiUnderweight')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#52c41a;color:#fff;font-weight:600">${t('weight.bmiNormal')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#fa8c16;color:#fff;font-weight:600">${t('weight.bmiOverweight')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#ff4d4f;color:#fff;font-weight:600">${t('weight.bmiObese')}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t(
+          'weight.bmiUnderweight'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#52c41a;color:#fff;font-weight:600">${t(
+          'weight.bmiNormal'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#fa8c16;color:#fff;font-weight:600">${t(
+          'weight.bmiOverweight'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#ff4d4f;color:#fff;font-weight:600">${t(
+          'weight.bmiObese'
+        )}</td>
       </tr>
       <tr>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt;18.5</td>
@@ -240,8 +258,12 @@ const bmiTooltipContent = computed(() => {
       </tr>
       <tr>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt; ${ref.underweight.weight}kg</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">${ref.underweight.weight}-${ref.normal.weight}kg</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">${ref.normal.weight}-${ref.overweight.weight}kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">${ref.underweight.weight}-${
+          ref.normal.weight
+        }kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">${ref.normal.weight}-${
+          ref.overweight.weight
+        }kg</td>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#ff4d4f">&gt; ${ref.overweight.weight}kg</td>
       </tr>
     </table>
@@ -472,4 +494,3 @@ const bmiTagType = computed(() => {
   gap: 8px;
 }
 </style>
-

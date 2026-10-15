@@ -1,24 +1,16 @@
 <template>
   <div class="app-layout">
     <!-- Top navigation bar -->
-    <TopNavbar
-      v-if="route.name !== 'login'"
-      @open-settings="settingsDrawerVisible = true"
-    />
-    
+    <TopNavbar v-if="route.name !== 'login'" @open-settings="settingsDrawerVisible = true" />
+
     <!-- Settings Drawer -->
-    <el-drawer
-      v-model="settingsDrawerVisible"
-      :title="t('settings.title')"
-      direction="rtl"
-      size="400px"
-    >
+    <el-drawer v-model="settingsDrawerVisible" :title="t('settings.title')" direction="rtl" size="400px">
       <div class="drawer-content">
         <!-- Language setting -->
         <div class="setting-item">
           <span class="icon-emoji">🌐</span>
           <span class="setting-label">{{ t('settings.language') }}</span>
-          <el-select v-model="currentLanguage" size="default" style="width: 140px; margin-left: auto;">
+          <el-select v-model="currentLanguage" size="default" style="width: 140px; margin-left: auto">
             <el-option
               v-for="locale in localeStore.availableLocales"
               :key="locale.code"
@@ -38,12 +30,12 @@
             :active-text="t('settings.dark')"
             :inactive-text="t('settings.light')"
             size="default"
-            style="margin-left: auto;"
+            style="margin-left: auto"
           />
         </div>
       </div>
     </el-drawer>
-    
+
     <main class="layout-main">
       <RouterView />
     </main>
@@ -173,4 +165,3 @@ provide(dashboardContextKey, {
   }
 }
 </style>
-

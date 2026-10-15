@@ -29,7 +29,9 @@ export const useDateStore = defineStore('date', () => {
   const datesWithTraining = ref(new Set()); // Dates that have training data
   const selectedDate = ref(preferences.selectedDate || null);
   const selectedDates = ref(Array.isArray(preferences.selectedDates) ? preferences.selectedDates : []); // For multi-select mode
-  const selectedDateRange = ref(Array.isArray(preferences.selectedDateRange) ? preferences.selectedDateRange : [null, null]); // For compare mode
+  const selectedDateRange = ref(
+    Array.isArray(preferences.selectedDateRange) ? preferences.selectedDateRange : [null, null]
+  ); // For compare mode
   const viewMode = ref(['single', 'compare'].includes(preferences.viewMode) ? preferences.viewMode : 'single');
   const loading = ref(false);
   const error = ref(null);
@@ -40,12 +42,15 @@ export const useDateStore = defineStore('date', () => {
   watch(
     [selectedDate, selectedDates, selectedDateRange, viewMode],
     () => {
-      localStorage.setItem(DATE_PREFERENCE_KEY, JSON.stringify({
-        selectedDate: selectedDate.value,
-        selectedDates: selectedDates.value,
-        selectedDateRange: selectedDateRange.value,
-        viewMode: viewMode.value
-      }));
+      localStorage.setItem(
+        DATE_PREFERENCE_KEY,
+        JSON.stringify({
+          selectedDate: selectedDate.value,
+          selectedDates: selectedDates.value,
+          selectedDateRange: selectedDateRange.value,
+          viewMode: viewMode.value
+        })
+      );
     },
     { deep: true }
   );
@@ -57,7 +62,7 @@ export const useDateStore = defineStore('date', () => {
 
   // Get dates with training data only
   const trainingDates = computed(() => {
-    return dateList.value.filter(date => datesWithTraining.value.has(date));
+    return dateList.value.filter((date) => datesWithTraining.value.has(date));
   });
 
   /**
@@ -65,8 +70,7 @@ export const useDateStore = defineStore('date', () => {
    */
   function fetchDateList(options = {}) {
     const { force = false } = options;
-    const cacheIsFresh = dateList.value.length > 0
-      && Date.now() - dateListFetchedAt < DATE_LIST_CACHE_TTL;
+    const cacheIsFresh = dateList.value.length > 0 && Date.now() - dateListFetchedAt < DATE_LIST_CACHE_TTL;
 
     if (!force && cacheIsFresh) return dateList.value;
     if (!force && dateListPromise) return dateListPromise;
@@ -92,9 +96,9 @@ export const useDateStore = defineStore('date', () => {
         const batchSize = 8;
         for (let index = 0; index < dateList.value.length; index += batchSize) {
           const batch = dateList.value.slice(index, index + batchSize);
-          summaries.push(...await Promise.allSettled(
-            batch.map(date => getDailySummary(date, { signal: request.signal }))
-          ));
+          summaries.push(
+            ...(await Promise.allSettled(batch.map((date) => getDailySummary(date, { signal: request.signal }))))
+          );
           if (!request.isCurrent()) return dateList.value;
         }
         const trainingSet = new Set();
@@ -156,7 +160,7 @@ export const useDateStore = defineStore('date', () => {
       return;
     }
 
-    selectedDates.value = trainingDates.value.filter(date => {
+    selectedDates.value = trainingDates.value.filter((date) => {
       return date >= normalizedRange[0] && date <= normalizedRange[1];
     });
   }
@@ -194,9 +198,7 @@ export const useDateStore = defineStore('date', () => {
    * Select all dates with training data
    */
   function selectAllTrainingDates() {
-    setSelectedDates(Array.from(datesWithTraining.value).sort((a, b) =>
-      new Date(b) - new Date(a)
-    ));
+    setSelectedDates(Array.from(datesWithTraining.value).sort((a, b) => new Date(b) - new Date(a)));
   }
 
   /**

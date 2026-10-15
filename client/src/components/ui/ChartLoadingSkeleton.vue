@@ -17,7 +17,10 @@
     </div>
 
     <div v-if="showChart" class="chart-loading-skeleton__chart">
-      <div class="chart-loading-skeleton__title chart-loading-skeleton__title--small" :style="{ width: chartTitleWidth }"></div>
+      <div
+        class="chart-loading-skeleton__title chart-loading-skeleton__title--small"
+        :style="{ width: chartTitleWidth }"
+      ></div>
       <div class="chart-loading-skeleton__area" :style="{ minHeight: chartMinHeight }"></div>
     </div>
   </div>

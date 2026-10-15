@@ -11,7 +11,9 @@
           <template #icon>
             <span class="sleep-card-icon sleep-card-icon--sleep">🌙</span>
           </template>
-          <template #label>{{ t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime }) }}</template>
+          <template #label>{{
+            t('sleep.totalLabel', { bedtime: timelineData.bedtime, wakeUpTime: timelineData.wakeUpTime })
+          }}</template>
           <template #value>{{ totalSleepDuration }}</template>
         </MetricCard>
         <MetricCard class="overview-card" compact layout="row">
@@ -61,7 +63,9 @@ import SleepStageAnalysis from '@/components/charts/SleepStageAnalysis.vue';
 import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
 
 const localeStore = useLocaleStore();
-function t(key, params) { return localeStore.t(key, params); }
+function t(key, params) {
+  return localeStore.t(key, params);
+}
 const dataStore = useDataStore();
 
 const props = defineProps({
@@ -81,37 +85,72 @@ const heartRateTS = ref(null);
 const hasData = computed(() => timelineData.value?.segments?.length > 0);
 const hasTimelineSummary = computed(() => {
   const totalDuration = Number(timelineData.value?.totalDuration) || 0;
-  return hasData.value || totalDuration > 0 || Boolean(timelineData.value?.bedtime) || Boolean(timelineData.value?.wakeUpTime);
+  return (
+    hasData.value ||
+    totalDuration > 0 ||
+    Boolean(timelineData.value?.bedtime) ||
+    Boolean(timelineData.value?.wakeUpTime)
+  );
 });
 function isValidHeartRate(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0;
 }
 const avgHeartRateDisplay = computed(() =>
-  isValidHeartRate(props.avgHeartRate) ? `${props.avgHeartRate} ${t('settings.units.bpm')}` : `-- ${t('settings.units.bpm')}`
+  isValidHeartRate(props.avgHeartRate)
+    ? `${props.avgHeartRate} ${t('settings.units.bpm')}`
+    : `-- ${t('settings.units.bpm')}`
 );
 
 // ---- 阶段配置：4 层堆叠，各占 0.25 高度 ----
 const stageConfig = {
-  deep:  { color: '#2A35C0', get label() { return t('chart.deep'); }, yIdx: 0 },
-  light: { color: '#29B6F6', get label() { return t('chart.light'); }, yIdx: 1 },
-  rem:   { color: '#1DE9B6', get label() { return t('chart.rem'); }, yIdx: 2 },
-  awake: { color: '#FFAB00', get label() { return t('chart.awake'); }, yIdx: 3 }
+  deep: {
+    color: '#2A35C0',
+    get label() {
+      return t('chart.deep');
+    },
+    yIdx: 0
+  },
+  light: {
+    color: '#29B6F6',
+    get label() {
+      return t('chart.light');
+    },
+    yIdx: 1
+  },
+  rem: {
+    color: '#1DE9B6',
+    get label() {
+      return t('chart.rem');
+    },
+    yIdx: 2
+  },
+  awake: {
+    color: '#FFAB00',
+    get label() {
+      return t('chart.awake');
+    },
+    yIdx: 3
+  }
 };
 
-function sNorm(st) { return typeof st === 'string' ? st.toLowerCase() : String(st).toLowerCase(); }
-function t2m(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function sNorm(st) {
+  return typeof st === 'string' ? st.toLowerCase() : String(st).toLowerCase();
+}
+function t2m(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
 function fmtDur(min) {
   if (!min) return t('sport.zeroMinutes');
-  const h = Math.floor(min / 60), m = min % 60;
-  return h > 0
-    ? t('sport.durationHoursMinutes', { hours: h, minutes: m })
-    : t('sport.durationMinutes', { minutes: m });
+  const h = Math.floor(min / 60),
+    m = min % 60;
+  return h > 0 ? t('sport.durationHoursMinutes', { hours: h, minutes: m }) : t('sport.durationMinutes', { minutes: m });
 }
 
 const stageDurations = computed(() => {
   const d = { deep: 0, light: 0, rem: 0, awake: 0 };
-  timelineData.value?.segments?.forEach(s => {
+  timelineData.value?.segments?.forEach((s) => {
     const st = sNorm(s.state);
     let dur = t2m(s.endTime) - t2m(s.startTime);
     if (dur < 0) dur += 1440; // 跨午夜修正
@@ -129,8 +168,8 @@ const totalSleepMinutes = computed(() => {
   return fallbackSeconds > 0 ? Math.round(fallbackSeconds / 60) : 0;
 });
 const totalSleepDuration = computed(() => fmtDur(totalSleepMinutes.value));
-const awakeEpisodes = computed(() =>
-  timelineData.value?.segments?.filter(s => sNorm(s.state) === 'awake').length || 0
+const awakeEpisodes = computed(
+  () => timelineData.value?.segments?.filter((s) => sNorm(s.state) === 'awake').length || 0
 );
 const interruptDesc = computed(() => {
   const c = awakeEpisodes.value;
@@ -141,8 +180,10 @@ const interruptDesc = computed(() => {
 });
 const interruptTagType = computed(() => {
   const c = awakeEpisodes.value;
-  if (c === 0) return 'success'; if (c === 1) return 'warning';
-  if (c <= 3) return 'info'; return 'danger';
+  if (c === 0) return 'success';
+  if (c === 1) return 'warning';
+  if (c <= 3) return 'info';
+  return 'danger';
 });
 
 // ---- 图表核心 ----
@@ -159,7 +200,7 @@ function buildChart() {
     disposeChart();
     return;
   }
-  
+
   if (!chartInstance && chartRef.value) {
     chartInstance = echarts.init(chartRef.value);
   }
@@ -210,13 +251,13 @@ function buildChart() {
   const pad = Math.max(2, Math.round((maxT - minT) * 0.02));
 
   // 格式化时间
-  const fmtT = v => {
+  const fmtT = (v) => {
     const m = Math.round(v) % 1440;
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
 
   // 构建系列数据：[stageIndex, startMinutes, endMinutes]
-  const seriesData = segs.map(s => {
+  const seriesData = segs.map((s) => {
     const st = sNorm(s.state);
     const cfg = stageConfig[st] || stageConfig.light;
     const sm = Math.round(toContMin(s.startTime));
@@ -226,17 +267,18 @@ function buildChart() {
 
   // ---- 心率折线数据 ----
   const hrLineData = [];
-  let hrMin = 50, hrMax = 100;
+  let hrMin = 50,
+    hrMax = 100;
   const hrRaw = heartRateTS.value?.data;
   if (hrRaw && hrRaw.length > 0) {
-    const hrPoints = hrRaw.filter(p => isValidHeartRate(p.value));
+    const hrPoints = hrRaw.filter((p) => isValidHeartRate(p.value));
     if (hrPoints.length > 0) {
-      hrMin = Math.min(...hrPoints.map(p => Number(p.value)));
-      hrMax = Math.max(...hrPoints.map(p => Number(p.value)));
+      hrMin = Math.min(...hrPoints.map((p) => Number(p.value)));
+      hrMax = Math.max(...hrPoints.map((p) => Number(p.value)));
       const day0 = new Date(timelineData.value.date + 'T00:00:00').getTime() / 1000;
 
       // Filter heart rate data to only include points within chart X axis range
-      hrPoints.forEach(p => {
+      hrPoints.forEach((p) => {
         let m = Math.round((p.time - day0) / 60);
         if (crossesMidnight && m < 720) m += 1440;
         // Only add points within chart X axis range to avoid ECharts connecting out-of-range points
@@ -244,7 +286,7 @@ function buildChart() {
           hrLineData.push([m, Number(p.value)]);
         }
       });
-      
+
       // Sort heart rate data by X value (time) to ensure correct line rendering
       hrLineData.sort((a, b) => a[0] - b[0]);
     }
@@ -254,7 +296,7 @@ function buildChart() {
   const hrAxisMax = Math.ceil(hrMax / 5) * 5;
 
   // 隐藏的触碰点：每个睡眠段中点，用于 axis trigger 匹配
-  const sleepHoverPts = segs.map(s => {
+  const sleepHoverPts = segs.map((s) => {
     const st = sNorm(s.state);
     const cfg = stageConfig[st] || stageConfig.light;
     const mid = (t2m(s.startTime) + t2m(s.endTime)) / 2;
@@ -301,18 +343,26 @@ function buildChart() {
       formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return '';
         const xMin = Math.round(params[0].axisValue);
-        const timeLabel = `${String(Math.floor((xMin % 1440) / 60)).padStart(2, '0')}:${String((xMin % 1440) % 60).padStart(2, '0')}`;
+        const timeLabel = `${String(Math.floor((xMin % 1440) / 60)).padStart(2, '0')}:${String(
+          (xMin % 1440) % 60
+        ).padStart(2, '0')}`;
         // 查睡眠阶段
         let foundSeg = null;
         for (const seg of segs) {
           const sm = toContMin(seg.startTime);
           const em = toContMin(seg.endTime);
-          if (xMin >= sm && xMin < em) { foundSeg = seg; break; }
+          if (xMin >= sm && xMin < em) {
+            foundSeg = seg;
+            break;
+          }
         }
         // 查心率
         let foundHR = null;
         for (const d of hrLineData) {
-          if (Math.abs(d[0] - xMin) <= 1) { foundHR = d[1]; break; }
+          if (Math.abs(d[0] - xMin) <= 1) {
+            foundHR = d[1];
+            break;
+          }
         }
         let html = '';
         if (foundSeg) {
@@ -335,43 +385,48 @@ function buildChart() {
       max: Math.round(maxT + pad),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: txt, fontSize: 11, formatter: v => fmtT(v) },
+      axisLabel: { color: txt, fontSize: 11, formatter: (v) => fmtT(v) },
       splitLine: { show: true, lineStyle: { color: gridCol, type: 'dashed' } }
     },
-    yAxis: [{
-      type: 'value',
-      min: 0,
-      max: 1,
-      axisLabel: {
-        show: true,
-        color: '#999',
-        fontSize: 10,
-        formatter: (v) => {
-          if (v >= 0.05 && v <= 0.2) return t('chart.deep');
-          if (v >= 0.3 && v <= 0.45) return t('chart.light');
-          if (v >= 0.55 && v <= 0.7) return t('chart.rem');
-          if (v >= 0.8 && v <= 0.95) return t('chart.awake');
-          return '';
+    yAxis: [
+      {
+        type: 'value',
+        min: 0,
+        max: 1,
+        axisLabel: {
+          show: true,
+          color: '#999',
+          fontSize: 10,
+          formatter: (v) => {
+            if (v >= 0.05 && v <= 0.2) return t('chart.deep');
+            if (v >= 0.3 && v <= 0.45) return t('chart.light');
+            if (v >= 0.55 && v <= 0.7) return t('chart.rem');
+            if (v >= 0.8 && v <= 0.95) return t('chart.awake');
+            return '';
+          },
+          interval: 0.125,
+          margin: 4
         },
-        interval: 0.125,
-        margin: 4
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false }
       },
-      axisLine: { show: false },
-      axisTick: { show: false },
-      splitLine: { show: false }
-    },
-    // 右侧心率刻度轴（完全隐藏，仅作数据映射）
-    ...(hrLineData.length > 0 ? [{
-      type: 'value',
-      show: false,
-      min: hrAxisMin,
-      max: hrAxisMax,
-      axisLabel: { show: false },
-      axisLine: { show: false },
-      axisTick: { show: false },
-      splitLine: { show: false },
-      position: 'right'
-    }] : [])
+      // 右侧心率刻度轴（完全隐藏，仅作数据映射）
+      ...(hrLineData.length > 0
+        ? [
+            {
+              type: 'value',
+              show: false,
+              min: hrAxisMin,
+              max: hrAxisMax,
+              axisLabel: { show: false },
+              axisLine: { show: false },
+              axisTick: { show: false },
+              splitLine: { show: false },
+              position: 'right'
+            }
+          ]
+        : [])
     ],
     series: [
       // 隐藏柱系列：仅为图例提供颜色标记
@@ -380,99 +435,117 @@ function buildChart() {
       { name: stageConfig.rem.label, type: 'bar', data: [], itemStyle: { color: stageConfig.rem.color } },
       { name: stageConfig.awake.label, type: 'bar', data: [], itemStyle: { color: stageConfig.awake.color } },
       // 隐藏散点：为 axis trigger 提供睡眠段匹配点
-      ...(sleepHoverPts.length > 0 ? [{
-        name: 'sleepPt',
-        type: 'scatter',
-        symbolSize: 0,
-        data: sleepHoverPts,
-        z: 1
-      }] : []),
+      ...(sleepHoverPts.length > 0
+        ? [
+            {
+              name: 'sleepPt',
+              type: 'scatter',
+              symbolSize: 0,
+              data: sleepHoverPts,
+              z: 1
+            }
+          ]
+        : []),
       {
-      name: 'sleep',
-      type: 'custom',
-      encode: { x: [1, 2], y: 0 },
-      renderItem: (params, api) => {
-        // api.value(0)=stageIndex(0-3), api.value(1)=start, api.value(2)=end
-        const catIdx = api.value(0);
-        const startVal = api.value(1);
-        const endVal = api.value(2);
+        name: 'sleep',
+        type: 'custom',
+        encode: { x: [1, 2], y: 0 },
+        renderItem: (params, api) => {
+          // api.value(0)=stageIndex(0-3), api.value(1)=start, api.value(2)=end
+          const catIdx = api.value(0);
+          const startVal = api.value(1);
+          const endVal = api.value(2);
 
-        // 每层 0.25 高：深睡 0-0.25, 浅睡 0.25-0.5, REM 0.5-0.75, 清醒 0.75-1.0
-        const bandBtm = catIdx * 0.25;
-        const bandTop = (catIdx + 1) * 0.25;
+          // 每层 0.25 高：深睡 0-0.25, 浅睡 0.25-0.5, REM 0.5-0.75, 清醒 0.75-1.0
+          const bandBtm = catIdx * 0.25;
+          const bandTop = (catIdx + 1) * 0.25;
 
-        // 左下角：时间起点 + 层级底部
-        const pointStart = api.coord([startVal, bandBtm]);
-        // 右上角：时间终点 + 层级顶部
-        const pointEnd = api.coord([endVal, bandTop]);
+          // 左下角：时间起点 + 层级底部
+          const pointStart = api.coord([startVal, bandBtm]);
+          // 右上角：时间终点 + 层级顶部
+          const pointEnd = api.coord([endVal, bandTop]);
 
-        // 左右各延伸 0.5px 让相邻色块微重叠，消除抗锯齿缝隙
-        const x = pointStart[0] - 0.5;
-        const y = pointEnd[1];
-        const w = Math.max(1, pointEnd[0] - pointStart[0] + 1);
-        const h = pointStart[1] - pointEnd[1];
+          // 左右各延伸 0.5px 让相邻色块微重叠，消除抗锯齿缝隙
+          const x = pointStart[0] - 0.5;
+          const y = pointEnd[1];
+          const w = Math.max(1, pointEnd[0] - pointStart[0] + 1);
+          const h = pointStart[1] - pointEnd[1];
 
-        const rectShape = echarts.graphic.clipRectByRect(
-          { x, y, width: w, height: h },
-          { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
-        );
+          const rectShape = echarts.graphic.clipRectByRect(
+            { x, y, width: w, height: h },
+            { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
+          );
 
-        return rectShape && {
-          type: 'rect',
-          shape: rectShape,
-          style: { fill: segs[params.dataIndex] ? stageConfig[sNorm(segs[params.dataIndex].state)]?.color || '#999' : '#999' }
-        };
+          return (
+            rectShape && {
+              type: 'rect',
+              shape: rectShape,
+              style: {
+                fill: segs[params.dataIndex]
+                  ? stageConfig[sNorm(segs[params.dataIndex].state)]?.color || '#999'
+                  : '#999'
+              }
+            }
+          );
+        },
+        data: seriesData
       },
-      data: seriesData
-    },
-    // 心率平滑折线
-    ...(hrLineData.length > 0 ? [{
-      name: t('sport.heartRate'),
-      type: 'line',
-      yAxisIndex: 1,
-      smooth: 0.4,
-      data: hrLineData,
-      symbol: 'none',
-      lineStyle: { color: '#ff6b35', width: 2 },
-      itemStyle: { color: '#ff6b35' },
-      emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff', symbolSize: 8 } },
-      z: 20
-    }] : [])
+      // 心率平滑折线
+      ...(hrLineData.length > 0
+        ? [
+            {
+              name: t('sport.heartRate'),
+              type: 'line',
+              yAxisIndex: 1,
+              smooth: 0.4,
+              data: hrLineData,
+              symbol: 'none',
+              lineStyle: { color: '#ff6b35', width: 2 },
+              itemStyle: { color: '#ff6b35' },
+              emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff', symbolSize: 8 } },
+              z: 20
+            }
+          ]
+        : [])
     ]
   };
 
   chartInstance.setOption(option, true);
 }
 
-const initChart = () => { 
+const initChart = () => {
   if (!isUnmounted && chartRef.value && hasData.value) buildChart();
 };
 
-watch(() => props.data, async nd => {
-  timelineData.value = nd;
-  heartRateTS.value = null;
-  if (nd?.date) {
-    const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
-    if (isUnmounted) return;
-    if (hr?.data?.length) {
-      heartRateTS.value = {
-        ...hr,
-        data: hr.data.filter(item => isValidHeartRate(item.value))
-      };
+watch(
+  () => props.data,
+  async (nd) => {
+    timelineData.value = nd;
+    heartRateTS.value = null;
+    if (nd?.date) {
+      const hr = await dataStore.fetchTimeSeries(nd.date, 'heart_rate');
+      if (isUnmounted) return;
+      if (hr?.data?.length) {
+        heartRateTS.value = {
+          ...hr,
+          data: hr.data.filter((item) => isValidHeartRate(item.value))
+        };
+      }
     }
-  }
-  // Wait for DOM to update before building chart
-  await new Promise(resolve => {
-    dataTimer = setTimeout(() => {
-      dataTimer = null;
-      resolveDataTimer = null;
-      resolve();
-    }, 50);
-    resolveDataTimer = resolve;
-  });
-  if (!isUnmounted) buildChart();
-  // If chart not initialized yet, it will be handled by watch(hasData)
-}, { deep: true, immediate: true });
+    // Wait for DOM to update before building chart
+    await new Promise((resolve) => {
+      dataTimer = setTimeout(() => {
+        dataTimer = null;
+        resolveDataTimer = null;
+        resolve();
+      }, 50);
+      resolveDataTimer = resolve;
+    });
+    if (!isUnmounted) buildChart();
+    // If chart not initialized yet, it will be handled by watch(hasData)
+  },
+  { deep: true, immediate: true }
+);
 
 // Watch hasData changes to re-init chart when data becomes available
 watch(hasData, async (newVal) => {
@@ -482,7 +555,7 @@ watch(hasData, async (newVal) => {
   }
   if (newVal && !chartInstance && chartRef.value) {
     // Chart instance doesn't exist but we have data, initialize it
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       initTimer = setTimeout(() => {
         initTimer = null;
         resolveInitTimer = null;
@@ -494,9 +567,12 @@ watch(hasData, async (newVal) => {
   }
 });
 
-watch(() => localeStore.currentLocale, () => {
-  if (chartInstance && hasData.value) buildChart();
-});
+watch(
+  () => localeStore.currentLocale,
+  () => {
+    if (chartInstance && hasData.value) buildChart();
+  }
+);
 
 const handleResize = () => chartInstance?.resize();
 
@@ -556,13 +632,14 @@ onBeforeUnmount(() => {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 .sleep-overview-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 0; flex-shrink: 0;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 .overview-card {
   text-align: left;
@@ -570,9 +647,16 @@ onBeforeUnmount(() => {
   min-height: 112px;
   height: 112px;
   border-radius: 8px;
-  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s,
+    border-color 0.3s;
 }
-.overview-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary-color); }
+.overview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
 .overview-card :deep(.metric-card__content--row) {
   align-items: flex-start;
   gap: 4px;
@@ -607,10 +691,22 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   font-size: 24px;
 }
-.sleep-card-icon--sleep { background: rgba(250, 140, 22, 0.12); }
-.sleep-card-icon--heart { background: rgba(245, 108, 108, 0.12); }
-.sleep-card-icon--interrupt { background: rgba(64, 158, 255, 0.12); }
-.card-value { font-size: inherit; font-weight: inherit; color: inherit; white-space: nowrap; line-height: 1.1; }
+.sleep-card-icon--sleep {
+  background: rgba(250, 140, 22, 0.12);
+}
+.sleep-card-icon--heart {
+  background: rgba(245, 108, 108, 0.12);
+}
+.sleep-card-icon--interrupt {
+  background: rgba(64, 158, 255, 0.12);
+}
+.card-value {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  white-space: nowrap;
+  line-height: 1.1;
+}
 .card-value-row {
   display: flex;
   align-items: center;
@@ -619,8 +715,14 @@ onBeforeUnmount(() => {
   gap: 6px;
   width: 100%;
 }
-.card-value-row .card-value { margin-bottom: 0; }
-.chart { width: 100%; flex: 1 1 auto; min-height: 0; }
+.card-value-row .card-value {
+  margin-bottom: 0;
+}
+.chart {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .timeline-card :deep(.app-section-title--level-2) {
   margin-bottom: 12px;
 }
@@ -631,8 +733,25 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 }
-.summary-info { display: flex; gap: 24px; margin-bottom: 12px; padding: 10px 14px; background: var(--bg-secondary); border-radius: 8px; flex-wrap: wrap; color: var(--text-secondary); font-size: 13px; }
-@media (max-width: 900px) { .sleep-overview-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 500px) { .sleep-overview-cards { grid-template-columns: repeat(1, 1fr); } }
+.summary-info {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .sleep-overview-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 500px) {
+  .sleep-overview-cards {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
 </style>
-

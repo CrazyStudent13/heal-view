@@ -59,7 +59,10 @@ defineEmits(['update:modelValue']);
   cursor: pointer;
   font-size: 14px;
   color: var(--text-secondary);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .tab-btn:hover {
@@ -87,4 +90,3 @@ defineEmits(['update:modelValue']);
   white-space: nowrap;
 }
 </style>
-

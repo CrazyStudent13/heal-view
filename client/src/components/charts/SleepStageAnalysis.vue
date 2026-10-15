@@ -61,7 +61,7 @@ function timeToMinutes(time) {
 const stageData = computed(() => {
   const durations = { deep: 0, light: 0, rem: 0, awake: 0 };
 
-  props.segments.forEach(segment => {
+  props.segments.forEach((segment) => {
     const state = String(segment.state || '').toLowerCase();
     const start = timeToMinutes(segment.startTime);
     const end = timeToMinutes(segment.endTime);
@@ -110,7 +110,7 @@ function themeColors() {
 function tooltipFormatter(params) {
   const datum = Array.isArray(params) ? params[0]?.data : params?.data;
   if (!datum) return '';
-  const percent = totalMinutes.value > 0 ? (datum.value / totalMinutes.value * 100).toFixed(1) : '0.0';
+  const percent = totalMinutes.value > 0 ? ((datum.value / totalMinutes.value) * 100).toFixed(1) : '0.0';
   const marker = Array.isArray(params) ? params[0]?.marker : params?.marker;
   return `${marker || ''}${datum.name}<br/><strong>${formatDuration(datum.value)}</strong> · ${percent}%`;
 }
@@ -120,80 +120,90 @@ function updateCharts() {
   const colors = themeColors();
   const data = stageData.value;
 
-  barChart.setOption({
-    backgroundColor: 'transparent',
-    animationDuration: 500,
-    grid: { left: 14, right: 62, top: 20, bottom: 24, containLabel: true },
-    tooltip: {
-      trigger: 'item',
-      formatter: tooltipFormatter,
-      backgroundColor: colors.background,
-      borderColor: colors.line,
-      textStyle: { color: colors.textStrong }
-    },
-    xAxis: {
-      type: 'value',
-      min: 0,
-      splitNumber: 4,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: colors.text, hideOverlap: true, formatter: value => formatDuration(value, true) },
-      splitLine: { lineStyle: { color: colors.line, type: 'dashed' } }
-    },
-    yAxis: {
-      type: 'category',
-      inverse: true,
-      data: data.map(item => item.name),
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: colors.textStrong, margin: 12 }
-    },
-    series: [{
-      type: 'bar',
-      barWidth: 18,
-      data,
-      itemStyle: { borderRadius: [0, 4, 4, 0] },
-      label: {
-        show: true,
-        position: 'right',
-        color: colors.textStrong,
-        formatter: params => formatDuration(params.value, true)
-      }
-    }]
-  }, true);
-
-  pieChart.setOption({
-    backgroundColor: 'transparent',
-    animationDuration: 500,
-    tooltip: {
-      trigger: 'item',
-      formatter: tooltipFormatter,
-      backgroundColor: colors.background,
-      borderColor: colors.line,
-      textStyle: { color: colors.textStrong }
-    },
-    legend: {
-      type: 'scroll',
-      bottom: 0,
-      left: 'center',
-      textStyle: { color: colors.text }
-    },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '72%'],
-      center: ['50%', '48%'],
-      minShowLabelAngle: 4,
-      avoidLabelOverlap: true,
-      itemStyle: { borderColor: colors.background, borderWidth: 2 },
-      label: {
-        color: colors.textStrong,
-        formatter: '{b}\n{d}%'
+  barChart.setOption(
+    {
+      backgroundColor: 'transparent',
+      animationDuration: 500,
+      grid: { left: 14, right: 62, top: 20, bottom: 24, containLabel: true },
+      tooltip: {
+        trigger: 'item',
+        formatter: tooltipFormatter,
+        backgroundColor: colors.background,
+        borderColor: colors.line,
+        textStyle: { color: colors.textStrong }
       },
-      labelLine: { length: 10, length2: 8 },
-      emphasis: { scaleSize: 6 },
-      data
-    }]
-  }, true);
+      xAxis: {
+        type: 'value',
+        min: 0,
+        splitNumber: 4,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: colors.text, hideOverlap: true, formatter: (value) => formatDuration(value, true) },
+        splitLine: { lineStyle: { color: colors.line, type: 'dashed' } }
+      },
+      yAxis: {
+        type: 'category',
+        inverse: true,
+        data: data.map((item) => item.name),
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: colors.textStrong, margin: 12 }
+      },
+      series: [
+        {
+          type: 'bar',
+          barWidth: 18,
+          data,
+          itemStyle: { borderRadius: [0, 4, 4, 0] },
+          label: {
+            show: true,
+            position: 'right',
+            color: colors.textStrong,
+            formatter: (params) => formatDuration(params.value, true)
+          }
+        }
+      ]
+    },
+    true
+  );
+
+  pieChart.setOption(
+    {
+      backgroundColor: 'transparent',
+      animationDuration: 500,
+      tooltip: {
+        trigger: 'item',
+        formatter: tooltipFormatter,
+        backgroundColor: colors.background,
+        borderColor: colors.line,
+        textStyle: { color: colors.textStrong }
+      },
+      legend: {
+        type: 'scroll',
+        bottom: 0,
+        left: 'center',
+        textStyle: { color: colors.text }
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '72%'],
+          center: ['50%', '48%'],
+          minShowLabelAngle: 4,
+          avoidLabelOverlap: true,
+          itemStyle: { borderColor: colors.background, borderWidth: 2 },
+          label: {
+            color: colors.textStrong,
+            formatter: '{b}\n{d}%'
+          },
+          labelLine: { length: 10, length2: 8 },
+          emphasis: { scaleSize: 6 },
+          data
+        }
+      ]
+    },
+    true
+  );
 }
 
 async function initCharts() {
@@ -211,11 +221,9 @@ async function initCharts() {
   resizeObserver.observe(pieChartRef.value);
 }
 
-watch(
-  [stageData, () => localeStore.currentLocale, () => themeStore.isDarkMode],
-  () => nextTick(updateCharts),
-  { deep: true }
-);
+watch([stageData, () => localeStore.currentLocale, () => themeStore.isDarkMode], () => nextTick(updateCharts), {
+  deep: true
+});
 
 onMounted(initCharts);
 
@@ -285,4 +293,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

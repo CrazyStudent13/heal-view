@@ -10,19 +10,25 @@
         <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--range">
           <template #icon><span class="heart-metric-icon">📊</span></template>
           <template #label>{{ t('chart.heartRateRange') }}</template>
-          <template #value>{{ minHR }}-{{ maxHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+          <template #value
+            >{{ minHR }}-{{ maxHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template
+          >
         </MetricCard>
 
         <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--avg">
           <template #icon><span class="heart-metric-icon">❤️</span></template>
           <template #label>{{ t('chart.avgHeartRate') }}</template>
-          <template #value>{{ avgHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+          <template #value
+            >{{ avgHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template
+          >
         </MetricCard>
 
         <MetricCard compact layout="row" class="heart-metric-card heart-metric-card--rest">
           <template #icon><span class="heart-metric-icon">🌙</span></template>
           <template #label>{{ t('chart.restingHeartRate') }}</template>
-          <template #value>{{ restingHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template>
+          <template #value
+            >{{ restingHR }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></template
+          >
         </MetricCard>
       </div>
     </div>
@@ -77,21 +83,21 @@ function isValidHeartRate(value) {
 
 const minHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  const values = heartRateData.value.map((item) => Number(item.value)).filter(isValidHeartRate);
   if (values.length === 0) return 0;
   return Math.min(...values);
 });
 
 const maxHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  const values = heartRateData.value.map((item) => Number(item.value)).filter(isValidHeartRate);
   if (values.length === 0) return 0;
   return Math.max(...values);
 });
 
 const avgHR = computed(() => {
   if (!hasData.value) return 0;
-  const values = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  const values = heartRateData.value.map((item) => Number(item.value)).filter(isValidHeartRate);
   if (values.length === 0) return 0;
   const sum = values.reduce((acc, val) => acc + val, 0);
   return Math.round(sum / values.length);
@@ -101,19 +107,19 @@ const restingHR = computed(() => {
   if (!hasData.value) return 0;
   // Resting heart rate is typically the lowest heart rate during rest periods
   // We'll use the minimum value from early morning hours (before 8 AM) or the overall minimum
-  const morningData = heartRateData.value.filter(item => {
+  const morningData = heartRateData.value.filter((item) => {
     const date = new Date(item.time * 1000);
     return date.getHours() < 8;
   });
-  
+
   if (morningData.length > 0) {
-    const morningValues = morningData.map(item => Number(item.value)).filter(isValidHeartRate);
+    const morningValues = morningData.map((item) => Number(item.value)).filter(isValidHeartRate);
     if (morningValues.length === 0) return minHR.value;
     return Math.min(...morningValues);
   }
-  
+
   // If no morning data, use overall minimum as fallback
-  const allValues = heartRateData.value.map(item => Number(item.value)).filter(isValidHeartRate);
+  const allValues = heartRateData.value.map((item) => Number(item.value)).filter(isValidHeartRate);
   if (allValues.length === 0) return 0;
   return Math.min(...allValues);
 });
@@ -143,27 +149,29 @@ const updateChart = () => {
 
   // Create a map of existing data by rounding to nearest hour
   const dataByHour = new Map();
-  heartRateData.value.filter(item => isValidHeartRate(item.value)).forEach(item => {
-    const date = new Date(item.time * 1000);
-    const hourKey = `${date.getHours().toString().padStart(2, '0')}:00`;
-    
-    // If we already have data for this hour, average it
-    if (dataByHour.has(hourKey)) {
-      const existing = dataByHour.get(hourKey);
-      dataByHour.set(hourKey, {
-        sum: existing.sum + Number(item.value),
-        count: existing.count + 1
-      });
-    } else {
-      dataByHour.set(hourKey, {
-        sum: Number(item.value),
-        count: 1
-      });
-    }
-  });
+  heartRateData.value
+    .filter((item) => isValidHeartRate(item.value))
+    .forEach((item) => {
+      const date = new Date(item.time * 1000);
+      const hourKey = `${date.getHours().toString().padStart(2, '0')}:00`;
+
+      // If we already have data for this hour, average it
+      if (dataByHour.has(hourKey)) {
+        const existing = dataByHour.get(hourKey);
+        dataByHour.set(hourKey, {
+          sum: existing.sum + Number(item.value),
+          count: existing.count + 1
+        });
+      } else {
+        dataByHour.set(hourKey, {
+          sum: Number(item.value),
+          count: 1
+        });
+      }
+    });
 
   // Calculate average values for each hour
-  const fullDayValues = fullDayTimes.map(time => {
+  const fullDayValues = fullDayTimes.map((time) => {
     if (dataByHour.has(time)) {
       const data = dataByHour.get(time);
       return Math.round(data.sum / data.count);
@@ -264,38 +272,45 @@ const updateChart = () => {
 };
 
 // Fetch heart rate time series data when selected date changes
-watch(() => dateStore.selectedDate, async (newDate) => {
-  if (!newDate) {
-    heartRateData.value = [];
-    return;
-  }
-
-  loading.value = true;
-  try {
-    const hrData = await dataStore.fetchTimeSeries(newDate, 'heart_rate');
-    if (hrData) {
-      heartRateData.value = (hrData.data || []).filter(item => isValidHeartRate(item.value));
-    } else {
+watch(
+  () => dateStore.selectedDate,
+  async (newDate) => {
+    if (!newDate) {
       heartRateData.value = [];
+      return;
     }
-  } catch (error) {
-    console.error('Failed to fetch heart rate time series data:', error);
-    heartRateData.value = [];
-  } finally {
-    loading.value = false;
-    if (isUnmounted) return;
-    
-    // Update chart after data is loaded
-    updateTimer = setTimeout(() => {
-      updateTimer = null;
-      if (!isUnmounted) updateChart();
-    }, 100);
-  }
-}, { immediate: true });
 
-watch(() => localeStore.currentLocale, () => {
-  if (chartInstance) updateChart();
-});
+    loading.value = true;
+    try {
+      const hrData = await dataStore.fetchTimeSeries(newDate, 'heart_rate');
+      if (hrData) {
+        heartRateData.value = (hrData.data || []).filter((item) => isValidHeartRate(item.value));
+      } else {
+        heartRateData.value = [];
+      }
+    } catch (error) {
+      console.error('Failed to fetch heart rate time series data:', error);
+      heartRateData.value = [];
+    } finally {
+      loading.value = false;
+      if (isUnmounted) return;
+
+      // Update chart after data is loaded
+      updateTimer = setTimeout(() => {
+        updateTimer = null;
+        if (!isUnmounted) updateChart();
+      }, 100);
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => localeStore.currentLocale,
+  () => {
+    if (chartInstance) updateChart();
+  }
+);
 
 onMounted(() => {
   initTimer = setTimeout(() => {
@@ -360,7 +375,10 @@ const handleResize = () => {
   text-align: left;
   min-height: 112px;
   border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .heart-metric-card:hover {
@@ -426,4 +444,3 @@ const handleResize = () => {
   min-height: 0;
 }
 </style>
-

@@ -19,11 +19,11 @@ const props = defineProps({
   level: {
     type: Number,
     default: 2,
-    validator: value => [1, 2].includes(value)
+    validator: (value) => [1, 2].includes(value)
   }
 });
 
-const headingTag = computed(() => props.level === 1 ? 'h1' : 'h2');
+const headingTag = computed(() => (props.level === 1 ? 'h1' : 'h2'));
 </script>
 
 <style scoped lang="scss">
@@ -89,4 +89,3 @@ const headingTag = computed(() => props.level === 1 ? 'h1' : 'h2');
   font-size: 16px;
 }
 </style>
-

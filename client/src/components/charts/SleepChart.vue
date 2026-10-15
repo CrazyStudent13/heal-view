@@ -98,21 +98,25 @@ let chartInstance = null;
 
 const sleepSummaryList = computed(() => {
   return Array.isArray(props.timelineList)
-    ? props.timelineList.filter(item => item && (item.bedtime || item.wakeUpTime))
+    ? props.timelineList.filter((item) => item && (item.bedtime || item.wakeUpTime))
     : [];
 });
 
-const bedtimeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map(item => item.bedtime)));
-const wakeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map(item => item.wakeUpTime)));
-const sleepRegularityMetrics = computed(() => [bedtimeRegularity.value, wakeRegularity.value].filter(item => item.total > 0));
+const bedtimeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map((item) => item.bedtime)));
+const wakeRegularity = computed(() => assessSleepRegularity(sleepSummaryList.value.map((item) => item.wakeUpTime)));
+const sleepRegularityMetrics = computed(() =>
+  [bedtimeRegularity.value, wakeRegularity.value].filter((item) => item.total > 0)
+);
 const hasSleepRegularityMetrics = computed(() => sleepRegularityMetrics.value.length > 0);
 
-const regularityTipContent = computed(() => `
+const regularityTipContent = computed(
+  () => `
   <div style="line-height:1.8">
     <div style="font-weight:600;margin-bottom:4px">${t('sleep.regularityTipTitle')}</div>
     <div>${t('sleep.regularityTip')}</div>
   </div>
-`);
+`
+);
 
 function regularityScoreText(metrics) {
   if (metrics.score === null) return '-- / 10';
@@ -121,7 +125,10 @@ function regularityScoreText(metrics) {
 
 function regularityMetaText(metrics) {
   if (metrics.score === null) return t('sleep.regularityNoData');
-  return `${t('sleep.regularityMatched', { matched: metrics.matched, total: metrics.total })} · ${t('sleep.regularityReference', { time: metrics.referenceTime })}`;
+  return `${t('sleep.regularityMatched', { matched: metrics.matched, total: metrics.total })} · ${t(
+    'sleep.regularityReference',
+    { time: metrics.referenceTime }
+  )}`;
 }
 
 function regularityStatusLabel(status) {
@@ -142,11 +149,12 @@ function regularityTagType(status) {
 const hasValidData = computed(() => {
   if (!props.data || props.data.length === 0) return false;
 
-  return props.data.some(item => {
-    const totalSleep = (item.deepSleepHours || 0)
-      + (item.lightSleepHours || 0)
-      + (item.remSleepHours || 0)
-      + (item.awakeSleepHours || 0);
+  return props.data.some((item) => {
+    const totalSleep =
+      (item.deepSleepHours || 0) +
+      (item.lightSleepHours || 0) +
+      (item.remSleepHours || 0) +
+      (item.awakeSleepHours || 0);
     return totalSleep > 0;
   });
 });
@@ -160,11 +168,12 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || props.data.length === 0) return;
 
-  const filteredData = props.data.filter(item => {
-    const totalSleep = (item.deepSleepHours || 0)
-      + (item.lightSleepHours || 0)
-      + (item.remSleepHours || 0)
-      + (item.awakeSleepHours || 0);
+  const filteredData = props.data.filter((item) => {
+    const totalSleep =
+      (item.deepSleepHours || 0) +
+      (item.lightSleepHours || 0) +
+      (item.remSleepHours || 0) +
+      (item.awakeSleepHours || 0);
     return totalSleep > 0;
   });
 
@@ -173,11 +182,11 @@ const updateChart = () => {
     return;
   }
 
-  const dates = filteredData.map(item => formatDate(item.date));
-  const deepSleep = filteredData.map(item => item.deepSleepHours || 0);
-  const lightSleep = filteredData.map(item => item.lightSleepHours || 0);
-  const remSleep = filteredData.map(item => item.remSleepHours || 0);
-  const awakeSleep = filteredData.map(item => item.awakeSleepHours || 0);
+  const dates = filteredData.map((item) => formatDate(item.date));
+  const deepSleep = filteredData.map((item) => item.deepSleepHours || 0);
+  const lightSleep = filteredData.map((item) => item.lightSleepHours || 0);
+  const remSleep = filteredData.map((item) => item.remSleepHours || 0);
+  const awakeSleep = filteredData.map((item) => item.awakeSleepHours || 0);
 
   const isDark = document.documentElement.classList.contains('dark-theme');
   const textColor = isDark ? '#a8a8a8' : '#606266';
@@ -192,7 +201,7 @@ const updateChart = () => {
       },
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
-        params.forEach(param => {
+        params.forEach((param) => {
           if (param.value > 0) {
             result += `${param.marker}${param.seriesName}: ${param.value} ${t('settings.units.hours')}<br/>`;
           }
@@ -340,13 +349,21 @@ const resizeAndUpdateChart = () => {
   });
 };
 
-watch(() => props.data, () => {
-  resizeAndUpdateChart();
-}, { deep: true });
+watch(
+  () => props.data,
+  () => {
+    resizeAndUpdateChart();
+  },
+  { deep: true }
+);
 
-watch(() => props.timelineList, () => {
-  resizeAndUpdateChart();
-}, { deep: true });
+watch(
+  () => props.timelineList,
+  () => {
+    resizeAndUpdateChart();
+  },
+  { deep: true }
+);
 
 watch(() => localeStore.currentLocale, resizeAndUpdateChart);
 
@@ -503,4 +520,3 @@ const handleResize = () => {
   min-height: 0;
 }
 </style>
-

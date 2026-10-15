@@ -20,11 +20,11 @@ import { useLocaleStore } from '@/stores/localeStore.js';
 const dateStore = useDateStore();
 const localeStore = useLocaleStore();
 const { t } = localeStore;
-const dateFormat = computed(() => localeStore.currentLocale === 'en' ? 'MM/DD/YYYY' : 'YYYY-MM-DD');
+const dateFormat = computed(() => (localeStore.currentLocale === 'en' ? 'MM/DD/YYYY' : 'YYYY-MM-DD'));
 
 const selectedRange = computed({
   get: () => dateStore.selectedDateRange,
-  set: value => dateStore.selectDateRange(value)
+  set: (value) => dateStore.selectDateRange(value)
 });
 
 const dateShortcuts = computed(() => [

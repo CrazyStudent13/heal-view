@@ -103,7 +103,9 @@ const { t } = localeStore;
   color: var(--text-secondary);
   font-size: 14px;
   text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .profile-nav-item:hover,

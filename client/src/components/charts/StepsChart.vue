@@ -13,7 +13,17 @@
           <template #icon>⏱️</template>
           <template #label>{{ t('chart.avgExerciseDuration') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.avgExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDurationDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.avgExerciseDurationFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.avgExerciseDurationDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -23,7 +33,17 @@
           <template #icon>📏</template>
           <template #label>{{ t('chart.avgExerciseDistance') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.avgExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgExerciseDistanceDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.avgExerciseDistanceFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.avgExerciseDistanceDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -33,7 +53,17 @@
           <template #icon>🔥</template>
           <template #label>{{ t('chart.avgDailyCalories') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.avgDailyCaloriesFormula') + '<br/>' + t('chart.description') + '：' + t('chart.avgDailyCaloriesDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.avgDailyCaloriesFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.avgDailyCaloriesDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -43,7 +73,17 @@
           <template #icon>🕐</template>
           <template #label>{{ t('chart.totalExerciseDuration') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.totalExerciseDurationFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDurationDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.totalExerciseDurationFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.totalExerciseDurationDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -53,7 +93,17 @@
           <template #icon>📍</template>
           <template #label>{{ t('chart.totalExerciseDistance') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.totalExerciseDistanceFormula') + '<br/>' + t('chart.description') + '：' + t('chart.totalExerciseDistanceDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.totalExerciseDistanceFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.totalExerciseDistanceDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -63,7 +113,17 @@
           <template #icon>📅</template>
           <template #label>{{ t('chart.exerciseDays') }}</template>
           <template #badge>
-            <el-tooltip :content="t('chart.exerciseFrequencyFormula') + '<br/>' + t('chart.description') + '：' + t('chart.exerciseFrequencyDesc')" placement="top" raw-content>
+            <el-tooltip
+              :content="
+                t('chart.exerciseFrequencyFormula') +
+                '<br/>' +
+                t('chart.description') +
+                '：' +
+                t('chart.exerciseFrequencyDesc')
+              "
+              placement="top"
+              raw-content
+            >
               <el-icon class="help-icon"><QuestionFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -71,13 +131,9 @@
         </MetricCard>
       </div>
     </div>
-    
+
     <!-- Chart card -->
-    <ChartPanel
-      v-show="!loading"
-      :empty="!loading && data.length === 0"
-      :empty-description="t('chart.noData')"
-    >
+    <ChartPanel v-show="!loading" :empty="!loading && data.length === 0" :empty-description="t('chart.noData')">
       <template #title>
         <SectionTitle>{{ t('chart.stepsDistanceTrend') }}</SectionTitle>
       </template>
@@ -119,15 +175,15 @@ let isUnmounted = false;
 // Calculate statistics
 const stats = computed(() => {
   if (!props.data || props.data.length === 0) return null;
-  
+
   // Filter days with exercise (totalDurationMinutes > 0)
-  const exerciseDays = props.data.filter(item => item.totalDurationMinutes && item.totalDurationMinutes > 0);
-  
+  const exerciseDays = props.data.filter((item) => item.totalDurationMinutes && item.totalDurationMinutes > 0);
+
   // Total days in selected range
   const totalDays = props.data.length;
   // Actual exercise days count
   const actualExerciseDays = exerciseDays.length;
-  
+
   if (actualExerciseDays === 0) {
     return {
       avgExerciseDuration: 0,
@@ -139,24 +195,24 @@ const stats = computed(() => {
       avgDailyCalories: 0
     };
   }
-  
+
   // Calculate average exercise duration (only for days with exercise)
   const totalDuration = exerciseDays.reduce((sum, item) => sum + (item.totalDurationMinutes || 0), 0);
   const avgExerciseDuration = Math.round(totalDuration / actualExerciseDays);
-  
+
   // Calculate average exercise distance (only for days with exercise)
-  const totalDistance = exerciseDays.reduce((sum, item) => sum + ((item.distance || 0) / 1000), 0);
+  const totalDistance = exerciseDays.reduce((sum, item) => sum + (item.distance || 0) / 1000, 0);
   const avgExerciseDistance = (totalDistance / actualExerciseDays).toFixed(2);
-  
+
   // Calculate total exercise duration and distance
   const totalExerciseDuration = (totalDuration / 60).toFixed(1); // Convert to hours
   const totalExerciseDistance = totalDistance.toFixed(2);
-  
+
   // Calculate calories from sport_records data
   const totalSportCalories = exerciseDays.reduce((sum, item) => sum + (item.sportCalories || 0), 0);
   const avgDailyCalories = Math.round(totalSportCalories / actualExerciseDays);
   const totalCalories = Math.round(totalSportCalories);
-  
+
   return {
     avgExerciseDuration,
     avgExerciseDistance,
@@ -178,11 +234,11 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || props.data.length === 0) return;
 
-  const dates = props.data.map(item => formatDate(item.date));
-  const steps = props.data.map(item => item.steps || 0);
-  const distance = props.data.map(item => (item.distance || 0) / 1000); // Convert meters to km
-  const exerciseDuration = props.data.map(item => item.totalDurationMinutes || 0);
-  const sportCalories = props.data.map(item => item.sportCalories || 0);
+  const dates = props.data.map((item) => formatDate(item.date));
+  const steps = props.data.map((item) => item.steps || 0);
+  const distance = props.data.map((item) => (item.distance || 0) / 1000); // Convert meters to km
+  const exerciseDuration = props.data.map((item) => item.totalDurationMinutes || 0);
+  const sportCalories = props.data.map((item) => item.sportCalories || 0);
 
   // Get theme colors
   const isDark = document.documentElement.classList.contains('dark-theme');
@@ -198,7 +254,7 @@ const updateChart = () => {
       },
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
-        params.forEach(param => {
+        params.forEach((param) => {
           if (param.seriesName === t('chart.steps')) {
             result += `${param.marker}${t('chart.steps')}: ${formatNumber(param.value)} ${t('chart.unitSteps')}<br/>`;
           } else if (param.seriesName === t('chart.distance')) {
@@ -340,28 +396,38 @@ const updateChart = () => {
   chartInstance.setOption(option);
 };
 
-watch(() => props.data, (newData) => {
-  // Update chart when data changes and chart is initialized
-  if (newData && newData.length > 0 && chartInstance) {
-    updateChart();
-  }
-}, { deep: true });
+watch(
+  () => props.data,
+  (newData) => {
+    // Update chart when data changes and chart is initialized
+    if (newData && newData.length > 0 && chartInstance) {
+      updateChart();
+    }
+  },
+  { deep: true }
+);
 
-watch(() => localeStore.currentLocale, () => {
-  if (chartInstance) updateChart();
-});
+watch(
+  () => localeStore.currentLocale,
+  () => {
+    if (chartInstance) updateChart();
+  }
+);
 
 // Watch for loading state changes to initialize chart when loading finishes
-watch(() => props.loading, async (newLoading) => {
-  if (!newLoading && props.data && props.data.length > 0) {
-    await nextTick();
-    if (isUnmounted) return;
-    initTimer = setTimeout(() => {
-      initTimer = null;
-      if (!isUnmounted) initChart();
-    }, 100);
+watch(
+  () => props.loading,
+  async (newLoading) => {
+    if (!newLoading && props.data && props.data.length > 0) {
+      await nextTick();
+      if (isUnmounted) return;
+      initTimer = setTimeout(() => {
+        initTimer = null;
+        if (!isUnmounted) initChart();
+      }, 100);
+    }
   }
-});
+);
 
 onMounted(() => {
   // Initialize chart on mount if not loading and has data
@@ -544,6 +610,3 @@ const handleResize = () => {
   --skeleton-highlight: #4a4a4a;
 }
 </style>
-
-
-

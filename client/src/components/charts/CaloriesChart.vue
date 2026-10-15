@@ -39,7 +39,7 @@ const { chartInstance, initChart: initChartInstance } = useEchartsInstance(chart
 const hasData = computed(() => props.data.length > 0);
 
 const chartData = computed(() => {
-  return props.data.map(item => {
+  return props.data.map((item) => {
     const duration = Number(item.totalDurationMinutes || 0);
     const calories = Number(item.sportCalories || 0);
     const efficiency = calculateCalorieEfficiency(calories, duration);
@@ -54,9 +54,7 @@ const chartData = computed(() => {
 });
 
 const avgCaloriesValue = computed(() => {
-  const values = chartData.value
-    .map(item => item.calories)
-    .filter(value => Number.isFinite(value));
+  const values = chartData.value.map((item) => item.calories).filter((value) => Number.isFinite(value));
 
   if (values.length === 0) return null;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
@@ -64,14 +62,14 @@ const avgCaloriesValue = computed(() => {
 
 function buildOption() {
   const colors = themeColors.value;
-  const dates = chartData.value.map(item => formatDate(item.date));
-  const calories = chartData.value.map(item => item.calories);
-  const efficiencies = chartData.value.map(item => item.efficiency);
+  const dates = chartData.value.map((item) => formatDate(item.date));
+  const calories = chartData.value.map((item) => item.calories);
+  const efficiencies = chartData.value.map((item) => item.efficiency);
   const avgCalories = avgCaloriesValue.value;
   const avgCaloriesSeries = dates.map(() => avgCalories);
 
-  const calorieValues = calories.filter(value => Number.isFinite(value));
-  const efficiencyValues = efficiencies.filter(value => Number.isFinite(value));
+  const calorieValues = calories.filter((value) => Number.isFinite(value));
+  const efficiencyValues = efficiencies.filter((value) => Number.isFinite(value));
 
   const calorieMax = calorieValues.length > 0 ? Math.max(...calorieValues) : 0;
   const calorieMin = calorieValues.length > 0 ? Math.min(...calorieValues) : 0;
@@ -79,7 +77,8 @@ function buildOption() {
 
   const efficiencyMax = efficiencyValues.length > 0 ? Math.max(...efficiencyValues) : 0;
   const efficiencyMin = efficiencyValues.length > 0 ? Math.min(...efficiencyValues) : 0;
-  const efficiencyPadding = efficiencyValues.length > 0 ? Math.max(Number(((efficiencyMax - efficiencyMin) * 0.2).toFixed(2)), 0.1) : 0.5;
+  const efficiencyPadding =
+    efficiencyValues.length > 0 ? Math.max(Number(((efficiencyMax - efficiencyMin) * 0.2).toFixed(2)), 0.1) : 0.5;
 
   return {
     tooltip: {
@@ -89,24 +88,40 @@ function buildOption() {
         if (!params || params.length === 0) return '';
 
         const day = params[0].name;
-        const caloriesItem = params.find(item => item.seriesName === t('chart.caloriesBurned'));
-        const avgCaloriesItem = params.find(item => item.seriesName === t('chart.avgCaloriesLine'));
-        const efficiencyItem = params.find(item => item.seriesName === t('chart.caloriesEfficiency'));
+        const caloriesItem = params.find((item) => item.seriesName === t('chart.caloriesBurned'));
+        const avgCaloriesItem = params.find((item) => item.seriesName === t('chart.avgCaloriesLine'));
+        const efficiencyItem = params.find((item) => item.seriesName === t('chart.caloriesEfficiency'));
         const dataIndex = params[0].dataIndex;
         const item = chartData.value[dataIndex] || {};
 
         const lines = [`<strong>${day}</strong>`];
         if (caloriesItem && Number.isFinite(Number(caloriesItem.value))) {
-          lines.push(`${caloriesItem.marker}${t('chart.caloriesBurned')}${t('common.labelSeparator')}${Math.round(Number(caloriesItem.value))} ${t('settings.units.kcal')}`);
+          lines.push(
+            `${caloriesItem.marker}${t('chart.caloriesBurned')}${t('common.labelSeparator')}${Math.round(
+              Number(caloriesItem.value)
+            )} ${t('settings.units.kcal')}`
+          );
         }
         if (avgCaloriesItem && Number.isFinite(Number(avgCaloriesItem.value))) {
-          lines.push(`${avgCaloriesItem.marker}${t('chart.avgCaloriesLine')}${t('common.labelSeparator')}${Math.round(Number(avgCaloriesItem.value))} ${t('settings.units.kcal')}`);
+          lines.push(
+            `${avgCaloriesItem.marker}${t('chart.avgCaloriesLine')}${t('common.labelSeparator')}${Math.round(
+              Number(avgCaloriesItem.value)
+            )} ${t('settings.units.kcal')}`
+          );
         }
         if (efficiencyItem && Number.isFinite(Number(efficiencyItem.value))) {
-          lines.push(`${efficiencyItem.marker}${t('chart.caloriesEfficiency')}${t('common.labelSeparator')}${Number(efficiencyItem.value).toFixed(2)} ${t('chart.caloriesEfficiencyUnit')}`);
+          lines.push(
+            `${efficiencyItem.marker}${t('chart.caloriesEfficiency')}${t('common.labelSeparator')}${Number(
+              efficiencyItem.value
+            ).toFixed(2)} ${t('chart.caloriesEfficiencyUnit')}`
+          );
         }
         if (Number(item.duration) > 0) {
-          lines.push(`${t('chart.totalExerciseDuration')}${t('common.labelSeparator')}${Math.round(item.duration)} ${t('chart.minutes')}`);
+          lines.push(
+            `${t('chart.totalExerciseDuration')}${t('common.labelSeparator')}${Math.round(item.duration)} ${t(
+              'chart.minutes'
+            )}`
+          );
         }
         return lines.join('<br/>');
       }
@@ -278,4 +293,3 @@ onMounted(initChart);
   max-width: 100%;
 }
 </style>
-

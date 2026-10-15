@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 export function useDashboardSelection(dateStore) {
   const viewMode = computed({
     get: () => dateStore.viewMode,
-    set: value => dateStore.setViewMode(value)
+    set: (value) => dateStore.setViewMode(value)
   });
   const currentChartType = ref('personal');
 

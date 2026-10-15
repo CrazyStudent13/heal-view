@@ -112,10 +112,17 @@ defineEmits(['retry']);
   background: var(--card-bg, #ffffff);
 }
 
-.chart-panel__body:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+.chart-panel__body:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
 
 @media (max-width: 640px) {
-  .chart-panel__body { overflow-x: auto; }
-  .chart-panel__body > :deep(.chart) { min-width: 600px; }
+  .chart-panel__body {
+    overflow-x: auto;
+  }
+  .chart-panel__body > :deep(.chart) {
+    min-width: 600px;
+  }
 }
 </style>

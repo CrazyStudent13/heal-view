@@ -5,7 +5,7 @@
       {{ t('chart.dailySportActivities') }}
       <template #actions><DateSelectionControls /></template>
     </SectionTitle>
-    
+
     <!-- Summary cards -->
     <div v-if="sportRecords.length > 0" class="summary-cards">
       <MetricCard class="summary-card" layout="row">
@@ -32,44 +32,30 @@
         <template #value>{{ formatNumber(totalSteps) }}</template>
       </MetricCard>
     </div>
-    
+
     <!-- Empty state -->
-    <el-empty 
-      v-if="sportRecords.length === 0" 
-      :description="t('chart.noSportRecords')"
-      :image-size="120"
-    />
+    <el-empty v-if="sportRecords.length === 0" :description="t('chart.noSportRecords')" :image-size="120" />
 
     <!-- Sport table -->
-    <el-table 
+    <el-table
       v-if="sportRecords.length > 0"
-      :data="sportRecords" 
+      :data="sportRecords"
       stripe
       highlight-current-row
       @current-change="handleRowSelect"
       height="160"
-      style="width: 100%; margin-top: 10px;"
+      style="width: 100%; margin-top: 10px"
       :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
     >
       <!-- Time column -->
-      <el-table-column 
-        prop="timeRange" 
-        :label="t('chart.timeRange')"
-        min-width="140"
-        align="center"
-      >
+      <el-table-column prop="timeRange" :label="t('chart.timeRange')" min-width="140" align="center">
         <template #default="{ row }">
           <span class="time-range">{{ row.timeRange }}</span>
         </template>
       </el-table-column>
 
       <!-- Category column -->
-      <el-table-column 
-        prop="categoryName" 
-        :label="t('chart.sportType')"
-        min-width="100"
-        align="center"
-      >
+      <el-table-column prop="categoryName" :label="t('chart.sportType')" min-width="100" align="center">
         <template #default="{ row }">
           <el-tag :type="getCategoryTagType(row)" size="small">
             {{ getCategoryName(row) }}
@@ -78,34 +64,19 @@
       </el-table-column>
 
       <!-- Duration column -->
-      <el-table-column 
-        prop="durationText" 
-        :label="t('chart.duration')"
-        min-width="90"
-        align="center"
-      >
+      <el-table-column prop="durationText" :label="t('chart.duration')" min-width="90" align="center">
         <template #default="{ row }">{{ formatDuration(row.duration) }}</template>
       </el-table-column>
 
       <!-- Calories column -->
-      <el-table-column 
-        prop="calories" 
-        :label="t('chart.caloriesBurned')"
-        min-width="110"
-        align="center"
-      >
+      <el-table-column prop="calories" :label="t('chart.caloriesBurned')" min-width="110" align="center">
         <template #default="{ row }">
           <span class="highlight-text">🔥 {{ row.calories }} {{ t('settings.units.kcal') }}</span>
         </template>
       </el-table-column>
 
       <!-- Average Heart Rate column -->
-      <el-table-column 
-        prop="avgHrm" 
-        :label="t('chart.avgHeartRate')"
-        min-width="110"
-        align="center"
-      >
+      <el-table-column prop="avgHrm" :label="t('chart.avgHeartRate')" min-width="110" align="center">
         <template #default="{ row }">
           <span v-if="row.avgHrm" class="hr-text">❤️ {{ row.avgHrm }} {{ t('settings.units.bpm') }}</span>
           <span v-else>--</span>
@@ -113,12 +84,7 @@
       </el-table-column>
 
       <!-- Max Heart Rate column -->
-      <el-table-column 
-        prop="maxHrm" 
-        :label="t('chart.maxHeartRate')"
-        min-width="110"
-        align="center"
-      >
+      <el-table-column prop="maxHrm" :label="t('chart.maxHeartRate')" min-width="110" align="center">
         <template #default="{ row }">
           <span v-if="row.maxHrm" class="hr-text"> {{ row.maxHrm }} {{ t('settings.units.bpm') }}</span>
           <span v-else>--</span>
@@ -126,33 +92,47 @@
       </el-table-column>
 
       <!-- Details column -->
-      <el-table-column 
-        :label="t('chart.details')"
-        min-width="100"
-        align="center"
-      >
+      <el-table-column :label="t('chart.details')" min-width="100" align="center">
         <template #default="{ row }">
           <el-tooltip placement="top" effect="dark">
             <template #content>
               <div class="detail-tooltip">
                 <!-- Walking data -->
-                <div v-if="isWalkingRecord(row) && row.distanceKm">📍 {{ t('sport.distanceValue', { value: row.distanceKm, unit: t('settings.units.km') }) }}</div>
-                <div v-if="isWalkingRecord(row) && row.avgSpeed">{{ t('sport.avgSpeedValue', { value: row.avgSpeed, unit: t('settings.units.kmh') }) }}</div>
-                <div v-if="isWalkingRecord(row) && row.avgPace">{{ t('sport.avgPaceValue', { value: formatPace(row.avgPace) }) }}</div>
-                
+                <div v-if="isWalkingRecord(row) && row.distanceKm">
+                  📍 {{ t('sport.distanceValue', { value: row.distanceKm, unit: t('settings.units.km') }) }}
+                </div>
+                <div v-if="isWalkingRecord(row) && row.avgSpeed">
+                  {{ t('sport.avgSpeedValue', { value: row.avgSpeed, unit: t('settings.units.kmh') }) }}
+                </div>
+                <div v-if="isWalkingRecord(row) && row.avgPace">
+                  {{ t('sport.avgPaceValue', { value: formatPace(row.avgPace) }) }}
+                </div>
+
                 <!-- Elliptical data -->
                 <div v-if="isEllipticalRecord(row)">
                   <div v-if="row.steps">{{ t('sport.stepsValue', { value: formatNumber(row.steps) }) }}</div>
-                  <div v-if="row.avgCadence">{{ t('sport.avgCadenceValue', { value: row.avgCadence, unit: t('settings.units.cadence') }) }}</div>
-                  <div v-if="row.maxCadence">{{ t('sport.maxCadenceValue', { value: row.maxCadence, unit: t('settings.units.cadence') }) }}</div>
+                  <div v-if="row.avgCadence">
+                    {{ t('sport.avgCadenceValue', { value: row.avgCadence, unit: t('settings.units.cadence') }) }}
+                  </div>
+                  <div v-if="row.maxCadence">
+                    {{ t('sport.maxCadenceValue', { value: row.maxCadence, unit: t('settings.units.cadence') }) }}
+                  </div>
                 </div>
-                
+
                 <!-- Rowing machine data -->
                 <div v-if="isRowingRecord(row)">
                   <div v-if="row.strokes">{{ t('sport.strokesValue', { value: formatNumber(row.strokes) }) }}</div>
                   <div v-if="row.segmentCount > 0">{{ t('sport.setsValue', { value: row.segmentCount }) }}</div>
-                  <div v-if="row.avgStrokeRate">{{ t('sport.avgStrokeRateValue', { value: row.avgStrokeRate, unit: t('settings.units.perMinute') }) }}</div>
-                  <div v-if="row.maxStrokeRate">{{ t('sport.maxStrokeRateValue', { value: row.maxStrokeRate, unit: t('settings.units.perMinute') }) }}</div>
+                  <div v-if="row.avgStrokeRate">
+                    {{
+                      t('sport.avgStrokeRateValue', { value: row.avgStrokeRate, unit: t('settings.units.perMinute') })
+                    }}
+                  </div>
+                  <div v-if="row.maxStrokeRate">
+                    {{
+                      t('sport.maxStrokeRateValue', { value: row.maxStrokeRate, unit: t('settings.units.perMinute') })
+                    }}
+                  </div>
                 </div>
               </div>
             </template>
@@ -179,23 +159,30 @@
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.setsAndDuration') }}</span>
               <span class="metric-value">
-                {{ t('sport.setsValue', { value: selectedRecord.segmentCount || '--' }) }} * {{ getRowingGroupDuration(selectedRecord) ? formatDuration(getRowingGroupDuration(selectedRecord)) : '--' }}
+                {{ t('sport.setsValue', { value: selectedRecord.segmentCount || '--' }) }} *
+                {{
+                  getRowingGroupDuration(selectedRecord) ? formatDuration(getRowingGroupDuration(selectedRecord)) : '--'
+                }}
               </span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgStrokeRate') }}</span>
-              <span class="metric-value">{{ selectedRecord.avgStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span>
+              <span class="metric-value"
+                >{{ selectedRecord.avgStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span
+              >
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.maxStrokeRate') }}</span>
-              <span class="metric-value">{{ selectedRecord.maxStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span>
+              <span class="metric-value"
+                >{{ selectedRecord.maxStrokeRate || '--' }} {{ t('settings.units.perMinute') }}</span
+              >
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.restDuration') }}</span>
               <span class="metric-value">{{ formatDuration(selectedRecord.restTime) }}</span>
             </div>
           </div>
-          
+
           <!-- Segments Table -->
           <div v-if="selectedRecord.segments && selectedRecord.segments.length > 0" class="segments-section">
             <SectionTitle>{{ t('sport.segmentDetails') }}</SectionTitle>
@@ -235,11 +222,15 @@
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgCadence') }}</span>
-              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' }) }}</span>
+              <span class="metric-value">{{
+                t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' })
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.maxCadence') }}</span>
-              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' }) }}</span>
+              <span class="metric-value">{{
+                t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' })
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgStride') }}</span>
@@ -275,7 +266,7 @@
           <div class="metrics-grid">
             <div class="metric-item" v-if="selectedRecord.distanceKm && selectedRecord.distanceKm !== '0.00'">
               <span class="metric-label">{{ t('sport.exerciseDistance') }}</span>
-                <span class="metric-value">{{ selectedRecord.distanceKm }} {{ t('settings.units.km') }}</span>
+              <span class="metric-value">{{ selectedRecord.distanceKm }} {{ t('settings.units.km') }}</span>
             </div>
             <div class="metric-item" v-else-if="selectedRecord.steps">
               <span class="metric-label">{{ t('sport.exerciseSteps') }}</span>
@@ -283,20 +274,21 @@
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.avgCadence') }}</span>
-              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' }) }}</span>
+              <span class="metric-value">{{
+                t('sport.cadenceValue', { value: selectedRecord.avgCadence || '--' })
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">{{ t('sport.maxCadence') }}</span>
-              <span class="metric-value">{{ t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' }) }}</span>
+              <span class="metric-value">{{
+                t('sport.cadenceValue', { value: selectedRecord.maxCadence || '--' })
+              }}</span>
             </div>
           </div>
         </div>
 
         <!-- Heart Rate Chart Section -->
-        <ChartPanel
-          class="chart-section"
-          :class="{ 'chart-section--fill': !hasDetailCards }"
-        >
+        <ChartPanel class="chart-section" :class="{ 'chart-section--fill': !hasDetailCards }">
           <template #title>
             <SectionTitle>{{ t('sport.exerciseHeartRate') }}</SectionTitle>
           </template>
@@ -319,7 +311,13 @@ import { useDateStore } from '@/stores/dateStore.js';
 import { useDataStore } from '@/stores/dataStore.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { formatNumber } from '@/i18n/index.js';
-import { filterNightRecords, isWalkingRecord, isEllipticalRecord, isRowingRecord, parseSportRecordRow } from '@/utils/sportRecordParser.js';
+import {
+  filterNightRecords,
+  isWalkingRecord,
+  isEllipticalRecord,
+  isRowingRecord,
+  parseSportRecordRow
+} from '@/utils/sportRecordParser.js';
 import MetricCard from '@/components/ui/MetricCard.vue';
 import ChartPanel from '@/components/ui/ChartPanel.vue';
 import DateSelectionControls from '@/components/ui/DateSelectionControls.vue';
@@ -339,7 +337,11 @@ const heartRateZones = ref(createHeartRateZones());
 
 const hasDetailCards = computed(() => {
   if (!selectedRecord.value) return false;
-  return isRowingRecord(selectedRecord.value) || isWalkingRecord(selectedRecord.value) || isEllipticalRecord(selectedRecord.value);
+  return (
+    isRowingRecord(selectedRecord.value) ||
+    isWalkingRecord(selectedRecord.value) ||
+    isEllipticalRecord(selectedRecord.value)
+  );
 });
 
 // Summary calculations
@@ -360,13 +362,13 @@ function getRowingGroupDuration(record) {
   const totalDuration = record.duration || 0;
   const restTime = record.restTime || 0;
   const groupCount = record.segmentCount || 0;
-  
+
   if (groupCount === 0) return null;
-  
+
   // Calculate average training time per group (excluding rest time)
   const trainingTime = totalDuration - restTime;
   const avgDurationPerGroup = Math.round(trainingTime / groupCount);
-  
+
   return avgDurationPerGroup;
 }
 
@@ -380,10 +382,10 @@ function formatTime(timestamp) {
 
 function formatDuration(seconds) {
   if (!seconds || seconds === 0) return t('sport.zeroMinutes');
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return t('sport.durationHoursMinutes', { hours, minutes });
   }
@@ -399,30 +401,71 @@ function formatPace(paceSeconds) {
 
 function getCategoryName(record) {
   const sportType = record.sport_type;
-  
+
   if (sportType !== undefined && sportType !== null) {
     const sportTypeMap = {
-      0: 'other', 1: 'running', 2: 'walking', 3: 'cycling', 4: 'swimming', 5: 'hiking',
-      6: 'outdoorRiding', 7: 'fitness', 8: 'freeTraining', 9: 'yoga', 10: 'jumpRope',
-      11: 'elliptical', 12: 'basketball', 13: 'rowing', 14: 'badminton', 15: 'outdoorHiking',
-      16: 'tennis', 17: 'volleyball', 18: 'golf', 19: 'skiing', 20: 'skating', 21: 'climbing', 22: 'outdoorWalking'
+      0: 'other',
+      1: 'running',
+      2: 'walking',
+      3: 'cycling',
+      4: 'swimming',
+      5: 'hiking',
+      6: 'outdoorRiding',
+      7: 'fitness',
+      8: 'freeTraining',
+      9: 'yoga',
+      10: 'jumpRope',
+      11: 'elliptical',
+      12: 'basketball',
+      13: 'rowing',
+      14: 'badminton',
+      15: 'outdoorHiking',
+      16: 'tennis',
+      17: 'volleyball',
+      18: 'golf',
+      19: 'skiing',
+      20: 'skating',
+      21: 'climbing',
+      22: 'outdoorWalking'
     };
-    
+
     if (sportTypeMap[sportType]) {
       return t(`sport.typeName.${sportTypeMap[sportType]}`);
     }
   }
-  
+
   const category = record.category || 'other';
   const categoryMap = {
-    walking: 'walking', running: 'running', cycling: 'cycling', outdoor_riding: 'outdoorRiding', swimming: 'swimming',
-    hiking: 'hiking', outdoor_hiking: 'outdoorHiking', climbing: 'climbing', fitness: 'fitness', free_training: 'freeTraining',
-    yoga: 'yoga', elliptical: 'elliptical', elliptical_trainer: 'elliptical', rowing: 'rowing', rowing_machine: 'rowing',
-    jump_rope: 'jumpRope', basketball: 'basketball', football: 'football', badminton: 'badminton', table_tennis: 'tableTennis',
-    tennis: 'tennis', volleyball: 'volleyball', golf: 'golf', skiing: 'skiing', skating: 'skating', rock_climbing: 'climbing',
-    outdoor_walking: 'outdoorWalking', other: 'other'
+    walking: 'walking',
+    running: 'running',
+    cycling: 'cycling',
+    outdoor_riding: 'outdoorRiding',
+    swimming: 'swimming',
+    hiking: 'hiking',
+    outdoor_hiking: 'outdoorHiking',
+    climbing: 'climbing',
+    fitness: 'fitness',
+    free_training: 'freeTraining',
+    yoga: 'yoga',
+    elliptical: 'elliptical',
+    elliptical_trainer: 'elliptical',
+    rowing: 'rowing',
+    rowing_machine: 'rowing',
+    jump_rope: 'jumpRope',
+    basketball: 'basketball',
+    football: 'football',
+    badminton: 'badminton',
+    table_tennis: 'tableTennis',
+    tennis: 'tennis',
+    volleyball: 'volleyball',
+    golf: 'golf',
+    skiing: 'skiing',
+    skating: 'skating',
+    rock_climbing: 'climbing',
+    outdoor_walking: 'outdoorWalking',
+    other: 'other'
   };
-  
+
   return categoryMap[category] ? t(`sport.typeName.${categoryMap[category]}`) : category;
 }
 
@@ -436,7 +479,7 @@ function getSegmentTypeLabel(type) {
 
 function getCategoryTagType(record) {
   const sportType = record.sport_type;
-  
+
   if (sportType !== undefined && sportType !== null) {
     // Map sport_type codes to tag types (based on actual data from CSV)
     const typeMap = {
@@ -446,16 +489,16 @@ function getCategoryTagType(record) {
       3: 'success',
       4: 'primary',
       5: 'warning',
-      6: 'success',  // outdoor_riding
+      6: 'success', // outdoor_riding
       7: 'danger',
-      8: 'warning',  // free_training
+      8: 'warning', // free_training
       9: 'success',
       10: 'danger',
-      11: 'warning',  // elliptical_trainer
+      11: 'warning', // elliptical_trainer
       12: 'warning',
-      13: 'primary',  // rowing_machine
+      13: 'primary', // rowing_machine
       14: 'info',
-      15: 'warning',  // outdoor_hiking
+      15: 'warning', // outdoor_hiking
       16: 'info',
       17: 'info',
       18: 'success',
@@ -466,38 +509,38 @@ function getCategoryTagType(record) {
     };
     return typeMap[sportType] || 'info';
   }
-  
+
   // Fallback to category
   const category = record.category || 'other';
   const typeMap = {
-    'walking': 'info',
-    'running': 'danger',
-    'cycling': 'success',
-    'outdoor_riding': 'success',
-    'swimming': 'primary',
-    'hiking': 'warning',
-    'outdoor_hiking': 'warning',
-    'climbing': '',
-    'fitness': 'danger',
-    'free_training': 'warning',
-    'yoga': 'success',
-    'elliptical': 'warning',
-    'elliptical_trainer': 'warning',
-    'rowing': 'primary',
-    'rowing_machine': 'primary',
-    'jump_rope': 'danger',
-    'basketball': 'warning',
-    'football': 'danger',
-    'badminton': 'info',
-    'table_tennis': 'info',
-    'tennis': 'info',
-    'volleyball': 'info',
-    'golf': 'success',
-    'skiing': 'primary',
-    'skating': 'primary',
-    'rock_climbing': 'warning',
-    'outdoor_walking': 'info',
-    'other': 'info'
+    walking: 'info',
+    running: 'danger',
+    cycling: 'success',
+    outdoor_riding: 'success',
+    swimming: 'primary',
+    hiking: 'warning',
+    outdoor_hiking: 'warning',
+    climbing: '',
+    fitness: 'danger',
+    free_training: 'warning',
+    yoga: 'success',
+    elliptical: 'warning',
+    elliptical_trainer: 'warning',
+    rowing: 'primary',
+    rowing_machine: 'primary',
+    jump_rope: 'danger',
+    basketball: 'warning',
+    football: 'danger',
+    badminton: 'info',
+    table_tennis: 'info',
+    tennis: 'info',
+    volleyball: 'info',
+    golf: 'success',
+    skiing: 'primary',
+    skating: 'primary',
+    rock_climbing: 'warning',
+    outdoor_walking: 'info',
+    other: 'info'
   };
   return typeMap[category] || 'info';
 }
@@ -505,7 +548,7 @@ function getCategoryTagType(record) {
 // Handle row selection
 function handleRowSelect(row) {
   selectedRecord.value = row;
-  
+
   if (row) {
     nextTick(() => {
       initHeartRateChart();
@@ -517,18 +560,18 @@ function handleRowSelect(row) {
 // Initialize heart rate chart
 function initHeartRateChart() {
   if (isUnmounted || !heartRateChartRef.value) return;
-  
+
   if (heartRateChart) {
     heartRateChart.dispose();
     heartRateChart = null;
   }
-  
+
   heartRateChart = echarts.init(heartRateChartRef.value);
-  
+
   // Generate sample heart rate data based on duration
   const duration = selectedRecord.value?.duration || 0;
   const dataPoints = Math.min(Math.floor(duration / 5), 100); // One point per 5 seconds, max 100 points
-  
+
   const hrData = [];
   for (let i = 0; i < dataPoints; i++) {
     const time = Math.floor((i / dataPoints) * duration);
@@ -537,28 +580,29 @@ function initHeartRateChart() {
     const variation = Math.sin(i * 0.1) * 20 + Math.random() * 10 - 5;
     hrData.push([time, Math.round(baseHR + variation)]);
   }
-  
+
   // Calculate dynamic Y-axis range based on actual heart rate data
-  const hrValues = hrData.map(item => item[1]);
+  const hrValues = hrData.map((item) => item[1]);
   const minHR = Math.min(...hrValues);
   const maxHR = Math.max(...hrValues);
   const hrRange = maxHR - minHR;
   const padding = Math.max(hrRange * 0.15, 10); // At least 10 BPM padding
   const avgHR = selectedRecord.value?.avgHrm || 0;
   const avgHRLabel = t('sport.avgHeartRateTooltip', { value: avgHR, unit: t('settings.units.bpm') });
-  
+
   const option = {
     tooltip: {
       trigger: 'axis',
-      formatter: function(params) {
+      formatter: function (params) {
         const time = formatDuration(params[0].value[0]);
         const hr = params[0].value[1];
         const diff = hr - avgHR;
         const isAboveAvg = diff > 0;
         const isBelowAvg = diff < 0;
-        const deltaText = diff === 0
-          ? t('sport.heartRateEqualAvg')
-          : isAboveAvg
+        const deltaText =
+          diff === 0
+            ? t('sport.heartRateEqualAvg')
+            : isAboveAvg
             ? t('sport.heartRateAboveAvg', { value: Math.abs(diff), unit: t('settings.units.bpm') })
             : t('sport.heartRateBelowAvg', { value: Math.abs(diff), unit: t('settings.units.bpm') });
         const hrColor = isAboveAvg ? '#ff4d4f' : isBelowAvg ? '#52c41a' : '#666666';
@@ -566,7 +610,9 @@ function initHeartRateChart() {
 
         return [
           `${time}`,
-          `<span style="color:${hrColor}">${t('sport.heartRate')}${t('common.labelSeparator')}${hr} ${t('settings.units.bpm')}</span>`,
+          `<span style="color:${hrColor}">${t('sport.heartRate')}${t('common.labelSeparator')}${hr} ${t(
+            'settings.units.bpm'
+          )}</span>`,
           `<span style="color:#ff6b6b">${avgHRLabel}</span>`,
           `<span style="color:${deltaColor}">${deltaText}</span>`
         ].join('<br/>');
@@ -587,7 +633,7 @@ function initHeartRateChart() {
       },
       axisLabel: {
         fontSize: 11,
-        formatter: function(value) {
+        formatter: function (value) {
           return formatDuration(value);
         }
       },
@@ -666,17 +712,17 @@ function initHeartRateChart() {
       }
     ]
   };
-  
+
   heartRateChart.setOption(option);
 }
 
 // Update heart rate zones
 function updateHeartRateZones(record) {
   if (!record) return;
-  
+
   // Parse heart rate zones from record if available
   const zones = record.hrZones || {};
-  
+
   heartRateZones.value = createHeartRateZones(zones);
 }
 
@@ -707,57 +753,66 @@ function getPaceBarWidth(pace) {
 }
 
 // Fetch sport records when date changes
-watch(() => dateStore.selectedDate, async (newDate) => {
-  if (!newDate) return;
+watch(
+  () => dateStore.selectedDate,
+  async (newDate) => {
+    if (!newDate) return;
 
-  try {
-    const records = await dataStore.fetchSportRecords({
-      startDate: newDate,
-      endDate: newDate
-    });
-    if (isUnmounted) return;
-    const parsedRecords = records
-      .map(record => parseSportRecordRow(record, {
-        formatTime,
-        formatDuration,
-        getCategoryName
-      }))
-      .filter(record => record !== null && record.start_time);
+    try {
+      const records = await dataStore.fetchSportRecords({
+        startDate: newDate,
+        endDate: newDate
+      });
+      if (isUnmounted) return;
+      const parsedRecords = records
+        .map((record) =>
+          parseSportRecordRow(record, {
+            formatTime,
+            formatDuration,
+            getCategoryName
+          })
+        )
+        .filter((record) => record !== null && record.start_time);
 
-    sportRecords.value = filterNightRecords(parsedRecords).sort((a, b) => a.start_time - b.start_time);
+      sportRecords.value = filterNightRecords(parsedRecords).sort((a, b) => a.start_time - b.start_time);
 
-    if (sportRecords.value.length === 0) {
+      if (sportRecords.value.length === 0) {
+        selectedRecord.value = null;
+        if (heartRateChart) {
+          heartRateChart.dispose();
+          heartRateChart = null;
+        }
+      } else {
+        if (!selectedRecord.value) {
+          selectedRecord.value = sportRecords.value[0];
+          nextTick(() => {
+            initHeartRateChart();
+            updateHeartRateZones(sportRecords.value[0]);
+          });
+        }
+      }
+    } catch (error) {
+      if (isUnmounted) return;
+      console.error('Failed to fetch sport records:', error);
+      sportRecords.value = [];
       selectedRecord.value = null;
       if (heartRateChart) {
         heartRateChart.dispose();
         heartRateChart = null;
       }
-    } else {
-      if (!selectedRecord.value) {
-        selectedRecord.value = sportRecords.value[0];
-        nextTick(() => {
-          initHeartRateChart();
-          updateHeartRateZones(sportRecords.value[0]);
-        });
-      }
     }
-  } catch (error) {
-    if (isUnmounted) return;
-    console.error('Failed to fetch sport records:', error);
-    sportRecords.value = [];
-    selectedRecord.value = null;
-    if (heartRateChart) {
-      heartRateChart.dispose();
-      heartRateChart = null;
-    }
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
-watch(() => localeStore.currentLocale, () => {
-  if (!selectedRecord.value) return;
-  updateHeartRateZones(selectedRecord.value);
-  nextTick(initHeartRateChart);
-});
+watch(
+  () => localeStore.currentLocale,
+  () => {
+    if (!selectedRecord.value) return;
+    updateHeartRateZones(selectedRecord.value);
+    nextTick(initHeartRateChart);
+  }
+);
 
 const handleResize = () => {
   heartRateChart?.resize();
@@ -863,8 +918,6 @@ onBeforeUnmount(() => {
   background: #e6f7ff;
   color: #1890ff;
 }
-
-
 
 .time-range {
   font-weight: 600;
@@ -1223,4 +1276,3 @@ onBeforeUnmount(() => {
   transform: translateY(-10px);
 }
 </style>
-

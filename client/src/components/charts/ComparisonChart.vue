@@ -42,8 +42,8 @@ const updateChart = () => {
     return;
   }
 
-  const dates = props.data.map(item => formatDate(item.date));
-  const steps = props.data.map(item => item.steps);
+  const dates = props.data.map((item) => formatDate(item.date));
+  const steps = props.data.map((item) => item.steps);
 
   const { textColor, axisLineColor, splitLineColor } = themeColors.value;
 
@@ -98,35 +98,41 @@ const updateChart = () => {
         }
       }
     },
-    series: [{
-      name: t('chart.steps'),
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: {
-        color: '#5470c6',
-        width: 2
-      },
-      itemStyle: {
-        color: '#5470c6'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
-          { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
-        ])
-      },
-      data: steps
-    }]
+    series: [
+      {
+        name: t('chart.steps'),
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: {
+          color: '#5470c6',
+          width: 2
+        },
+        itemStyle: {
+          color: '#5470c6'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
+            { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
+          ])
+        },
+        data: steps
+      }
+    ]
   };
 
   chartInstance.value.setOption(option);
 };
 
-watch(() => props.data, () => {
-  updateChart();
-}, { deep: true });
+watch(
+  () => props.data,
+  () => {
+    updateChart();
+  },
+  { deep: true }
+);
 
 watch(() => localeStore.currentLocale, updateChart);
 watch(themeColors, updateChart);
@@ -141,4 +147,3 @@ onMounted(initChart);
   min-height: 300px;
 }
 </style>
-

@@ -12,7 +12,10 @@
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--purple">
           <template #icon><span class="weight-stat-icon">⚖️</span></template>
           <template #label>{{ t('weight.heightWeight') }}</template>
-          <template #value>{{ userHeight }}{{ t('settings.units.cm') }} / {{ metrics.latestWeight || 0 }}{{ t('weight.kg') }}</template>
+          <template #value
+            >{{ userHeight }}{{ t('settings.units.cm') }} / {{ metrics.latestWeight || 0
+            }}{{ t('weight.kg') }}</template
+          >
         </MetricCard>
 
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--violet">
@@ -51,7 +54,10 @@
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--blue">
           <template #icon><span class="weight-stat-icon">📈</span></template>
           <template #label>{{ t('weight.highestWeight') }}</template>
-          <template #value>{{ highestWeightDisplay }} {{ t('weight.kg') }}<span v-if="highestWeightDate" class="hw-date">({{ highestWeightDate }})</span></template>
+          <template #value
+            >{{ highestWeightDisplay }} {{ t('weight.kg')
+            }}<span v-if="highestWeightDate" class="hw-date">({{ highestWeightDate }})</span></template
+          >
         </MetricCard>
 
         <MetricCard compact layout="row" class="weight-stat-card weight-stat-card--green">
@@ -67,11 +73,7 @@
     </div>
 
     <!-- Chart card -->
-    <ChartPanel
-      v-show="!loading"
-      :empty="!loading && dailyData.length === 0"
-      :empty-description="t('chart.noData')"
-    >
+    <ChartPanel v-show="!loading" :empty="!loading && dailyData.length === 0" :empty-description="t('chart.noData')">
       <template #title>
         <SectionTitle>{{ t('weight.title') }}</SectionTitle>
       </template>
@@ -179,10 +181,18 @@ const bmiTooltipContent = computed(() => {
     ${t('weight.bmiFormula')} &nbsp; ${t('weight.bmiDesc')} (${ref.userHeight}${t('settings.units.cm')})
     <table style="margin-top:6px;border-collapse:collapse;width:100%;text-align:center">
       <tr>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t('weight.bmiUnderweight')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#52c41a;color:#fff;font-weight:600">${t('weight.bmiNormal')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#fa8c16;color:#fff;font-weight:600">${t('weight.bmiOverweight')}</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#ff4d4f;color:#fff;font-weight:600">${t('weight.bmiObese')}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#1890ff;color:#fff;font-weight:600">${t(
+          'weight.bmiUnderweight'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#52c41a;color:#fff;font-weight:600">${t(
+          'weight.bmiNormal'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#fa8c16;color:#fff;font-weight:600">${t(
+          'weight.bmiOverweight'
+        )}</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;background:#ff4d4f;color:#fff;font-weight:600">${t(
+          'weight.bmiObese'
+        )}</td>
       </tr>
       <tr>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt;18.5</td>
@@ -192,8 +202,12 @@ const bmiTooltipContent = computed(() => {
       </tr>
       <tr>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#1890ff">&lt; ${ref.underweight.weight}kg</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">${ref.underweight.weight}-${ref.normal.weight}kg</td>
-        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">${ref.normal.weight}-${ref.overweight.weight}kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#52c41a">${ref.underweight.weight}-${
+          ref.normal.weight
+        }kg</td>
+        <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#fa8c16">${ref.normal.weight}-${
+          ref.overweight.weight
+        }kg</td>
         <td style="padding:4px 10px;border:1px solid #e0e0e0;color:#ff4d4f">&gt; ${ref.overweight.weight}kg</td>
       </tr>
     </table>
@@ -261,8 +275,8 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance || dailyData.value.length === 0) return;
 
-  const dates = dailyData.value.map(item => formatDate(item.date));
-  const weights = dailyData.value.map(item => item.avgWeight);
+  const dates = dailyData.value.map((item) => formatDate(item.date));
+  const weights = dailyData.value.map((item) => item.avgWeight);
 
   const isDark = document.documentElement.classList.contains('dark-theme');
   const textColor = isDark ? '#a8a8a8' : '#606266';
@@ -360,7 +374,7 @@ const updateChart = () => {
       },
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
-        params.forEach(param => {
+        params.forEach((param) => {
           if (param.seriesName === t('weight.dailyAvgWeight')) {
             result += `${param.marker}${t('weight.dailyAvgWeight')}: ${param.value} ${t('weight.kg')}<br/>`;
           } else {
@@ -429,26 +443,36 @@ const updateChart = () => {
   chartInstance.setOption(option, true);
 };
 
-watch(() => props.weightData, (newData) => {
-  if (newData && chartInstance) {
-    updateChart();
-  }
-}, { deep: true });
+watch(
+  () => props.weightData,
+  (newData) => {
+    if (newData && chartInstance) {
+      updateChart();
+    }
+  },
+  { deep: true }
+);
 
-watch(() => localeStore.currentLocale, () => {
-  if (chartInstance) updateChart();
-});
-
-watch(() => props.loading, async (newLoading) => {
-  if (!newLoading && props.weightData && dailyData.value.length > 0) {
-    await nextTick();
-    if (isUnmounted) return;
-    initTimer = setTimeout(() => {
-      initTimer = null;
-      if (!isUnmounted) initChart();
-    }, 100);
+watch(
+  () => localeStore.currentLocale,
+  () => {
+    if (chartInstance) updateChart();
   }
-});
+);
+
+watch(
+  () => props.loading,
+  async (newLoading) => {
+    if (!newLoading && props.weightData && dailyData.value.length > 0) {
+      await nextTick();
+      if (isUnmounted) return;
+      initTimer = setTimeout(() => {
+        initTimer = null;
+        if (!isUnmounted) initChart();
+      }, 100);
+    }
+  }
+);
 
 onMounted(() => {
   if (!props.loading && props.weightData && dailyData.value.length > 0) {
@@ -758,10 +782,12 @@ const handleResize = () => {
 .skeleton-title-text {
   width: 120px;
   height: 24px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 4px;
   margin-bottom: 24px;
@@ -771,10 +797,12 @@ const handleResize = () => {
 .skeleton-title-text-small {
   width: 140px;
   height: 20px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 4px;
   margin-bottom: 16px;
@@ -784,10 +812,12 @@ const handleResize = () => {
 .skeleton-chart-area {
   flex: 1;
   min-height: 280px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 8px;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
@@ -809,10 +839,12 @@ const handleResize = () => {
 .skeleton-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 10px;
   flex-shrink: 0;
@@ -836,10 +868,12 @@ const handleResize = () => {
 .skeleton-label {
   width: 80%;
   height: 14px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 3px;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
@@ -849,10 +883,12 @@ const handleResize = () => {
 .skeleton-value {
   width: 60%;
   height: 20px;
-  background: linear-gradient(90deg, 
-    var(--skeleton-color, #e0e0e0) 25%, 
-    var(--skeleton-highlight, #f0f0f0) 50%, 
-    var(--skeleton-color, #e0e0e0) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-color, #e0e0e0) 25%,
+    var(--skeleton-highlight, #f0f0f0) 50%,
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   border-radius: 3px;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
@@ -918,6 +954,3 @@ const handleResize = () => {
   --skeleton-highlight: #4a4a4a;
 }
 </style>
-
-
-

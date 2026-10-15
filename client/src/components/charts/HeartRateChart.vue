@@ -21,7 +21,9 @@
             </el-tooltip>
           </template>
           <template #value>
-            <span class="blood-pressure-value" :class="avgBloodPressureMetrics?.status || 'normal'">{{ avgBloodPressure }}</span>
+            <span class="blood-pressure-value" :class="avgBloodPressureMetrics?.status || 'normal'">{{
+              avgBloodPressure
+            }}</span>
           </template>
         </MetricCard>
 
@@ -39,7 +41,9 @@
             </el-tooltip>
           </template>
           <template #value>
-            <span class="blood-pressure-value" :class="peakBloodPressureMetrics?.status || 'normal'">{{ peakBloodPressure }}</span>
+            <span class="blood-pressure-value" :class="peakBloodPressureMetrics?.status || 'normal'">{{
+              peakBloodPressure
+            }}</span>
           </template>
         </MetricCard>
 
@@ -49,7 +53,9 @@
             <span class="heart-label">{{ t('data.heartRate') }}</span>
           </template>
           <template #value>
-            <span class="heart-value">{{ avgHeartRate }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></span>
+            <span class="heart-value"
+              >{{ avgHeartRate }} <span class="metric-unit">{{ t('chart.unitBpm') }}</span></span
+            >
           </template>
         </MetricCard>
 
@@ -105,7 +111,7 @@ function isValidNumber(value) {
 }
 
 function firstValidNumber(...values) {
-  return values.find(value => isValidNumber(value));
+  return values.find((value) => isValidNumber(value));
 }
 
 function formatBloodPressure(systolic, diastolic) {
@@ -117,7 +123,7 @@ function formatBloodPressure(systolic, diastolic) {
 
 function resolveBloodPressure(item) {
   const records = Array.isArray(item.bloodPressureRecords)
-    ? item.bloodPressureRecords.filter(record => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
+    ? item.bloodPressureRecords.filter((record) => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
     : [];
 
   if (isValidNumber(item.avgSystolic) && isValidNumber(item.avgDiastolic)) {
@@ -138,7 +144,7 @@ function resolveBloodPressure(item) {
 
 function resolvePeakBloodPressure(item) {
   const records = Array.isArray(item.bloodPressureRecords)
-    ? item.bloodPressureRecords.filter(record => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
+    ? item.bloodPressureRecords.filter((record) => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
     : [];
 
   if (records.length > 0) {
@@ -167,7 +173,7 @@ function resolvePeakBloodPressure(item) {
 
 const comparisonRows = computed(() => {
   return props.data
-    .map(item => {
+    .map((item) => {
       const bloodPressure = resolveBloodPressure(item);
       const peakBloodPressure = resolvePeakBloodPressure(item);
 
@@ -180,12 +186,13 @@ const comparisonRows = computed(() => {
         peakBloodPressure
       };
     })
-    .filter(item =>
-      item.avgHeartRate !== null ||
-      item.minHeartRate !== null ||
-      item.maxHeartRate !== null ||
-      item.bloodPressure ||
-      item.peakBloodPressure
+    .filter(
+      (item) =>
+        item.avgHeartRate !== null ||
+        item.minHeartRate !== null ||
+        item.maxHeartRate !== null ||
+        item.bloodPressure ||
+        item.peakBloodPressure
     );
 });
 
@@ -193,7 +200,7 @@ const hasData = computed(() => comparisonRows.value.length > 0);
 
 const avgHeartRate = computed(() => {
   const values = comparisonRows.value
-    .map(item => item.avgHeartRate)
+    .map((item) => item.avgHeartRate)
     .filter(isValidNumber)
     .map(Number);
 
@@ -203,12 +210,12 @@ const avgHeartRate = computed(() => {
 
 const heartRateRange = computed(() => {
   const minValues = comparisonRows.value
-    .map(item => firstValidNumber(item.minHeartRate, item.avgHeartRate))
+    .map((item) => firstValidNumber(item.minHeartRate, item.avgHeartRate))
     .filter(isValidNumber)
     .map(Number);
 
   const maxValues = comparisonRows.value
-    .map(item => firstValidNumber(item.maxHeartRate, item.avgHeartRate))
+    .map((item) => firstValidNumber(item.maxHeartRate, item.avgHeartRate))
     .filter(isValidNumber)
     .map(Number);
 
@@ -217,11 +224,11 @@ const heartRateRange = computed(() => {
 });
 
 const avgBloodPressureMetrics = computed(() => {
-  const allRecords = props.data.flatMap(item => {
+  const allRecords = props.data.flatMap((item) => {
     const records = Array.isArray(item.bloodPressureRecords) ? item.bloodPressureRecords : [];
     return records
-      .filter(record => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
-      .map(record => ({
+      .filter((record) => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
+      .map((record) => ({
         systolic: Number(record.systolic),
         diastolic: Number(record.diastolic)
       }));
@@ -238,9 +245,7 @@ const avgBloodPressureMetrics = computed(() => {
     };
   }
 
-  const dailyValues = comparisonRows.value
-    .map(item => item.bloodPressure)
-    .filter(Boolean);
+  const dailyValues = comparisonRows.value.map((item) => item.bloodPressure).filter(Boolean);
 
   if (dailyValues.length === 0) return null;
 
@@ -255,11 +260,11 @@ const avgBloodPressureMetrics = computed(() => {
 });
 
 const peakBloodPressureMetrics = computed(() => {
-  const peakRecords = props.data.flatMap(item => {
+  const peakRecords = props.data.flatMap((item) => {
     const records = Array.isArray(item.bloodPressureRecords) ? item.bloodPressureRecords : [];
     return records
-      .filter(record => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
-      .map(record => ({
+      .filter((record) => isValidNumber(record.systolic) && isValidNumber(record.diastolic))
+      .map((record) => ({
         ...record,
         date: item.date
       }));
@@ -278,9 +283,7 @@ const peakBloodPressureMetrics = computed(() => {
       return best;
     }, null);
   } else {
-    const dailyPeaks = comparisonRows.value
-      .map(item => item.peakBloodPressure)
-      .filter(Boolean);
+    const dailyPeaks = comparisonRows.value.map((item) => item.peakBloodPressure).filter(Boolean);
     if (dailyPeaks.length > 0) {
       record = dailyPeaks.reduce((best, current) => {
         if (!best) return current;
@@ -313,13 +316,19 @@ const peakBloodPressure = computed(() => {
   return peakBloodPressureMetrics.value?.text || '--';
 });
 
-const bloodPressureTipContent = computed(() => `
+const bloodPressureTipContent = computed(
+  () => `
   <div style="line-height:1.8">
     <div style="font-weight:600;margin-bottom:4px">${t('chart.bloodPressureRangeTipTitle')}</div>
-    <div>${t('chart.bloodPressureHighRange')}: <span style="color:#ff4d4f">${t('chart.bloodPressureHighRangeValue')}</span></div>
-    <div>${t('chart.bloodPressureElevatedRange')}: <span style="color:#faad14">${t('chart.bloodPressureElevatedRangeValue')}</span></div>
+    <div>${t('chart.bloodPressureHighRange')}: <span style="color:#ff4d4f">${t(
+      'chart.bloodPressureHighRangeValue'
+    )}</span></div>
+    <div>${t('chart.bloodPressureElevatedRange')}: <span style="color:#faad14">${t(
+      'chart.bloodPressureElevatedRangeValue'
+    )}</span></div>
   </div>
-`);
+`
+);
 
 function getAxisBounds(values, fallbackMin, fallbackMax, paddingRatio = 0.12, step = 5) {
   if (values.length === 0) return { min: fallbackMin, max: fallbackMax };
@@ -334,17 +343,18 @@ function getAxisBounds(values, fallbackMin, fallbackMax, paddingRatio = 0.12, st
 }
 
 function buildChartOption() {
-  const dates = comparisonRows.value.map(item => item.date);
-  const avgHeartRateSeries = comparisonRows.value.map(item => item.avgHeartRate);
-  const maxHeartRateSeries = comparisonRows.value.map(item => firstValidNumber(item.maxHeartRate, item.avgHeartRate));
-  const systolicSeries = comparisonRows.value.map(item => item.bloodPressure?.systolic ?? null);
-  const diastolicSeries = comparisonRows.value.map(item => item.bloodPressure?.diastolic ?? null);
+  const dates = comparisonRows.value.map((item) => item.date);
+  const avgHeartRateSeries = comparisonRows.value.map((item) => item.avgHeartRate);
+  const maxHeartRateSeries = comparisonRows.value.map((item) => firstValidNumber(item.maxHeartRate, item.avgHeartRate));
+  const systolicSeries = comparisonRows.value.map((item) => item.bloodPressure?.systolic ?? null);
+  const diastolicSeries = comparisonRows.value.map((item) => item.bloodPressure?.diastolic ?? null);
 
-  const heartRateValues = comparisonRows.value.flatMap(item => [item.avgHeartRate, item.maxHeartRate, item.minHeartRate].filter(isValidNumber).map(Number));
-  const bloodPressureValues = comparisonRows.value.flatMap(item => [
-    item.bloodPressure?.systolic,
-    item.bloodPressure?.diastolic
-  ].filter(isValidNumber).map(Number));
+  const heartRateValues = comparisonRows.value.flatMap((item) =>
+    [item.avgHeartRate, item.maxHeartRate, item.minHeartRate].filter(isValidNumber).map(Number)
+  );
+  const bloodPressureValues = comparisonRows.value.flatMap((item) =>
+    [item.bloodPressure?.systolic, item.bloodPressure?.diastolic].filter(isValidNumber).map(Number)
+  );
 
   const isDark = themeStore.isDarkMode;
   const textColor = isDark ? '#a8a8a8' : '#606266';
@@ -361,17 +371,21 @@ function buildChartOption() {
         if (!params || params.length === 0) return '';
 
         const day = params[0].name;
-        const avgHr = params.find(item => item.seriesName === t('chart.avgHeartRate'));
-        const maxHr = params.find(item => item.seriesName === t('chart.maxHeartRate'));
-        const systolic = params.find(item => item.seriesName === t('chart.systolic'));
-        const diastolic = params.find(item => item.seriesName === t('chart.diastolic'));
+        const avgHr = params.find((item) => item.seriesName === t('chart.avgHeartRate'));
+        const maxHr = params.find((item) => item.seriesName === t('chart.maxHeartRate'));
+        const systolic = params.find((item) => item.seriesName === t('chart.systolic'));
+        const diastolic = params.find((item) => item.seriesName === t('chart.diastolic'));
 
         let html = `<strong>${day}</strong><br/>`;
         if (avgHr && isValidNumber(avgHr.value)) {
-          html += `${avgHr.marker}${t('chart.avgHeartRate')}${t('common.labelSeparator')}${avgHr.value} ${t('chart.unitBpm')}<br/>`;
+          html += `${avgHr.marker}${t('chart.avgHeartRate')}${t('common.labelSeparator')}${avgHr.value} ${t(
+            'chart.unitBpm'
+          )}<br/>`;
         }
         if (maxHr && isValidNumber(maxHr.value)) {
-          html += `${maxHr.marker}${t('chart.maxHeartRate')}${t('common.labelSeparator')}${maxHr.value} ${t('chart.unitBpm')}<br/>`;
+          html += `${maxHr.marker}${t('chart.maxHeartRate')}${t('common.labelSeparator')}${maxHr.value} ${t(
+            'chart.unitBpm'
+          )}<br/>`;
         }
         if (systolic && isValidNumber(systolic.value)) {
           html += `${systolic.marker}${t('chart.systolic')}${t('common.labelSeparator')}${systolic.value} mmHg<br/>`;
@@ -663,4 +677,3 @@ onBeforeUnmount(() => {
   min-height: 420px;
 }
 </style>
-

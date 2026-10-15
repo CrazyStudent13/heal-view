@@ -12,7 +12,7 @@
         v-for="date in displayDates"
         :key="date"
         class="date-item"
-        :class="{ 
+        :class="{
           active: viewMode === 'single' && date === store.selectedDate,
           selected: viewMode === 'compare' && store.selectedDates.includes(date)
         }"
@@ -139,7 +139,10 @@ onMounted(() => {
   cursor: pointer;
   font-size: 13px;
   color: var(--text-secondary);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .control-btn:hover {
@@ -212,6 +215,4 @@ onMounted(() => {
   font-size: 12px;
   color: var(--text-secondary);
 }
-
 </style>
-

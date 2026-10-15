@@ -4,14 +4,8 @@ import { useDashboardRequests } from '@/pages/dashboard/composables/useDashboard
 
 export function useDashboardData(dateStore, dataStore, options = {}) {
   const active = options.active || ref(true);
-  const {
-    viewMode,
-    currentChartType,
-    getDefaultSingleDate,
-    isCompareChartType,
-    datesKey,
-    initializeCompareSelection
-  } = useDashboardSelection(dateStore);
+  const { viewMode, currentChartType, getDefaultSingleDate, isCompareChartType, datesKey, initializeCompareSelection } =
+    useDashboardSelection(dateStore);
   const chartData = ref([]);
   const sleepTimelineData = ref(null);
   const compareSleepTimelineData = ref([]);
@@ -20,7 +14,18 @@ export function useDashboardData(dateStore, dataStore, options = {}) {
   const initializing = ref(false);
   let mounted = false;
 
-  const requests = useDashboardRequests({ dateStore, dataStore, viewMode, currentChartType, chartData, sleepTimelineData, compareSleepTimelineData, weightData, loading, datesKey });
+  const requests = useDashboardRequests({
+    dateStore,
+    dataStore,
+    viewMode,
+    currentChartType,
+    chartData,
+    sleepTimelineData,
+    compareSleepTimelineData,
+    weightData,
+    loading,
+    datesKey
+  });
 
   const initialLoading = computed(() => loading.value && chartData.value.length === 0 && !weightData.value);
   const refreshing = computed(() => loading.value && !initialLoading.value);
@@ -78,37 +83,44 @@ export function useDashboardData(dateStore, dataStore, options = {}) {
     await initDefaultData();
   }
 
-  watch(() => dateStore.selectedDate, async (newDate) => {
-    if (!active.value || initializing.value) return;
+  watch(
+    () => dateStore.selectedDate,
+    async (newDate) => {
+      if (!active.value || initializing.value) return;
 
-    if (viewMode.value === 'single') {
+      if (viewMode.value === 'single') {
         await requests.fetchSingleDayData(newDate);
-      if (currentChartType.value === 'sleep' && newDate) {
-        await requests.fetchSleepTimelineForDate(newDate);
+        if (currentChartType.value === 'sleep' && newDate) {
+          await requests.fetchSleepTimelineForDate(newDate);
+        }
       }
     }
-  });
+  );
 
-  watch(() => dateStore.selectedDates, async (newDates) => {
-    if (!active.value || initializing.value) return;
+  watch(
+    () => dateStore.selectedDates,
+    async (newDates) => {
+      if (!active.value || initializing.value) return;
 
-    if (viewMode.value === 'compare') {
-      if (!isCompareChartType(currentChartType.value)) {
-        currentChartType.value = 'weight';
+      if (viewMode.value === 'compare') {
+        if (!isCompareChartType(currentChartType.value)) {
+          currentChartType.value = 'weight';
+        }
+
+        if (currentChartType.value === 'weight') {
+          await requests.fetchCompareData(newDates, { includeWeightForSidebar: false });
+          await requests.fetchWeightData(newDates);
+          compareSleepTimelineData.value = [];
+        } else if (currentChartType.value === 'sleep') {
+          await requests.fetchCompareData(newDates);
+          await requests.fetchCompareSleepTimelines(newDates);
+        } else {
+          await requests.fetchCompareData(newDates);
+        }
       }
-
-      if (currentChartType.value === 'weight') {
-        await requests.fetchCompareData(newDates, { includeWeightForSidebar: false });
-        await requests.fetchWeightData(newDates);
-        compareSleepTimelineData.value = [];
-      } else if (currentChartType.value === 'sleep') {
-        await requests.fetchCompareData(newDates);
-        await requests.fetchCompareSleepTimelines(newDates);
-      } else {
-        await requests.fetchCompareData(newDates);
-      }
-    }
-  }, { deep: true });
+    },
+    { deep: true }
+  );
 
   watch(viewMode, async (newMode) => {
     if (!active.value) return;
@@ -137,7 +149,7 @@ export function useDashboardData(dateStore, dataStore, options = {}) {
     }
   });
 
-  watch(active, isActive => {
+  watch(active, (isActive) => {
     if (!mounted) return;
     if (isActive) {
       dataStore.clearError?.();

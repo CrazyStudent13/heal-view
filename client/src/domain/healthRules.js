@@ -58,15 +58,9 @@ function circularMean(values) {
 }
 
 export function assessSleepRegularity(times, options = {}) {
-  const {
-    toleranceMinutes = 90,
-    regularScore = 7,
-    mixedScore = 4
-  } = options;
+  const { toleranceMinutes = 90, regularScore = 7, mixedScore = 4 } = options;
 
-  const validTimes = times
-    .map(parseTimeToMinutes)
-    .filter(value => Number.isFinite(value));
+  const validTimes = times.map(parseTimeToMinutes).filter((value) => Number.isFinite(value));
 
   if (validTimes.length === 0) {
     return {
@@ -80,7 +74,7 @@ export function assessSleepRegularity(times, options = {}) {
 
   const reference = circularMean(validTimes);
   const referenceTime = reference === null ? '--' : formatMinutesToTime(reference);
-  const matched = validTimes.filter(value => circularDistance(value, reference) <= toleranceMinutes).length;
+  const matched = validTimes.filter((value) => circularDistance(value, reference) <= toleranceMinutes).length;
   const score = Math.round((matched / validTimes.length) * 100) / 10;
 
   let status = SLEEP_REGULARITY_STATUS.CHAOTIC;
@@ -108,17 +102,12 @@ export function classifyBloodPressure(systolic, diastolic) {
 export function classifyBloodPressureRecord(record) {
   if (!record) return BLOOD_PRESSURE_STATUS.NORMAL;
 
-  return classifyBloodPressure(
-    record.latestSystolic ?? record.systolic,
-    record.latestDiastolic ?? record.diastolic
-  );
+  return classifyBloodPressure(record.latestSystolic ?? record.systolic, record.latestDiastolic ?? record.diastolic);
 }
 
 export function calculateCalorieEfficiency(calories, durationMinutes) {
   const caloriesValue = Number(calories || 0);
   const durationValue = Number(durationMinutes || 0);
 
-  return durationValue > 0 && caloriesValue > 0
-    ? Math.round((caloriesValue / durationValue) * 100) / 100
-    : null;
+  return durationValue > 0 && caloriesValue > 0 ? Math.round((caloriesValue / durationValue) * 100) / 100 : null;
 }

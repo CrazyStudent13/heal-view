@@ -46,8 +46,8 @@ function formatTime(timestamp) {
 // Filter out night time data (23:00 - 08:00)
 function filterNightData(data) {
   if (!data || data.length === 0) return [];
-  
-  return data.filter(item => {
+
+  return data.filter((item) => {
     const date = new Date(item.time * 1000);
     const hour = date.getHours();
     // Keep data from 08:00 to 23:00 (exclude 23:00-08:00)
@@ -67,12 +67,12 @@ const updateChart = () => {
   const filteredHrData = filterNightData(props.heartRateData);
 
   // Process steps data
-  const stepsTimes = filteredStepsData.map(item => formatTime(item.time));
-  const stepsValues = filteredStepsData.map(item => item.value || 0);
+  const stepsTimes = filteredStepsData.map((item) => formatTime(item.time));
+  const stepsValues = filteredStepsData.map((item) => item.value || 0);
 
   // Process heart rate data
-  const hrTimes = filteredHrData.map(item => formatTime(item.time));
-  const hrValues = filteredHrData.map(item => item.value || 0);
+  const hrTimes = filteredHrData.map((item) => formatTime(item.time));
+  const hrValues = filteredHrData.map((item) => item.value || 0);
 
   if (stepsTimes.length === 0 && hrTimes.length === 0) {
     chartInstance.value.clear();
@@ -89,7 +89,7 @@ const updateChart = () => {
       },
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
-        params.forEach(param => {
+        params.forEach((param) => {
           if (param.seriesName === t('chart.steps')) {
             result += `${param.marker}${t('chart.steps')}: ${formatNumber(param.value)} ${t('chart.unitSteps')}<br/>`;
           } else if (param.seriesName === t('data.heartRate')) {
@@ -223,9 +223,13 @@ const updateChart = () => {
   chartInstance.value.setOption(option);
 };
 
-watch(() => [props.stepsData, props.heartRateData], () => {
-  updateChart();
-}, { deep: true });
+watch(
+  () => [props.stepsData, props.heartRateData],
+  () => {
+    updateChart();
+  },
+  { deep: true }
+);
 
 watch(() => localeStore.currentLocale, updateChart);
 watch(themeColors, updateChart);
@@ -251,4 +255,3 @@ onBeforeUnmount(() => {
   height: 350px;
 }
 </style>
-

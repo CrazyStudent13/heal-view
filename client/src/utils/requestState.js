@@ -1,7 +1,5 @@
 export function isAbortError(error) {
-  return error?.name === 'CanceledError'
-    || error?.name === 'AbortError'
-    || error?.code === 'ERR_CANCELED';
+  return error?.name === 'CanceledError' || error?.name === 'AbortError' || error?.code === 'ERR_CANCELED';
 }
 
 export class ApiRequestError extends Error {
@@ -95,9 +93,7 @@ export function createLatestRequest() {
 export function normalizeRequestError(error, translate) {
   if (isAbortError(error)) return null;
   if (error?.isApiError) {
-    return error.messageKey && typeof translate === 'function'
-      ? translate(error.messageKey)
-      : error.message;
+    return error.messageKey && typeof translate === 'function' ? translate(error.messageKey) : error.message;
   }
   const responseData = error?.response?.data;
   const responseError = normalizeErrorText(responseData?.error);

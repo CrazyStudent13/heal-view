@@ -1,10 +1,6 @@
 <template>
   <PageContainer :title="t('reports.title')" card content-width="none">
-    <el-segmented
-      v-model="period"
-      :options="periodOptions"
-      class="period-switch"
-    />
+    <el-segmented v-model="period" :options="periodOptions" class="period-switch" />
     <AsyncState empty :empty-description="emptyDescription" />
   </PageContainer>
 </template>
@@ -27,13 +23,11 @@ const periodOptions = computed(() => [
 
 const period = computed({
   get: () => route.params.period || 'weekly',
-  set: value => router.push(`/reports/${value}`)
+  set: (value) => router.push(`/reports/${value}`)
 });
 
 const emptyDescription = computed(() => {
-  return period.value === 'monthly'
-    ? t('reports.monthlyComingSoon')
-    : t('reports.weeklyComingSoon');
+  return period.value === 'monthly' ? t('reports.monthlyComingSoon') : t('reports.weeklyComingSoon');
 });
 </script>
 

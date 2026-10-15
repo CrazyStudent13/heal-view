@@ -13,11 +13,14 @@ export const useFilterStore = defineStore('filter', () => {
    * Fetch filter options from API
    */
   async function fetchFilterOptions() {
-    return requestState.run(async () => {
-      const options = await getFilterOptions();
-      sportTypes.value = options.sportTypes || [];
-      return sportTypes.value;
-    }, { fallback: [] });
+    return requestState.run(
+      async () => {
+        const options = await getFilterOptions();
+        sportTypes.value = options.sportTypes || [];
+        return sportTypes.value;
+      },
+      { fallback: [] }
+    );
   }
 
   /**

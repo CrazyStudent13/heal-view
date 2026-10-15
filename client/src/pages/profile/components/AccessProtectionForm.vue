@@ -1,13 +1,21 @@
 <template>
   <div class="settings-page">
     <div class="settings-card">
-      <AsyncState v-if="settingsLoading || settingsError" :loading="settingsLoading" :error="settingsError" :show-retry="Boolean(settingsError)" @retry="loadSettings" />
+      <AsyncState
+        v-if="settingsLoading || settingsError"
+        :loading="settingsLoading"
+        :error="settingsError"
+        :show-retry="Boolean(settingsError)"
+        @retry="loadSettings"
+      />
       <template v-else>
         <section class="protection-row">
           <div class="protection-copy">
             <div class="protection-title-row">
               <span class="protection-label">{{ t('auth.accessProtection') }}</span>
-              <span class="protection-status" :class="{ enabled: enabled }">{{ enabled ? t('auth.enabled') : t('auth.disabled') }}</span>
+              <span class="protection-status" :class="{ enabled: enabled }">{{
+                enabled ? t('auth.enabled') : t('auth.disabled')
+              }}</span>
             </div>
             <p>{{ t('auth.accessProtectionDescription') }}</p>
           </div>
@@ -15,16 +23,49 @@
         </section>
         <el-divider />
         <section class="password-section">
-          <div class="section-heading"><h3>{{ t('auth.newPassword') }}</h3></div>
+          <div class="section-heading">
+            <h3>{{ t('auth.newPassword') }}</h3>
+          </div>
           <el-form id="access-protection-form" label-position="top" class="password-form" @submit.prevent="handleSave">
-            <el-form-item :label="t('auth.newPassword')" :error="validationField === 'password' ? auth.error : ''"><el-input ref="passwordInput" v-model="password" type="password" show-password autocomplete="new-password" :disabled="auth.loading" :aria-invalid="validationField === 'password'" /></el-form-item>
-            <el-form-item :label="t('auth.confirmPassword')" :error="validationField === 'confirmPassword' ? auth.error : ''"><el-input ref="confirmPasswordInput" v-model="confirmPassword" type="password" show-password autocomplete="new-password" :disabled="auth.loading" :aria-invalid="validationField === 'confirmPassword'" /></el-form-item>
+            <el-form-item :label="t('auth.newPassword')" :error="validationField === 'password' ? auth.error : ''"
+              ><el-input
+                ref="passwordInput"
+                v-model="password"
+                type="password"
+                show-password
+                autocomplete="new-password"
+                :disabled="auth.loading"
+                :aria-invalid="validationField === 'password'"
+            /></el-form-item>
+            <el-form-item
+              :label="t('auth.confirmPassword')"
+              :error="validationField === 'confirmPassword' ? auth.error : ''"
+              ><el-input
+                ref="confirmPasswordInput"
+                v-model="confirmPassword"
+                type="password"
+                show-password
+                autocomplete="new-password"
+                :disabled="auth.loading"
+                :aria-invalid="validationField === 'confirmPassword'"
+            /></el-form-item>
           </el-form>
         </section>
-        <el-alert v-if="auth.error" class="settings-error" type="error" :title="auth.error" :closable="false" show-icon />
+        <el-alert
+          v-if="auth.error"
+          class="settings-error"
+          type="error"
+          :title="auth.error"
+          :closable="false"
+          show-icon
+        />
         <div class="settings-actions">
-          <el-button type="primary" native-type="submit" form="access-protection-form" :loading="auth.loading">{{ t('auth.save') }}</el-button>
-          <el-button v-if="auth.canLogout" :disabled="auth.loading" @click="signOut">{{ t('auth.loggedOut') }}</el-button>
+          <el-button type="primary" native-type="submit" form="access-protection-form" :loading="auth.loading">{{
+            t('auth.save')
+          }}</el-button>
+          <el-button v-if="auth.canLogout" :disabled="auth.loading" @click="signOut">{{
+            t('auth.loggedOut')
+          }}</el-button>
         </div>
       </template>
     </div>
@@ -38,7 +79,19 @@ import AsyncState from '@/components/ui/AsyncState.vue';
 import { useProfileAccess } from '@/pages/profile/composables/useProfileAccess.js';
 
 const { t } = useLocaleStore();
-const { auth, enabled, password, confirmPassword, validationField, settingsLoading, settingsError, loadSettings, syncProtectionPreview, save, signOut } = useProfileAccess();
+const {
+  auth,
+  enabled,
+  password,
+  confirmPassword,
+  validationField,
+  settingsLoading,
+  settingsError,
+  loadSettings,
+  syncProtectionPreview,
+  save,
+  signOut
+} = useProfileAccess();
 const passwordInput = ref(null);
 const confirmPasswordInput = ref(null);
 
@@ -52,21 +105,84 @@ async function handleSave() {
 </script>
 
 <style scoped lang="scss">
-.settings-page { width: 100%; margin: 0; text-align: left; }
-.settings-card { position: relative; width: 100%; min-height: 100%; box-sizing: border-box; padding: 24px; text-align: left; }
-.settings-card :deep(.async-state) { min-height: 280px; }
-.protection-row { display: flex; align-items: center; justify-content: space-between; min-height: 64px; box-sizing: border-box; gap: 16px; }
-.protection-copy { min-width: 0; }
-.protection-title-row { display: flex; align-items: center; gap: 10px; }
-.protection-copy p { margin: 5px 0 0; color: var(--text-secondary); font-size: 13px; }
-.protection-label { color: var(--text-primary); font-size: 16px; font-weight: 600; }
-.protection-status { padding: 3px 8px; border-radius: 4px; color: var(--text-secondary); background: var(--app-bg); font-size: 12px; }
-.protection-status.enabled { color: var(--success-color); background: rgba(103, 194, 58, 0.12); }
-.password-section { max-width: 460px; }
-.section-heading { margin-bottom: 16px; }
-.section-heading h3 { margin: 0; color: var(--text-primary); font-size: 16px; }
-.password-form { width: 440px; max-width: 100%; }
-.password-form :deep(.el-form-item) { margin-bottom: 16px; }
-.settings-error { max-width: 460px; margin-top: 4px; }
-.settings-actions { display: flex; gap: 12px; margin-top: 22px; }
+.settings-page {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+}
+.settings-card {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 24px;
+  text-align: left;
+}
+.settings-card :deep(.async-state) {
+  min-height: 280px;
+}
+.protection-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  box-sizing: border-box;
+  gap: 16px;
+}
+.protection-copy {
+  min-width: 0;
+}
+.protection-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.protection-copy p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.protection-label {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+.protection-status {
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--app-bg);
+  font-size: 12px;
+}
+.protection-status.enabled {
+  color: var(--success-color);
+  background: rgba(103, 194, 58, 0.12);
+}
+.password-section {
+  max-width: 460px;
+}
+.section-heading {
+  margin-bottom: 16px;
+}
+.section-heading h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+.password-form {
+  width: 440px;
+  max-width: 100%;
+}
+.password-form :deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+.settings-error {
+  max-width: 460px;
+  margin-top: 4px;
+}
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
 </style>

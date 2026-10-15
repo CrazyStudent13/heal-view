@@ -13,11 +13,7 @@
     <div v-else class="filter-group">
       <label class="filter-label">{{ t('nav.sportType') }}</label>
       <div class="sport-type-checkboxes">
-        <label
-          v-for="type in filterStore.sportTypes"
-          :key="type"
-          class="checkbox-item"
-        >
+        <label v-for="type in filterStore.sportTypes" :key="type" class="checkbox-item">
           <input
             type="checkbox"
             :checked="filterStore.selectedSportTypes.includes(type)"
@@ -105,7 +101,7 @@ onMounted(() => {
   color: var(--text-secondary);
 }
 
-.checkbox-item input[type="checkbox"] {
+.checkbox-item input[type='checkbox'] {
   cursor: pointer;
 }
 
@@ -131,4 +127,3 @@ onMounted(() => {
   border-color: var(--primary-color);
 }
 </style>
-

@@ -1,11 +1,5 @@
 <template>
-  <div
-    class="metric-card"
-    :class="[
-      { 'metric-card--compact': compact },
-      `metric-card--${layout}`
-    ]"
-  >
+  <div class="metric-card" :class="[{ 'metric-card--compact': compact }, `metric-card--${layout}`]">
     <template v-if="layout === 'row'">
       <span v-if="$slots.icon" class="metric-card__icon metric-card__icon--row">
         <slot name="icon" />
@@ -67,7 +61,7 @@ defineProps({
   layout: {
     type: String,
     default: 'column',
-    validator: value => ['column', 'row'].includes(value)
+    validator: (value) => ['column', 'row'].includes(value)
   }
 });
 </script>
@@ -85,7 +79,10 @@ defineProps({
   flex-direction: column;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
     transform 0.2s ease;
   will-change: transform;
 }
@@ -225,4 +222,3 @@ defineProps({
   line-height: 1.25;
 }
 </style>
-

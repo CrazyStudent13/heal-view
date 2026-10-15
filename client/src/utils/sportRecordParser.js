@@ -22,7 +22,7 @@ export function isRowingRecord(record) {
 export function filterNightRecords(records) {
   if (!Array.isArray(records) || records.length === 0) return [];
 
-  return records.filter(record => {
+  return records.filter((record) => {
     if (!record?.start_time) return false;
     const date = new Date(record.start_time * 1000);
     const hour = date.getHours();
@@ -35,7 +35,7 @@ export function parseSportRecordRow(record, formatter = {}) {
   if (!value) return null;
 
   const startTime = value.start_time || record.time;
-  const endTime = value.end_time || (startTime + (value.duration || 0));
+  const endTime = value.end_time || startTime + (value.duration || 0);
   const duration = value.duration || 0;
   const hrZones = value.hr_zones || {
     warmup: value.warmup_time || 0,
@@ -49,7 +49,9 @@ export function parseSportRecordRow(record, formatter = {}) {
     timeRange: formatter.formatTime ? `${formatter.formatTime(startTime)} - ${formatter.formatTime(endTime)}` : '',
     sport_type: value.sport_type,
     category: record.category || 'other',
-    categoryName: formatter.getCategoryName ? formatter.getCategoryName({ sport_type: value.sport_type, category: record.category }) : '',
+    categoryName: formatter.getCategoryName
+      ? formatter.getCategoryName({ sport_type: value.sport_type, category: record.category })
+      : '',
     duration,
     durationText: formatter.formatDuration ? formatter.formatDuration(duration) : '',
     calories: value.calories || 0,

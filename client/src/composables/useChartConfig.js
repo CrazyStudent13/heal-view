@@ -16,7 +16,7 @@ function getChartThemeColors() {
  */
 export function useStepsChartConfig() {
   const colors = getChartThemeColors();
-  
+
   return {
     tooltip: {
       trigger: 'axis',
@@ -68,27 +68,29 @@ export function useStepsChartConfig() {
         }
       }
     },
-    series: [{
-      name: t('chart.steps'),
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      lineStyle: {
-        color: '#5470c6',
-        width: 2
-      },
-      itemStyle: {
-        color: '#5470c6'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
-          { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
-        ])
-      },
-      data: []
-    }]
+    series: [
+      {
+        name: t('chart.steps'),
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: {
+          color: '#5470c6',
+          width: 2
+        },
+        itemStyle: {
+          color: '#5470c6'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
+            { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
+          ])
+        },
+        data: []
+      }
+    ]
   };
 }
 
@@ -97,7 +99,7 @@ export function useStepsChartConfig() {
  */
 export function useCaloriesChartConfig() {
   const colors = getChartThemeColors();
-  
+
   return {
     tooltip: {
       trigger: 'axis',
@@ -148,23 +150,25 @@ export function useCaloriesChartConfig() {
         }
       }
     },
-    series: [{
-      name: t('data.calories'),
-      type: 'bar',
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: '#91cc75' },
-          { offset: 1, color: '#73a35e' }
-        ]),
-        borderRadius: [4, 4, 0, 0]
-      },
-      emphasis: {
+    series: [
+      {
+        name: t('data.calories'),
+        type: 'bar',
         itemStyle: {
-          color: '#73a35e'
-        }
-      },
-      data: []
-    }]
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#91cc75' },
+            { offset: 1, color: '#73a35e' }
+          ]),
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: {
+          itemStyle: {
+            color: '#73a35e'
+          }
+        },
+        data: []
+      }
+    ]
   };
 }
 
@@ -173,13 +177,13 @@ export function useCaloriesChartConfig() {
  */
 export function useHeartRateChartConfig() {
   const colors = getChartThemeColors();
-  
+
   return {
     tooltip: {
       trigger: 'axis',
       formatter: (params) => {
         let result = `${params[0].name}<br/>`;
-        params.forEach(param => {
+        params.forEach((param) => {
           result += `${param.marker}${param.seriesName}: ${param.value} ${t('settings.units.bpm')}<br/>`;
         });
         return result;

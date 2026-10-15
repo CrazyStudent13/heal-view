@@ -150,10 +150,12 @@
   height: 24px;
   border-radius: 4px;
   margin-bottom: 24px;
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     var(--skeleton-color, #e0e0e0) 25%,
     var(--skeleton-highlight, #f0f0f0) 50%,
-    var(--skeleton-color, #e0e0e0) 75%);
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
@@ -186,10 +188,12 @@
 .chart-loading-skeleton__help,
 .chart-loading-skeleton__value,
 .chart-loading-skeleton__area {
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     var(--skeleton-color, #e0e0e0) 25%,
     var(--skeleton-highlight, #f0f0f0) 50%,
-    var(--skeleton-color, #e0e0e0) 75%);
+    var(--skeleton-color, #e0e0e0) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }

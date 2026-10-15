@@ -31,9 +31,9 @@ apiClient.interceptors.response.use(
   (error) => {
     const normalizedError = createApiRequestError(error);
     if (
-      normalizedError?.status === 401
-      && typeof window !== 'undefined'
-      && !String(error?.config?.url || '').includes('/auth/')
+      normalizedError?.status === 401 &&
+      typeof window !== 'undefined' &&
+      !String(error?.config?.url || '').includes('/auth/')
     ) {
       window.dispatchEvent(new CustomEvent('heal-view-auth-required'));
     }

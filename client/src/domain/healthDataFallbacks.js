@@ -17,9 +17,8 @@ export function normalizeBloodPressureRecord(record = {}) {
     time: record.time ?? null,
     systolic: positiveNumber(record.systolic),
     diastolic: positiveNumber(record.diastolic),
-    heartRate: record.heartRate === null || record.heartRate === undefined
-      ? null
-      : positiveNumber(record.heartRate, null)
+    heartRate:
+      record.heartRate === null || record.heartRate === undefined ? null : positiveNumber(record.heartRate, null)
   };
 }
 
@@ -40,9 +39,7 @@ export function normalizeDailySummary(summary = {}, fallbackDate = '') {
     bloodPressureCount: positiveNumber(summary.bloodPressureCount, bloodPressureRecords.length),
     avgSystolic: positiveNumber(summary.avgSystolic),
     avgDiastolic: positiveNumber(summary.avgDiastolic),
-    latestBloodPressure: summary.latestBloodPressure
-      ? normalizeBloodPressureRecord(summary.latestBloodPressure)
-      : null,
+    latestBloodPressure: summary.latestBloodPressure ? normalizeBloodPressureRecord(summary.latestBloodPressure) : null,
     bloodPressureRecords,
     sleepHours: positiveNumber(summary.sleepHours),
     deepSleepHours: positiveNumber(summary.deepSleepHours),
@@ -76,11 +73,13 @@ export function normalizeWeightData(data = null) {
   return {
     ...data,
     dailyData: Array.isArray(data.dailyData)
-      ? data.dailyData.map(item => ({
-          ...item,
-          date: normalizeDate(item.date),
-          avgWeight: positiveNumber(item.avgWeight, null)
-        })).filter(item => item.date)
+      ? data.dailyData
+          .map((item) => ({
+            ...item,
+            date: normalizeDate(item.date),
+            avgWeight: positiveNumber(item.avgWeight, null)
+          }))
+          .filter((item) => item.date)
       : []
   };
 }

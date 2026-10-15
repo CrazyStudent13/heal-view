@@ -41,8 +41,8 @@ const updateChart = () => {
     return;
   }
 
-  const dates = props.data.map(item => item.date);
-  const stress = props.data.map(item => item.avgStress || 0);
+  const dates = props.data.map((item) => item.date);
+  const stress = props.data.map((item) => item.avgStress || 0);
 
   const { textColor, axisLineColor, splitLineColor } = themeColors.value;
 
@@ -98,35 +98,41 @@ const updateChart = () => {
         }
       }
     },
-    series: [{
-      name: t('data.stress'),
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: {
-        color: '#722ed1',
-        width: 2
-      },
-      itemStyle: {
-        color: '#722ed1'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(114, 46, 209, 0.3)' },
-          { offset: 1, color: 'rgba(114, 46, 209, 0.05)' }
-        ])
-      },
-      data: stress
-    }]
+    series: [
+      {
+        name: t('data.stress'),
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: {
+          color: '#722ed1',
+          width: 2
+        },
+        itemStyle: {
+          color: '#722ed1'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(114, 46, 209, 0.3)' },
+            { offset: 1, color: 'rgba(114, 46, 209, 0.05)' }
+          ])
+        },
+        data: stress
+      }
+    ]
   };
 
   chartInstance.value.setOption(option);
 };
 
-watch(() => props.data, () => {
-  updateChart();
-}, { deep: true });
+watch(
+  () => props.data,
+  () => {
+    updateChart();
+  },
+  { deep: true }
+);
 
 watch(() => localeStore.currentLocale, updateChart);
 watch(themeColors, updateChart);
@@ -141,4 +147,3 @@ onMounted(initChart);
   min-height: 300px;
 }
 </style>
-
