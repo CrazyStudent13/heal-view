@@ -275,4 +275,14 @@
 | 验证方式 | `pnpm test`（123 项）、`pnpm lint`、`check:i18n`、`check:plan-module`（SSR 冒烟渲染 13 个场景并断言无 Vue 警告——这是模板重排的关键防线）、`pnpm build:client`、`check:element-styles`；并确认 `format:check` 现覆盖 114 个文件且全绿 |
 | 结果 | 格式规则从"提交时静默重排"变成"CI 显式守住"，后续重构的 diff 恢复可审。**与第十九阶段是同一类问题**：门禁声称覆盖的范围和它实际检查的范围对不上——一个漏跑 16 个测试文件，一个漏查 55 个源文件；两者都不会报错，只会让门禁慢慢失去意义 |
 
+## 2026-10-15 第二十一阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 拆分两个超长页面/组件：`DailySportChart.vue` 1134 行、`TrainingPage.vue` 1134 行（均按非空行计） |
+| 实现方式 | **DailySportChart**：① 先删掉只写不读的心率区间死代码——`heartRateZones` 在 4 处被赋值但从没被读过，`getZonePercentage` 全仓库无调用点，`.hr-zones-section` / `.zones-list` / `.zone-item` / `.zone-info` / `.zone-name` / `.zone-duration` / `.zone-bar-container` / `.zone-bar` 在模板里 0 次命中（逐个核对过，`chart-container` / `pace-bar` / `slide-fade` 都是真在用的，只删 0 命中的）；② 把纯展示函数抽到 `components/charts/dailySportChartFormatters.js`：时间/时长/配速格式化、运动类型名称与标签样式映射、训练段判定、赛艇分组均时、配速条宽度。需要 `t()` 的统一由 `createDailySportChartFormatters(t)` 工厂注入，解构名与原来一致，模板与 `parseSportRecordRow` 的调用签名都不用改。**TrainingPage**：把决定"完成本项写哪些指标、取消完成清空哪些指标"的三个纯函数抽到 `pages/mobile/trainingActuals.js`（该文件不依赖响应式状态也不做翻译，用普通具名导出，不需要工厂） |
+| 验证方式 | 两次都用**逐字面量等价性核对**：把 HEAD 的文件与拆分后所有文件的字符串字面量按空白折叠后求差集，要求 0 缺失（DailySportChart 229 个全命中、TrainingPage 199 个全命中，各自唯一新增的是新模块 import 路径）；新增 `tests/client/dailySportChartFormatters.test.js`（9 项）与 `tests/client/trainingActuals.test.js`（4 项）并挂到 `tests/client/index.test.js`；`pnpm test` / `test:client` / `test:server` / `lint` / `format:check` / `check:i18n` / `check:plan-module` / `build:client` / `check:element-styles` |
+| 结果 | `DailySportChart.vue` 1134 → 906（+201 行新模块），`TrainingPage.vue` 1134 → 1094（+54 行新模块）。写测试时发现一处实现上的不对称并按现状锁定、未改行为：`getCategoryName` 在 `sport_type` 码表查不到时会回退到 `category` 串，而 `getCategoryTagType` 只要 `sport_type` 存在就直接兜底 `info`、不回退。`mobileTooling.test.js` 里三条只读 `TrainingPage.vue` 源码文本的断言，按 plans 模块已有的先例改为读整个 `src/pages/mobile` 目录——**断言内容一字未改**，只是允许这段代码住在模块里的任何文件。遗留：`locales` 里的 `sport.zone.*` 5 个 key 随死代码一起不再被使用，未删除（属内容而非代码，且会动到双语对齐文件） |
+
+
 
