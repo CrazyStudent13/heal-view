@@ -29,7 +29,7 @@
 - [ ] 检查窄屏和小窗口下的布局，重点关注顶部导航、日期选择器、图表和个人配置页。（个人配置、指标卡、页面容器、顶部导航、视图切换和日期侧栏已增加窄屏布局；真实看板页面受访问验证阻挡，仍待浏览器检查。）
 - [ ] 为路由页面补充基础级别的组件测试或页面行为测试。（已为异步请求状态补充单元测试，页面级测试仍待测试工具链落地。）
 - [ ] 清理页面中的硬编码文案，确保新增功能完整接入中英文国际化。（页面、导入模块、路由标题和认证 fallback 已接入；仅剩注释与领域兼容输入判断。）
-- [ ] 统一按钮、表单、卡片、标题和间距的视觉规范，减少页面之间的样式差异。（已新增卡片阴影、控件边框、hover/active 背景等语义 token，并迁移顶部导航、视图切换、日期侧栏和看板侧栏；导入流程与复杂图表内部样式仍待继续收敛。）
+- [ ] 统一按钮、表单、卡片、标题和间距的视觉规范，减少页面之间的样式差异。（已新增卡片阴影、控件边框、hover/active 背景等语义 token，并迁移顶部导航、视图切换、日期侧栏和看板侧栏；导入流程与复杂图表内部样式仍待继续收敛。2026-10-15 第二十二阶段把「批量生成训练单元」与「编辑训练单元」同一操作的两套呈现统一成了同一套可折叠卡片。）
 
 ## P1：性能与资源加载
 
@@ -284,5 +284,11 @@
 | 验证方式 | 两次都用**逐字面量等价性核对**：把 HEAD 的文件与拆分后所有文件的字符串字面量按空白折叠后求差集，要求 0 缺失（DailySportChart 229 个全命中、TrainingPage 199 个全命中，各自唯一新增的是新模块 import 路径）；新增 `tests/client/dailySportChartFormatters.test.js`（9 项）与 `tests/client/trainingActuals.test.js`（4 项）并挂到 `tests/client/index.test.js`；`pnpm test` / `test:client` / `test:server` / `lint` / `format:check` / `check:i18n` / `check:plan-module` / `build:client` / `check:element-styles` |
 | 结果 | `DailySportChart.vue` 1134 → 906（+201 行新模块），`TrainingPage.vue` 1134 → 1094（+54 行新模块）。写测试时发现一处实现上的不对称并按现状锁定、未改行为：`getCategoryName` 在 `sport_type` 码表查不到时会回退到 `category` 串，而 `getCategoryTagType` 只要 `sport_type` 存在就直接兜底 `info`、不回退。`mobileTooling.test.js` 里三条只读 `TrainingPage.vue` 源码文本的断言，按 plans 模块已有的先例改为读整个 `src/pages/mobile` 目录——**断言内容一字未改**，只是允许这段代码住在模块里的任何文件。遗留：`locales` 里的 `sport.zone.*` 5 个 key 随死代码一起不再被使用，未删除（属内容而非代码，且会动到双语对齐文件） |
 
+## 2026-10-15 第二十二阶段记录
 
-
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 「批量生成训练单元」和「编辑训练单元」两个弹窗在训练项目这块的操作逻辑完全一样（都走 `useTrainingItemEditor`），却用了两套呈现：前者表格、后者可折叠卡片。统一成卡片，并把这份标记与样式收成一份 |
+| 实现方式 | 新增 `pages/plans/components/TrainingItemCards.vue`：标题 + 添加按钮 + 折叠卡片列表（卡片头是序号/动作名/目标摘要/箭头/删除，卡片体是动作下拉 + `TrainingItemTargets(variant="card")`）。组件不持有条目数据、也不直接改 `items` 里的对象——换动作与改目标都通过事件上抛，由调用方落到自己的数组上（与 `TrainingItemTargets` 的 `@update` 约定一致，也避免改 prop 触发 `vue/no-mutating-props`）；展开状态由调用方用 `v-model:expanded` 提供，因为「新增后展开哪一条」属于各页自己的策略。`SessionFormDialog` 348 → 209 行，`BatchSessionDialog` 309 → 261 行（`el-table` 整个移除） |
+| 验证方式 | `check:plan-module` 静态检查 + 13 个 SSR 场景；批量弹窗的 SSR 标记由 `session-items-table` 改为 `training-item-card__number` + `session-card-target`（表格已不存在，新断言同时验证卡片序号与卡片内目标编辑区都渲染出来了）；`pnpm test` 136 项、`test:client` 53/53、`test:server` 82/0、`lint`、`check:i18n`、`build:client`、`check:element-styles`、`format:check`。因为这是纯视觉改动、自动化测试覆盖不到，另用系统自带的 headless Edge 建了临时预览入口真实渲染两个弹窗截图核对（预览文件用完即删），并用「8 个项目 + 620px 矮视口」确认卡片变高后弹窗是内部滚动 + 底部按钮固定，不会溢出视口 |
+| 结果 | 两个弹窗的训练项目编辑区完全一致；卡片类名在全仓库只出现在 `TrainingItemCards.vue` 一个文件里。顺带清掉因统一而变成死代码的 `TrainingItemTargets.gridClass` prop 与 `.session-target-grid` 两条规则（死样式检查抓到的）。修掉一处自查发现的行为回退：动作下拉从 `@change` 改为 `:model-value` + `@update:model-value` 后，重选同一个动作也可能回调并把已填目标清空，两个弹窗都补了 `if (item.exerciseId === exerciseId) return;` 守卫 |
