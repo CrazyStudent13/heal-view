@@ -670,14 +670,16 @@ async function checkSmokeRender() {
           exercises
         },
         '/',
-        ['session-item-card__number', 'session-card-target', 'training-duration-input']
+        ['training-item-card__number', 'session-card-target', 'training-duration-input']
       ],
       [
         '批量加课弹窗',
         BatchSessionDialog,
         { modelValue: true, plan: null, exercises, saving: false },
         '/',
-        ['batch-session-fields', 'session-items-table']
+        // 批量加课已与训练课弹窗统一成折叠卡片，不再是表格：这里断言卡片序号与
+        // 卡片内的目标编辑区都渲染出来了，比原先只断言表格存在更有意义。
+        ['batch-session-fields', 'training-item-card__number', 'session-card-target']
       ],
       [
         '阶段复盘弹窗',

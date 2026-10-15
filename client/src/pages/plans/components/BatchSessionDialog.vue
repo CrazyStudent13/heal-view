@@ -61,58 +61,15 @@
         {{ t('plans.manager.chinaCalendarUnavailable', { years: unavailableYearsText() }) }}
       </p>
 
-      <div class="training-items-heading">
-        <span>{{ t('plans.manager.trainingItems') }}</span>
-        <el-button :icon="Plus" :disabled="!canAddBatchSessionExercise" @click="addBatchSessionItem">
-          {{ t('plans.manager.addTrainingItem') }}
-        </el-button>
-      </div>
-      <div class="session-items-table-wrap">
-        <el-table :data="batchSessionItems" border class="session-items-table">
-          <el-table-column :label="t('plans.manager.trainingItems')" min-width="220">
-            <template #default="{ row: item }">
-              <el-select
-                v-model="item.exerciseId"
-                class="exercise-select"
-                filterable
-                :placeholder="t('plans.manager.selectExercise')"
-                @change="resetItemTargets(item)"
-              >
-                <el-option
-                  v-for="exercise in optionsFor(batchSessionItems, item)"
-                  :key="exercise.id"
-                  :label="exercise.name"
-                  :value="exercise.id"
-                  :disabled="!exercise.enabled"
-                />
-              </el-select>
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('plans.manager.targets')" min-width="460">
-            <template #default="{ row: item }">
-              <TrainingItemTargets
-                :item="item"
-                :exercise="exerciseFor(item.exerciseId)"
-                grid-class="session-target-grid"
-                @update="applyTargetUpdate(item, $event)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('plans.sessions.actions')" width="72" align="center">
-            <template #default="{ $index }">
-              <el-tooltip :content="t('common.delete')" placement="top">
-                <el-button
-                  link
-                  type="danger"
-                  :icon="Delete"
-                  :aria-label="t('common.delete')"
-                  @click="removeBatchSessionItem($index)"
-                />
-              </el-tooltip>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+      <TrainingItemCards
+        v-model:expanded="expandedBatchSessionItems"
+        :items="batchSessionItems"
+        :exercises="exercises"
+        @add="addBatchSessionItem"
+        @remove="removeBatchSessionItem"
+        @update-target="applyItemTargetUpdate"
+        @change-exercise="applyItemExerciseChange"
+      />
 
       <el-form-item :label="t('plans.manager.sessionNotes')">
         <el-input v-model="batchSessionForm.notes" type="textarea" :rows="3" maxlength="2000" show-word-limit />
@@ -130,8 +87,7 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Delete, Plus } from '@element-plus/icons-vue';
-import TrainingItemTargets from '@/pages/plans/components/TrainingItemTargets.vue';
+import TrainingItemCards from '@/pages/plans/components/TrainingItemCards.vue';
 import { BATCH_FREQUENCIES, getBatchDates, useChinaCalendar } from '@/pages/plans/composables/useChinaCalendar.js';
 import { SESSION_STATUSES, usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
 import { useTrainingItemEditor } from '@/pages/plans/composables/useTrainingItemEditor.js';
@@ -148,8 +104,9 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { t } = useLocaleStore();
 const { statusLabel, weekdayOptions } = usePlanLabels();
-const { applyTargetUpdate, canAddItem, createNextItem, exerciseFor, optionsFor, resetItemTargets, targetPayload } =
-  useTrainingItemEditor(toRef(props, 'exercises'));
+const { applyTargetUpdate, createNextItem, resetItemTargets, targetPayload } = useTrainingItemEditor(
+  toRef(props, 'exercises')
+);
 const { chinaCalendar, chinaCalendarUnavailableYears, chinaCalendarLoading, loadChinaCalendar, unavailableYearsText } =
   useChinaCalendar();
 
@@ -163,8 +120,8 @@ const batchSessionForm = reactive({
   notes: ''
 });
 const batchSessionItems = ref([]);
+const expandedBatchSessionItems = ref([]);
 
-const canAddBatchSessionExercise = computed(() => canAddItem(batchSessionItems.value));
 const batchSessionDates = computed(() =>
   getBatchDates(batchSessionForm.dates, batchSessionForm.frequency, batchSessionForm.weekdays, chinaCalendar.value)
 );
@@ -193,15 +150,33 @@ function initializeForm() {
     notes: ''
   });
   batchSessionItems.value = [];
+  expandedBatchSessionItems.value = [];
   addBatchSessionItem();
 }
 
 function addBatchSessionItem() {
   const item = createNextItem(batchSessionItems.value);
-  if (item) batchSessionItems.value.push(item);
+  if (!item) return;
+  batchSessionItems.value.push(item);
+  // 新加的条目直接展开，省掉一次多余点击（与训练课弹窗一致）。
+  expandedBatchSessionItems.value.push(item.key);
+}
+
+/** 换动作后必须重算目标：旧动作的指标对新动作大多不成立。重选同一个动作不动已填的目标。 */
+function applyItemExerciseChange({ item, exerciseId }) {
+  if (item.exerciseId === exerciseId) return;
+  item.exerciseId = exerciseId;
+  resetItemTargets(item);
+}
+
+function applyItemTargetUpdate({ item, patch }) {
+  applyTargetUpdate(item, patch);
 }
 
 function removeBatchSessionItem(index) {
+  expandedBatchSessionItems.value = expandedBatchSessionItems.value.filter(
+    (key) => key !== batchSessionItems.value[index].key
+  );
   batchSessionItems.value.splice(index, 1);
 }
 
@@ -276,29 +251,6 @@ function submitBatchSessions() {
   color: var(--primary-color);
   font-size: 12px;
   font-weight: 500;
-}
-
-.session-items-table-wrap {
-  margin-bottom: 18px;
-  overflow-x: auto;
-}
-
-.session-items-table {
-  min-width: 752px;
-}
-
-.session-items-table :deep(.el-table__cell) {
-  padding: 8px 0;
-}
-
-.session-items-table :deep(th.el-table__cell) {
-  color: var(--text-secondary);
-  background: var(--app-bg);
-  font-weight: 600;
-}
-
-.session-items-table :deep(.cell) {
-  padding: 0 12px;
 }
 
 @media (max-width: 640px) {

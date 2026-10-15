@@ -44,9 +44,8 @@ import { useLocaleStore } from '@/stores/localeStore.js';
 const props = defineProps({
   item: { type: Object, required: true },
   exercise: { type: Object, default: null },
-  /** field：批量规则/批量加课的横向字段；card：训练课弹窗里的卡片字段。 */
-  variant: { type: String, default: 'field' },
-  gridClass: { type: String, default: '' }
+  /** field：批量规则里的横向字段；card：训练项目折叠卡片里的字段。 */
+  variant: { type: String, default: 'field' }
 });
 const emit = defineEmits(['update']);
 
@@ -57,9 +56,7 @@ const metrics = computed(() => props.exercise?.metrics || []);
 const minutesOnly = computed(() => props.exercise?.name === '平板支撑');
 const entryTag = computed(() => (props.variant === 'card' ? 'div' : 'label'));
 const labelClass = computed(() => (props.variant === 'card' ? 'session-card-target__label' : ''));
-const containerClass = computed(() =>
-  props.variant === 'card' ? 'session-card-targets' : ['target-grid', props.gridClass]
-);
+const containerClass = computed(() => (props.variant === 'card' ? 'session-card-targets' : 'target-grid'));
 
 function entryClass(metric) {
   if (props.variant === 'card') {
@@ -79,11 +76,6 @@ function emitTarget(metric, value) {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px 12px;
   min-width: 0;
-}
-
-.session-target-grid {
-  grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
-  justify-content: start;
 }
 
 .target-field {
@@ -109,12 +101,6 @@ function emitTarget(metric, value) {
   width: auto;
   min-width: 72px;
   flex: 1;
-}
-
-.session-target-grid .target-field:not(.target-field--duration) :deep(.el-input-number) {
-  width: 88px;
-  min-width: 88px;
-  flex: none;
 }
 
 .target-field small {

@@ -29,79 +29,15 @@
         </el-form-item>
       </div>
 
-      <div class="training-items-heading">
-        <span>{{ t('plans.manager.trainingItems') }}</span>
-        <el-button :icon="Plus" :disabled="!canAddExercise" @click="addSessionItem">{{
-          t('plans.manager.addTrainingItem')
-        }}</el-button>
-      </div>
-
-      <div class="session-item-cards">
-        <div
-          v-for="(item, index) in sessionForm.items"
-          :key="item.key"
-          class="session-item-card"
-          :class="{ 'session-item-card--open': expandedSessionItems.includes(item.key) }"
-        >
-          <div class="session-item-card__header">
-            <button
-              type="button"
-              class="session-item-card__summary"
-              :aria-expanded="expandedSessionItems.includes(item.key)"
-              :aria-controls="`session-item-body-${item.key}`"
-              @click="toggleSessionItem(item.key)"
-            >
-              <span class="session-item-card__number">{{ index + 1 }}</span>
-              <span class="session-item-card__heading">
-                <strong>{{ exerciseFor(item.exerciseId)?.name || t('plans.manager.selectExercise') }}</strong>
-                <span>{{ targetsText({ targets: targetPayload(item) }) }}</span>
-              </span>
-              <el-icon class="session-item-card__arrow"><ArrowRight /></el-icon>
-            </button>
-            <el-button
-              class="session-item-card__delete"
-              type="danger"
-              text
-              :icon="Delete"
-              :aria-label="`${t('common.delete')} ${exerciseFor(item.exerciseId)?.name || ''}`"
-              @click="removeSessionItem(index)"
-            >
-              {{ t('common.delete') }}
-            </el-button>
-          </div>
-          <div
-            v-show="expandedSessionItems.includes(item.key)"
-            :id="`session-item-body-${item.key}`"
-            class="session-item-card__body"
-          >
-            <div class="session-item-card__exercise">
-              <el-form-item :label="t('plans.manager.trainingItems')">
-                <el-select
-                  v-model="item.exerciseId"
-                  class="exercise-select"
-                  filterable
-                  :placeholder="t('plans.manager.selectExercise')"
-                  @change="resetItemTargets(item)"
-                >
-                  <el-option
-                    v-for="exercise in optionsFor(sessionForm.items, item)"
-                    :key="exercise.id"
-                    :label="exercise.name"
-                    :value="exercise.id"
-                    :disabled="!exercise.enabled"
-                  />
-                </el-select>
-              </el-form-item>
-            </div>
-            <TrainingItemTargets
-              :item="item"
-              :exercise="exerciseFor(item.exerciseId)"
-              variant="card"
-              @update="applyTargetUpdate(item, $event)"
-            />
-          </div>
-        </div>
-      </div>
+      <TrainingItemCards
+        v-model:expanded="expandedSessionItems"
+        :items="sessionForm.items"
+        :exercises="exercises"
+        @add="addSessionItem"
+        @remove="removeSessionItem"
+        @update-target="applyItemTargetUpdate"
+        @change-exercise="applyItemExerciseChange"
+      />
 
       <el-form-item :label="t('plans.manager.sessionNotes')">
         <el-input v-model="sessionForm.notes" type="textarea" :rows="3" maxlength="2000" show-word-limit />
@@ -117,8 +53,7 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowRight, Delete, Plus } from '@element-plus/icons-vue';
-import TrainingItemTargets from '@/pages/plans/components/TrainingItemTargets.vue';
+import TrainingItemCards from '@/pages/plans/components/TrainingItemCards.vue';
 import { SESSION_STATUSES, usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
 import { useTrainingItemEditor } from '@/pages/plans/composables/useTrainingItemEditor.js';
 import { useLocaleStore } from '@/stores/localeStore.js';
@@ -138,17 +73,9 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { t } = useLocaleStore();
 const { statusLabel } = usePlanLabels();
-const {
-  applyTargetUpdate,
-  canAddItem,
-  createItem,
-  createNextItem,
-  exerciseFor,
-  optionsFor,
-  resetItemTargets,
-  targetPayload,
-  targetsText
-} = useTrainingItemEditor(toRef(props, 'exercises'));
+const { applyTargetUpdate, createItem, createNextItem, resetItemTargets, targetPayload } = useTrainingItemEditor(
+  toRef(props, 'exercises')
+);
 
 const sessionStatuses = SESSION_STATUSES;
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
@@ -161,7 +88,6 @@ const dialogTitle = computed(() =>
     ? t('plans.manager.editSessionWithDate', { date: sessionForm.scheduledDate })
     : t('plans.manager.addSession')
 );
-const canAddExercise = computed(() => canAddItem(sessionForm.items));
 
 watch(
   () => props.modelValue,
@@ -190,10 +116,15 @@ function addSessionItem() {
   expandedSessionItems.value.push(item.key);
 }
 
-function toggleSessionItem(key) {
-  expandedSessionItems.value = expandedSessionItems.value.includes(key)
-    ? expandedSessionItems.value.filter((itemKey) => itemKey !== key)
-    : [...expandedSessionItems.value, key];
+/** 换动作后必须重算目标：旧动作的指标对新动作大多不成立。重选同一个动作不动已填的目标。 */
+function applyItemExerciseChange({ item, exerciseId }) {
+  if (item.exerciseId === exerciseId) return;
+  item.exerciseId = exerciseId;
+  resetItemTargets(item);
+}
+
+function applyItemTargetUpdate({ item, patch }) {
+  applyTargetUpdate(item, patch);
 }
 
 function removeSessionItem(index) {
@@ -222,7 +153,6 @@ function submitSession() {
 
 <style scoped lang="scss">
 @use '../styles/dialogShared';
-@use '../styles/itemForm';
 @use '../styles/sessionDialogScroll';
 
 .session-dialog-heading {
@@ -261,127 +191,6 @@ function submitSession() {
   gap: 16px;
 }
 
-.session-item-cards {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-.session-item-card {
-  min-width: 0;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.session-item-card__header {
-  display: flex;
-  align-items: center;
-  background: var(--app-bg);
-}
-
-.session-item-card__summary {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.session-item-card__summary:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: -2px;
-}
-
-.session-item-card__number {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  border-radius: 8px;
-  color: var(--primary-color);
-  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
-  font-weight: 600;
-}
-
-.session-item-card__heading {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px 20px;
-  overflow-wrap: anywhere;
-}
-
-.session-item-card__heading strong {
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.session-item-card__heading > span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.session-item-card__arrow {
-  flex: none;
-  color: var(--text-secondary);
-  transition: transform 0.2s;
-}
-
-.session-item-card--open .session-item-card__arrow {
-  transform: rotate(90deg);
-}
-
-.session-item-card__body {
-  display: grid;
-  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
-  align-items: end;
-  gap: 20px;
-  padding: 18px;
-  border-top: 1px solid var(--card-border);
-}
-
-.session-item-card__exercise {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  min-width: 0;
-}
-
-.session-item-card__exercise .el-form-item {
-  flex: 1;
-  max-width: 360px;
-  min-width: 0;
-  margin-bottom: 0;
-}
-
-.session-item-card__delete {
-  flex: none;
-  margin: 0 10px 0 0;
-}
-
-@media (max-width: 1000px) {
-  .session-item-card__body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* 目标区由子组件渲染，靠父级作用域标记命中它的根节点。 */
-  .session-card-targets,
-  .session-item-card__body > .no-targets {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 640px) {
   .session-dialog-heading {
     align-items: flex-start;
@@ -391,24 +200,6 @@ function submitSession() {
 
   .session-status-select {
     flex-basis: 100px;
-  }
-
-  .session-item-card__delete {
-    margin-right: 4px;
-    padding-inline: 6px;
-  }
-
-  .session-item-card__summary {
-    padding: 12px;
-  }
-
-  .session-item-card__body {
-    padding: 12px;
-  }
-
-  .session-item-card__heading {
-    flex-direction: column;
-    gap: 4px;
   }
 
   .session-form-grid {
