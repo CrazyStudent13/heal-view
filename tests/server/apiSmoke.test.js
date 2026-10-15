@@ -12,9 +12,14 @@ async function request(path, options = {}) {
 // `pnpm test:smoke`）。没有服务在监听时应当跳过，而不是失败：否则默认的
 // `pnpm test` 在任何没有服务端的环境里（CI 的 quality 任务就是）必然失败，
 // 把质量门禁变成永远无法通过的摆设。
+//
+// 探活超时给到 5 秒：这个判断是模块顶层执行的，而 `pnpm test` 现在会先 import
+// 客户端那批测试（其中 planModule 会在 import 期同步跑一次静态检查），机器繁忙时
+// 2 秒的探活会被拖超时，于是服务明明在跑却被判成"没有服务监听"而静默跳过——
+// 一个会无声退化成 skip 的门禁比没有门禁更危险。宁可多等 3 秒。
 async function serverIsReachable() {
   try {
-    const response = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2000) });
+    const response = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(5000) });
     return response.ok;
   } catch {
     return false;
