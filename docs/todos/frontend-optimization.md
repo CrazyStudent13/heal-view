@@ -15,7 +15,7 @@
 - [x] 侧栏日期列表接入统一 loading、empty、error、retry 状态，并把日期请求错误纳入看板上下文。
 - [x] 报告、计划和关于页面复用统一页面容器，减少重复外层布局样式。
 - [x] 导航、视图切换、日期和指标卡补充键盘操作及基础 ARIA 语义。
-- [x] Element Plus 改为显式组件注册，移除全量插件注册，降低首屏入口体积。
+- [x] Element Plus 改为显式组件注册，移除全量插件注册，降低首屏入口体积。（2026-10-15 第十八阶段已进一步改为 resolver 按需引入，连显式注册清单也一并移除。）
 
 ## 优先级说明
 
@@ -226,3 +226,43 @@
 | 实现方式 | 新增 `client/scripts/check-plan-module.mjs`（`pnpm check:plan-module`）：未使用导入、页面解构 ↔ composable 返回值、子组件声明的事件是否都有监听（含 `v-model` → `update:*`）、模板类名是否有样式来源、样式类名是否还有使用方，最后用 SSR 渲染 13 个场景（页面两态、列表、抽屉两态、两个页签、日期明细、四个弹窗）并把非白名单的 Vue 运行时警告当失败；`--static` 跳过 SSR 只做结构核对。新增 `tests/client/planModule.test.js` 把静态部分接进 `pnpm test`，不需要改 CI workflow 就能被质量门禁覆盖 |
 | 验证方式 | 反向注入七类错误（漏图标导入、模板类名写错、父级漏监听、多返回一个没人用的状态、少返回一个被解构的状态、留下死样式、留下未使用的导入）逐个确认检查器都会红并给出可读提示；确认 `tests/client/planModule.test.js` 能红能绿；再跑 `pnpm lint`、`pnpm test`、`pnpm test:server`、`pnpm check:i18n`、`pnpm build:client`、`pnpm check:plan-module` |
 | 结果 | 模块结构回归从"靠人记着"变成一条命令；SSR 冒烟覆盖页面、列表、抽屉、页签、日期明细和四个弹窗，能抓到"图标没导入"这类只在运行时出现的警告；仍需 vite 的 SSR 部分没有进 CI，需要时可以按同样方式加一步 |
+
+## 2026-10-15 首屏体积记录
+
+沿用 2026-09-13 的口径：首屏 = `dist/index.html` 里直接引用与 `modulepreload` 的资源，gzip 为 level 9。
+
+| 项目 | 优化前 | 优化后 | 结果 |
+| --- | ---: | ---: | --- |
+| 首屏合计 gzip | 379.2 kB | 204.1 kB | 累计 −46%；raw 1340.3 → 654.0 kB |
+| 首屏入口 CSS gzip | 50.1 kB | 18.2 kB | 移除 `element-plus/dist/index.css` 全量样式，改按需注入 |
+| Vant（JS+CSS）gzip | 88.7 kB（在首屏） | 0（懒加载） | Vant 只服务 `/m`，不再被桌面端首屏静态引用 |
+| Element Plus Table gzip | 48.3 kB（在首屏） | 0（懒加载） | 只在数据页按需加载 |
+| ECharts chunk | 612.02 kB | 612.02 kB | 保持独立懒加载 chunk，始终不在首屏 |
+
+## 2026-10-15 第十七阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 桌面端首屏无条件加载只服务 `/m` 的 Vant（JS 52.0 + CSS 36.7 = 88.7 kB gzip），且找不到原因 |
+| 实现方式 | 根因有两处：① `vite.config.js` 的 `manualChunks` 只匹配 `node_modules/vue`，漏掉 `@vue/*` 作用域包，Rollup 把 Vue 运行时（`@vue/shared`、`@vue/reactivity`、`@vue/runtime-core`、`@vue/runtime-dom`）并进了 `vendor-vant` 分块，而入口需要 Vue 运行时，于是整个 Vant 分块变成首屏静态依赖（已 dump 分块模块清单确认：该分块 = 4 个 `@vue/*` 模块 + 140 个 Vant 模块）；② `router/index.js` 静态引入了唯一在首屏消费 Vant 的 `MobileLayout`。改为不手工划分 vendor 分块（交给 Rollup 按真实动静依赖图切分），并把 `MobileLayout` 改为懒加载 |
+| 验证方式 | 逐个对比两种分块策略的首屏 gzip；核对产物 `index.html` 的 modulepreload 列表；用仓库已有 Vite SSR 套路渲染移动端组件树（`TrainingPage` 仍带 Vant 正常渲染 1710 B、0 报错）；`pnpm test` / `pnpm lint` / `check:i18n` / `check:plan-module` |
+| 结果 | 首屏 gzip 379.2 → 322.4 kB（−14.9%），raw 1340.3 → 1186.6 kB；ECharts 仍是独立懒加载 chunk；已实测"只补 `@vue/` 规则"或"开启 `onlyExplicitManualChunks`"都无法阻止该合并，所以直接不手工分块。`MobileLayout` / `MobileSettingsPage` 无法 SSR 冒烟（`themeStore` 在创建时调用 `document.documentElement`），这是既有浏览器专用副作用，与本次改动无关 |
+
+## 2026-10-15 第十八阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | `main.js` 全量 `import 'element-plus/dist/index.css'`（376 kB raw / 50.1 kB gzip）覆盖全部组件，而实际只用 39 种标签；同时 38 个组件的批量全局注册把 `ElTable`（48.3 kB gzip）等拉进首屏 |
+| 实现方式 | ① 移除全量样式与批量全局注册，模板里的 `<el-*>` 交给 `ElementPlusResolver` 按需注入「组件 + 样式」；② 新增 `src/styles/element-plus-on-demand.js` 补齐 resolver 看不到的三类用法——命令式 API（`ElMessage` / `ElMessageBox`）、指令（`v-loading`）、显式 import 的组件，暗黑模式变量仍整包引入；③ `Components` 不再用 `include` 限定扫描范围（那会连 Element Plus 一起挡掉），改为同时启用 `VantResolver` 与 `ElementPlusResolver`，并新增 `enforceVantScope` 护栏补回「Vant 只作用于移动端」——该护栏做两道检查：`transform` 拦源码里显式写的 `from 'vant'`，`resolveId` 拦 resolver 注入的 `from 'vant'`（注入发生在 transform 之后，只有 `resolveId` 能拿到 importer）；④ `check-plan-module.mjs` 适配：把 `element-plus/es` 别名到虚拟模块以替换 `ElDialog`/`ElDrawer` 桩件（resolver 注入的本地 import 优先于 `app.component` 全局注册，原全局桩件会被绕过），该虚拟模块必须 `export * from 'element-plus/es/index.mjs'`，写成 `'element-plus/es'` 会被别名指回自己、所有具名导出变成 undefined |
+| 验证方式 | 新增 `tests/client/elementRegistration.test.js` 守卫（模板里每个 `<el-*>` 逐个对照 `theme-chalk` 样式入口；每个显式 import 的组件/命令式 API 必须在 on-demand 清单里登记）；`tests/client/mobileTooling.test.js` 直接取 `vite.config.js` 注册的护栏插件做正反向验证（含 `mobileBackup` 这种前缀相同的目录必须被拒）；新增 `scripts/check-element-plus-styles.mjs` 从 dist 产物反向核对样式存在性，并反向确认 13 个未使用组件的样式没有被打进产物；`pnpm test` / `test:client`(40) / `test:server`(83) / `lint` / `check:i18n` / `check:plan-module` / `build:client` / `format:check` |
+| 结果 | 首屏 gzip 322.4 → 204.1 kB，入口 CSS 50.1 → 18.2 kB gzip，`ElTable` 离开首屏；`check:element-styles` 结论"全部通过"（含未使用组件无残留、`html.dark` 变量在位）。**这是最容易静默回归的一次改动**：lint、i18n、以及 `check-plan-module` 的 SSR 冒烟都发现不了"组件在、样式没了"（该冒烟是自己手工全局注册组件的），所以把核对固化成了上面两条自动化守卫 |
+
+## 2026-10-15 第十九阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | CI 的 `pnpm test` 长期漏跑大部分测试，导致新增守卫形同虚设 |
+| 实现方式 | `tests/index.test.js` 原本是一份手写清单，只列了 10 个文件，而 `tests/client` 与 `tests/server` 下共有 26 个测试文件。改为直接引入两个子聚合文件，以后新增测试只要挂到子目录 `index` 上就会被跑到。同时在 `quality.yml` 的 `build` 之后增加 `check:element-styles` 步骤 |
+| 验证方式 | `pnpm test` 由 38 项提升到 123 项（= client 40 + server 83），0 失败；`pnpm format:check` |
+| 结果 | 补回 16 个文件、约 81 项用例，其中包含整个训练计划域（`trainingPlanCrud` / `trainingPlanAdherence` / `trainingExecution` / `aerobicMatching` / `planAdherence` / `trainingPlanValidation`）与本次新增的 `elementRegistration` / `mobileTooling` / `planModule` 守卫。漏跑确实掩盖过问题：第十八阶段打破 `elementRegistration` 的断言时 CI 完全看不到，本地 `pnpm test:client` 才发现 |
+

@@ -49,8 +49,8 @@
 
 ## P1：安全与数据边界
 
-- [ ] 为认证接口增加失败尝试限制、必要的安全响应头和 Cookie 配置检查。
-- [ ] 复核 CORS、上传文件类型/大小、压缩包路径和临时文件清理边界。
+- [ ] 为认证接口增加失败尝试限制、必要的安全响应头和 Cookie 配置检查。（2026-10-15：已移除 `X-Powered-By`，不再暴露服务端技术栈；失败尝试限制与 Cookie 配置复核仍未做。）
+- [ ] 复核 CORS、上传文件类型/大小、压缩包路径和临时文件清理边界。（2026-10-15：CORS 已收敛为默认同源，新增 `CORS_ORIGIN` 白名单开关；上传类型/大小、压缩包路径与临时文件清理仍未复核。）
 - [ ] 检查错误响应是否可能泄露本地路径、SQL、导入文件名或个人健康数据。
 - [ ] 明确进程内 session 在重启、多进程和反向代理场景下的限制，并写入部署文档。
 
@@ -59,7 +59,7 @@
 - [ ] 为控制器参数校验、认证状态、缓存失效和导入失败路径补充边界测试。
 - [ ] 增加代表性 SQLite 数据集的查询性能基线，覆盖冷缓存和热缓存。
 - [ ] 增加 API 请求级测试，验证认证、错误状态码、响应结构和缓存行为。
-- [ ] 在 CI 中加入服务端测试、API smoke test 和必要的数据库迁移/初始化检查。
+- [x] 在 CI 中加入服务端测试、API smoke test 和必要的数据库迁移/初始化检查。（2026-10-15：`pnpm test` 原先只聚合 10 个测试文件、其中服务端仅 3 个；现改为引入两个子聚合文件，15 个服务端测试文件（含 `apiSmoke`、`databaseMigrations`）全部纳入 CI，`pnpm test` 由 38 项提升到 123 项。）
 - [ ] 记录后端优化的动机、数据规模、验证命令、耗时变化和遗留风险。
 
 ## 建议推进顺序
@@ -77,3 +77,22 @@
 | 实现方式 | 涉及控制器、service、SQL、缓存或配置的改动 |
 | 验证方式 | 测试、请求耗时、SQL 计划、浏览器 Network/Performance 或构建检查 |
 | 结果 | 是否达到预期，是否有数据规模、部署模式或兼容性遗留问题 |
+
+## 2026-10-15 第一阶段记录：静态资源缓存与服务端加固
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 生产环境下内容哈希资源的缓存被禁用，每次访问都要回源校验；同时响应头与 CORS 过于宽松 |
+| 实现方式 | ① `express.static` 此前对全部文件下发 `Cache-Control: public, max-age=0`，而 Vite 产物文件名带内容哈希、内容不可变，改为 `/assets/` 下 `max-age=31536000, immutable`，`index.html` 与 SPA 兜底路由保持 `no-cache`（它是唯一无哈希的入口，不回源会导致发版后一直引用旧分块）；② `app.use(cors())` 原对任意来源放开，改为仅在配置 `CORS_ORIGIN` 时才下发 CORS 头（支持逗号分隔白名单与 `*`），默认同源——前端始终同源访问 `/api`（开发走 Vite 代理、生产由本进程同时提供页面与接口），CORS 本就不必要；③ `app.disable('x-powered-by')` |
+| 验证方式 | 在另一个端口 + 临时数据库上启动实例逐项核对：哈希资源返回 `max-age=31536000, immutable`；`index.html` 与 `/dashboard` 深链接返回 `no-cache`；`X-Powered-By` 消失；带 `Origin` 的请求默认无 CORS 头；设置 `CORS_ORIGIN` 后白名单命中（含去空格）而非法来源被拒；`/api` 未知路由仍返回 404 且不落入 `index.html` 兜底；`pnpm test:server` |
+| 结果 | 全部符合预期，`pnpm test:server` 83 项 0 失败。首个 `/health` 请求 573 ms 属冷启动，稳态 16–30 ms，未做改动 |
+
+## 2026-10-15 第二阶段记录：拆分 1347 行训练计划控制器
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | `server/src/controllers/trainingPlanController.js` 单文件 1347 行，把计划/阶段/阶段复盘/课次四类 CRUD 连同 SQL、校验、序列化、状态推导全部塞在一起 |
+| 实现方式 | 拆成 `server/src/controllers/trainingPlan/` 下 12 个职责内聚模块（合计 1385 行）：`planController` 347（计划 CRUD）、`sessionController` 314（课次 CRUD 含批量）、`serializers` 146、`validation` 126、`sessionStatus` 111、`planStats` 107、`phaseController` 88、`planRepository` 66（数据访问）、`phaseReviewController` 55、`queryHelpers` 21（共用 SQL 读取/JSON 解析）、`responses` 4；原文件缩为 54 行兼容转发层。保留转发层是因为生产路由 `routes/api.js`、5 个服务端测试文件（含被直接引用的 `trainingPlanValidation` 校验对象）与 `tools/seed-mobile-demo.mjs` 都仍按老路径引入 |
+| 验证方式 | `pnpm test:server`（83 项）；**逐字面量等价性核对**：把原始文件与拆分后所有模块的单/双/反引号字面量按空白归一后求差集，证明 SQL、错误码、错误文案、日志文本均未被改动；服务端实际启动并响应 `/health` |
+| 结果 | 原文件 1347 → 54 行，最大单文件 347 行；83 项测试 0 失败（与重构前一致）；155 个字面量全部命中、0 缺失。过程中重构曾因 12 个新模块整体漏写 `export` 而完全无法加载（47 处导入缺失、`SyntaxError: does not provide an export named ...`），已逐一声明补回；另修正了转发层里一句与事实不符的注释（原文称 `routes/api.js` 已不再经过它） |
+
