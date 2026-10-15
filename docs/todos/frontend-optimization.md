@@ -266,3 +266,13 @@
 | 验证方式 | `pnpm test` 由 38 项提升到 123 项（= client 40 + server 83），0 失败；`pnpm format:check` |
 | 结果 | 补回 16 个文件、约 81 项用例，其中包含整个训练计划域（`trainingPlanCrud` / `trainingPlanAdherence` / `trainingExecution` / `aerobicMatching` / `planAdherence` / `trainingPlanValidation`）与本次新增的 `elementRegistration` / `mobileTooling` / `planModule` 守卫。漏跑确实掩盖过问题：第十八阶段打破 `elementRegistration` 的断言时 CI 完全看不到，本地 `pnpm test:client` 才发现 |
 
+## 2026-10-15 第二十阶段记录
+
+| 项目 | 内容 |
+| --- | --- |
+| 优化目标 | 格式门禁的覆盖范围与它实际约束的范围不一致，破坏了提交的可追溯性 |
+| 实现方式 | `lint-staged` 的 glob 是 `client/src/**/*.{js,vue,scss,css}`（114 个文件），但 `format:check` 只检查 5 个硬编码文件，于是 `client/src` 下有 55 个文件长期不符合 prettier 规范而 CI 一直是绿的。真正的问题不是"不好看"：只要改动其中任何一个文件，`lint-staged` 就会在提交时把整个文件重排——实测 `DailySportChart.vue` 会被改写 1206/1227 行（并去掉 9 个对象键的引号），任何针对它的重构提交都会混进上千行无关格式改动，review 时无法分辨真改动。处理：① 对同一批文件执行 `prettier --write`（56 个文件、1912 插入 / 1257 删除，全部是箭头函数括号、printWidth 120 换行、多余括号与对象键引号这类等价改写；`endOfLine: auto` 保证行尾不变，没有整文件 CRLF/LF 噪音）；② `format` / `format:check` 的扫描范围改为与 `lint-staged` 相同的 glob（glob 加引号交给 prettier 自己展开，避免 sh 的 `**` 在未开 globstar 时漏掉深层目录） |
+| 验证方式 | `pnpm test`（123 项）、`pnpm lint`、`check:i18n`、`check:plan-module`（SSR 冒烟渲染 13 个场景并断言无 Vue 警告——这是模板重排的关键防线）、`pnpm build:client`、`check:element-styles`；并确认 `format:check` 现覆盖 114 个文件且全绿 |
+| 结果 | 格式规则从"提交时静默重排"变成"CI 显式守住"，后续重构的 diff 恢复可审。**与第十九阶段是同一类问题**：门禁声称覆盖的范围和它实际检查的范围对不上——一个漏跑 16 个测试文件，一个漏查 55 个源文件；两者都不会报错，只会让门禁慢慢失去意义 |
+
+
