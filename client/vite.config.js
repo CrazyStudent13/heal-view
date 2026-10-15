@@ -30,30 +30,19 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      chunkSizeWarningLimit: 700,
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            const normalizedId = id.replaceAll('\\', '/');
-            if (normalizedId.includes('/zrender/')) {
-              return 'vendor-zrender';
-            }
-            if (normalizedId.includes('node_modules/echarts')) {
-              return 'vendor-echarts';
-            }
-            if (normalizedId.includes('node_modules/vant') || normalizedId.includes('@vant/')) {
-              return 'vendor-vant';
-            }
-            if (
-              normalizedId.includes('node_modules/vue') ||
-              normalizedId.includes('node_modules/pinia') ||
-              normalizedId.includes('node_modules/vue-i18n')
-            ) {
-              return 'vendor-vue';
-            }
-          }
-        }
-      }
+      chunkSizeWarningLimit: 700
+      // 这里刻意不手工划分 vendor 分块。
+      //
+      // 之前的 manualChunks 把 vant 归入 vendor-vant，但 Vue 规则只匹配
+      // node_modules/vue，漏掉了 @vue/* 作用域包（@vue/shared、@vue/reactivity、
+      // @vue/runtime-core、@vue/runtime-dom）。Rollup 于是把 Vue 运行时并进了
+      // vendor-vant 分块，而入口需要 Vue 运行时，结果整个 Vant 分块（约 89 KB gzip
+      // 的 JS + CSS）被挂到首屏静态依赖上——Vant 本来只服务 /m 移动端。
+      //
+      // 交给 Rollup 按真实静态/动态依赖图切分后，Vant 恢复按需加载，echarts 仍是
+      // 独立的懒加载分块，首屏 gzip 从 379 KB 降到 322 KB。
+      // 已实测：只给 manualChunks 补 @vue/ 规则无效（Rollup 仍会合并），
+      // onlyExplicitManualChunks 也无效，所以直接不手工分块。
     },
     server: {
       port,

@@ -2,7 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore.js';
 import { translate } from '@/i18n/index.js';
 import AppLayout from '@/components/layout/AppLayout.vue';
-import MobileLayout from '@/pages/mobile/MobileLayout.vue';
+
+// 移动端外壳必须懒加载：它内部使用 Vant 的 ConfigProvider，静态引入会让
+// 只服务 /m 的 Vant 组件库被挂进桌面端首屏的静态依赖图。
+const MobileLayout = () => import('@/pages/mobile/MobileLayout.vue');
 
 const loadDashboardPage = () => import('@/pages/dashboard/DashboardPage.vue');
 const loadImportPage = () => import('@/pages/import/ImportPage.vue');
