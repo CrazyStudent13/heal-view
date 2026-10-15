@@ -16,8 +16,15 @@ const clientDistPath = path.resolve(__dirname, '../../client/dist');
 const app = express();
 
 // Middleware
+app.disable('x-powered-by'); // 不向外暴露服务端技术栈
 app.use(compression()); // Gzip compression
-app.use(cors());
+
+// 默认同源访问即可满足开发与生产两种形态（开发走 Vite 代理、生产由本进程同时
+// 提供页面与接口），所以默认不加 CORS 头；仅在配置了 CORS_ORIGIN 时才放开。
+if (config.corsOrigin) {
+  app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',').map((o) => o.trim()) }));
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,13 +39,29 @@ app.get('/health', (req, res) => {
 // In production the client build is copied into the image and served from the
 // same origin as the API. Keeping the SPA fallback here also makes history-mode
 // routes (for example /dashboard) work after a browser refresh.
-app.use(express.static(clientDistPath, { index: 'index.html' }));
+// Vite 产物文件名带内容哈希，内容不会变，可以长期强缓存；index.html 是唯一
+// 没有哈希的入口，必须每次回源校验，否则发版后客户端会一直引用旧的分块。
+app.use(
+  express.static(clientDistPath, {
+    index: 'index.html',
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+        return;
+      }
+      if (/[\\/]assets[\\/]/.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  })
+);
 app.get(/^(?!\/api(?:\/|$)).*/, (req, res, next) => {
   if (!req.accepts('html')) {
     next();
     return;
   }
 
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(clientDistPath, 'index.html'), (error) => {
     if (error) next(error);
   });

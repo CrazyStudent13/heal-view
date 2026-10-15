@@ -12,6 +12,10 @@ export const config = {
   dataDir: path.resolve(process.env.DATA_DIR || path.join(__dirname, '../../data')),
   dbPath: path.resolve(process.env.DB_PATH || path.join(__dirname, '../../health_data.db')),
   uploadDir: path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads')),
+  // 前端始终以同源方式访问 /api（开发环境走 Vite 代理，生产环境由本进程同时
+  // 提供页面与接口），因此默认不下发任何 CORS 头。只有确实需要跨源调用时才通过
+  // CORS_ORIGIN 显式放开，多个来源用逗号分隔，`*` 表示任意来源。
+  corsOrigin: (process.env.CORS_ORIGIN || '').trim(),
   auth: {
     sessionTtl: parseInt(process.env.AUTH_SESSION_TTL, 10) || 604800,
     cookieName: process.env.AUTH_COOKIE_NAME || 'heal_view_session',

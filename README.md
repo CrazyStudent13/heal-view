@@ -53,6 +53,7 @@
 - `DATA_DIR`：CSV/原始数据目录，Docker 中默认 `/app/data`
 - `DB_PATH`：SQLite 文件路径，Docker 中默认 `/app/data/health_data.db`
 - `UPLOAD_DIR`：上传压缩包临时目录，Docker 中默认 `/app/uploads`
+- `CORS_ORIGIN`：跨源调用白名单，默认留空（即只允许同源访问）。开发环境前端走 Vite 代理、生产环境由同一个进程同时提供页面与接口，都不需要跨源，所以默认不下发任何 CORS 头；确实需要外部来源调用 `/api` 时再设置，例如 `*` 或 `https://a.example.com,https://b.example.com`
 
 ### 安装依赖
 
