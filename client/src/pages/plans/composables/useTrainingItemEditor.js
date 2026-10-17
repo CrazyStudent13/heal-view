@@ -101,6 +101,21 @@ export function useTrainingItemEditor(exercises = ref([])) {
     return targets;
   }
 
+  /**
+   * 「量化目标填全」：这个训练项目支持的所有指标都要有大于 0 的值，时长也算。
+   * 只填其中一项时，后续的完成度、容量等计算拿不到完整目标，所以按未填全处理。
+   * 没有配置任何指标的项目没有可填目标，不在这里拦（应先去运动项目里补指标）。
+   */
+  function hasCompleteTargets(item) {
+    const metrics = metricsFor(item);
+    if (metrics.length === 0) return true;
+    return metrics.every((metric) => {
+      if (metric === 'duration') return durationSecondsFromParts(item.durationParts) > 0;
+      const value = Number(item.targets?.[metric]);
+      return Number.isFinite(value) && value > 0;
+    });
+  }
+
   function targetsText(item) {
     const parts = metricValuesText(item.targets || {}, durationSecondsFromParts(item.durationParts));
     return parts.length > 0 ? parts.join(t('common.listSeparator')) : t('plans.manager.noTargets');
@@ -171,6 +186,7 @@ export function useTrainingItemEditor(exercises = ref([])) {
     resetItemTargets,
     applyTargetUpdate,
     targetPayload,
+    hasCompleteTargets,
     targetsText,
     metricValuesText,
     durationSecondsFromTargets,

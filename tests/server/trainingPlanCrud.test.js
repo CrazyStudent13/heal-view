@@ -17,7 +17,8 @@ import {
   getTrainingPhaseReview,
   listTrainingPlans,
   listTrainingSessions,
-  saveTrainingPhaseReview
+  saveTrainingPhaseReview,
+  updateTrainingSession
 } from '../../server/src/controllers/trainingPlanController.js';
 import { saveTrainingSessionExecution } from '../../server/src/controllers/trainingExecutionController.js';
 import { databaseService } from '../../server/src/services/database.js';
@@ -338,6 +339,138 @@ test('appends batch exercises to existing training dates', async () => {
   }
 });
 
+test('overwrites duplicate batch items only when explicitly requested', async () => {
+  const originalDbPath = config.dbPath;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-plan-overwrite-'));
+  config.dbPath = path.join(directory, 'health_data.db');
+
+  try {
+    await databaseService.initialize();
+    const now = Date.now();
+    const insertExercise = (name, metrics) => {
+      databaseService.getDb().run(
+        `INSERT INTO training_exercises
+          (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        [name, 'mdi:walk', 'aerobic', 'outdoor', 'auto', metrics, 'Cardio', now, now]
+      );
+      return Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    };
+    const walkingId = insertExercise('Walking', '["duration"]');
+    const plankId = insertExercise('Plank', '["duration"]');
+
+    const planResponse = responseRecorder();
+    createTrainingPlan(
+      { body: { name: 'Batch overwrite plan', startDate: '2026-09-01', endDate: '2026-09-30' } },
+      planResponse
+    );
+
+    databaseService.getDb().run(
+      `INSERT INTO training_sessions
+        (plan_id, scheduled_date, sequence, name, notes, status, created_at, updated_at)
+       VALUES (?, ?, 1, '', 'Keep me', 'planned', ?, ?)`,
+      [planResponse.body.id, '2026-09-10', now, now]
+    );
+    const sessionId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    databaseService.getDb().run(
+      `INSERT INTO training_session_items
+        (session_id, exercise_id, position, verification_mode, targets, created_at, updated_at)
+       VALUES (?, ?, 0, 'auto', ?, ?, ?)`,
+      [sessionId, walkingId, JSON.stringify({ durationSeconds: 600 }), now, now]
+    );
+    const walkingItemId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    databaseService.getDb().run(
+      `INSERT INTO training_session_logs
+        (session_id, status, source, completed_at, created_at, updated_at)
+       VALUES (?, 'completed', 'manual', ?, ?, ?)`,
+      [sessionId, now, now, now]
+    );
+    const logId = Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    databaseService.getDb().run(
+      `INSERT INTO training_session_log_items
+        (session_log_id, session_item_id, status, actuals, created_at, updated_at)
+       VALUES (?, ?, 'done', ?, ?, ?)`,
+      [logId, walkingItemId, JSON.stringify({ durationSeconds: 650 }), now, now]
+    );
+
+    const batchResponse = responseRecorder();
+    createTrainingSessionsBatch(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          overwriteExistingItems: true,
+          sessions: [
+            {
+              scheduledDate: '2026-09-10',
+              items: [
+                { exerciseId: walkingId, targets: { durationSeconds: 900 } },
+                { exerciseId: plankId, targets: { durationSeconds: 30 } }
+              ]
+            },
+            { scheduledDate: '2026-09-11', items: [{ exerciseId: plankId, targets: { durationSeconds: 45 } }] }
+          ]
+        }
+      },
+      batchResponse
+    );
+    assert.equal(batchResponse.statusCode, 201);
+    assert.equal(batchResponse.body.createdCount, 1);
+    assert.equal(batchResponse.body.updatedCount, 1);
+    assert.equal(batchResponse.body.itemCount, 2);
+    assert.equal(batchResponse.body.overwrittenItemCount, 1);
+    const preservedLogItems = databaseService.query(
+      'SELECT session_item_id, actuals FROM training_session_log_items WHERE session_log_id = ?',
+      [logId]
+    )[0].values;
+    assert.equal(preservedLogItems.length, 1);
+    assert.equal(Number(preservedLogItems[0][0]), walkingItemId);
+    assert.deepEqual(JSON.parse(preservedLogItems[0][1]), { durationSeconds: 650 });
+
+    const overwrittenDetail = responseRecorder();
+    getTrainingPlan({ params: { id: planResponse.body.id } }, overwrittenDetail);
+    const overwrittenSession = overwrittenDetail.body.sessions.find(
+      (session) => session.scheduledDate === '2026-09-10'
+    );
+    assert.equal(overwrittenSession.notes, 'Keep me');
+    assert.equal(overwrittenSession.items.length, 2);
+    assert.equal(overwrittenSession.items.find((item) => item.exerciseId === walkingId).targets.durationSeconds, 900);
+
+    const skippedResponse = responseRecorder();
+    createTrainingSessionsBatch(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          sessions: [
+            { scheduledDate: '2026-09-10', items: [{ exerciseId: walkingId, targets: { durationSeconds: 1200 } }] }
+          ]
+        }
+      },
+      skippedResponse
+    );
+    assert.equal(skippedResponse.statusCode, 201);
+    assert.equal(skippedResponse.body.updatedCount, 0);
+    assert.equal(skippedResponse.body.itemCount, 0);
+    assert.equal(skippedResponse.body.overwrittenItemCount, 0);
+    assert.equal(
+      Number(
+        databaseService.query('SELECT COUNT(*) AS count FROM training_session_log_items WHERE session_log_id = ?', [
+          logId
+        ])[0].values[0][0]
+      ),
+      1
+    );
+
+    const keptDetail = responseRecorder();
+    getTrainingPlan({ params: { id: planResponse.body.id } }, keptDetail);
+    const keptSession = keptDetail.body.sessions.find((session) => session.scheduledDate === '2026-09-10');
+    assert.equal(keptSession.items.find((item) => item.exerciseId === walkingId).targets.durationSeconds, 900);
+  } finally {
+    databaseService.close();
+    config.dbPath = originalDbPath;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('plan calendar reflects saved mobile training execution', async () => {
   const originalDbPath = config.dbPath;
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-plan-execution-'));
@@ -537,6 +670,125 @@ test('saves one phase review and returns its execution summary', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.body.review.summary, 'Updated summary');
     assert.equal(getResponse.body.executionSummary.total, 2);
+  } finally {
+    databaseService.close();
+    config.dbPath = originalDbPath;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('editing a session keeps check-in records of unchanged items', async () => {
+  const originalDbPath = config.dbPath;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heal-view-training-plan-edit-'));
+  config.dbPath = path.join(directory, 'health_data.db');
+
+  try {
+    await databaseService.initialize();
+    const now = Date.now();
+    const insertExercise = (name, metrics) => {
+      databaseService.getDb().run(
+        `INSERT INTO training_exercises
+          (name, icon, category, scene, verification_mode, metrics, purpose, enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'manual', ?, ?, 1, ?, ?)`,
+        [name, 'mdi:dumbbell', 'strength', 'indoor', metrics, 'Strength', now, now]
+      );
+      return Number(databaseService.query('SELECT last_insert_rowid() AS id')[0].values[0][0]);
+    };
+    const pressId = insertExercise('Press', '["weight","sets"]');
+    const rowId = insertExercise('Row', '["repetitions"]');
+
+    const planResponse = responseRecorder();
+    createTrainingPlan(
+      { body: { name: 'Edit keeps check-ins', startDate: '2026-09-01', endDate: '2026-09-30' } },
+      planResponse
+    );
+    const sessionResponse = responseRecorder();
+    createTrainingSession(
+      {
+        params: { planId: planResponse.body.id },
+        body: {
+          scheduledDate: '2026-09-10',
+          items: [
+            { exerciseId: pressId, targets: { weight: 40, sets: 3 } },
+            { exerciseId: rowId, targets: { repetitions: 12 } }
+          ]
+        }
+      },
+      sessionResponse
+    );
+    const sessionId = sessionResponse.body.id;
+
+    const itemRow = () =>
+      databaseService.query(
+        'SELECT id, exercise_id FROM training_session_items WHERE session_id = ? ORDER BY position, id',
+        [sessionId]
+      )[0].values;
+    const itemIds = Object.fromEntries(itemRow().map(([id, exerciseId]) => [Number(exerciseId), Number(id)]));
+
+    const executionResponse = responseRecorder();
+    saveTrainingSessionExecution(
+      {
+        params: { id: sessionId },
+        body: {
+          status: 'completed',
+          items: [
+            { sessionItemId: itemIds[pressId], status: 'done', actuals: { weight: 42.5, sets: 4 } },
+            { sessionItemId: itemIds[rowId], status: 'done', actuals: { repetitions: 15 } }
+          ]
+        }
+      },
+      executionResponse
+    );
+    assert.equal(executionResponse.statusCode, 200);
+
+    // 只改目标和备注：项目行 id 与两条打卡记录都必须保留。
+    const updateResponse = responseRecorder();
+    updateTrainingSession(
+      {
+        params: { id: sessionId },
+        body: {
+          scheduledDate: '2026-09-10',
+          notes: 'edited notes',
+          items: [
+            { exerciseId: pressId, targets: { weight: 45, sets: 3 } },
+            { exerciseId: rowId, targets: { repetitions: 10 } }
+          ]
+        }
+      },
+      updateResponse
+    );
+    assert.equal(updateResponse.statusCode, 200);
+    const updatedItemIds = Object.fromEntries(itemRow().map(([id, exerciseId]) => [Number(exerciseId), Number(id)]));
+    assert.equal(updatedItemIds[pressId], itemIds[pressId]);
+    assert.equal(updatedItemIds[rowId], itemIds[rowId]);
+    assert.equal(
+      Number(databaseService.query('SELECT COUNT(*) AS count FROM training_session_log_items')[0].values[0][0]),
+      2
+    );
+
+    // 移除其中一个项目：只清掉这一条的打卡记录，另一条继续保留。
+    const removeResponse = responseRecorder();
+    updateTrainingSession(
+      {
+        params: { id: sessionId },
+        body: {
+          scheduledDate: '2026-09-10',
+          items: [{ exerciseId: pressId, targets: { weight: 45, sets: 3 } }]
+        }
+      },
+      removeResponse
+    );
+    assert.equal(removeResponse.statusCode, 200);
+    const remainingLogItems = databaseService.query(
+      `SELECT log_item.session_item_id, log_item.actuals
+         FROM training_session_log_items log_item
+         JOIN training_session_logs log_head ON log_head.id = log_item.session_log_id
+        WHERE log_head.session_id = ?`,
+      [sessionId]
+    )[0].values;
+    assert.equal(remainingLogItems.length, 1);
+    assert.equal(Number(remainingLogItems[0][0]), itemIds[pressId]);
+    assert.deepEqual(JSON.parse(remainingLogItems[0][1]), { weight: 42.5, sets: 4 });
   } finally {
     databaseService.close();
     config.dbPath = originalDbPath;

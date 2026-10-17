@@ -85,8 +85,8 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, toRef, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { computed, h, reactive, ref, toRef, watch } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import TrainingItemCards from '@/pages/plans/components/TrainingItemCards.vue';
 import { BATCH_FREQUENCIES, getBatchDates, useChinaCalendar } from '@/pages/plans/composables/useChinaCalendar.js';
 import { SESSION_STATUSES, usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
@@ -104,9 +104,8 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { t } = useLocaleStore();
 const { statusLabel, weekdayOptions } = usePlanLabels();
-const { applyTargetUpdate, createNextItem, resetItemTargets, targetPayload } = useTrainingItemEditor(
-  toRef(props, 'exercises')
-);
+const { applyTargetUpdate, createNextItem, exerciseFor, hasCompleteTargets, resetItemTargets, targetPayload } =
+  useTrainingItemEditor(toRef(props, 'exercises'));
 const { chinaCalendar, chinaCalendarUnavailableYears, chinaCalendarLoading, loadChinaCalendar, unavailableYearsText } =
   useChinaCalendar();
 
@@ -125,6 +124,59 @@ const expandedBatchSessionItems = ref([]);
 const batchSessionDates = computed(() =>
   getBatchDates(batchSessionForm.dates, batchSessionForm.frequency, batchSessionForm.weekdays, chinaCalendar.value)
 );
+
+/**
+ * 所选日期里已经存在、且本次模板又要再加一遍的训练项目。
+ * 按项目聚合日期，确认弹窗里才能一句话说清「哪个动作在哪些天重复」。
+ */
+const duplicateGroups = computed(() => {
+  const sessionsByDate = new Map((props.plan?.sessions || []).map((session) => [session.scheduledDate, session]));
+  const groups = new Map();
+  for (const date of batchSessionDates.value) {
+    const existingItems = sessionsByDate.get(date)?.items || [];
+    if (existingItems.length === 0) continue;
+    const existingExerciseIds = new Set(existingItems.map((item) => item.exerciseId));
+    for (const item of batchSessionItems.value) {
+      if (!item.exerciseId || !existingExerciseIds.has(item.exerciseId)) continue;
+      const dates = groups.get(item.exerciseId) || [];
+      dates.push(date);
+      groups.set(item.exerciseId, dates);
+    }
+  }
+  return Array.from(groups, ([exerciseId, dates]) => ({
+    name: exerciseFor(exerciseId)?.name || String(exerciseId),
+    dates
+  }));
+});
+
+function formatDuplicateDates(dates) {
+  const separator = t('common.listSeparator');
+  const head = dates.slice(0, 3).join(separator);
+  return dates.length > 3 ? t('plans.manager.duplicateDatesMore', { dates: head, count: dates.length - 3 }) : head;
+}
+
+/** 有重复项目时先问一句：覆盖这些已有项目的目标，还是放弃本次生成。 */
+async function confirmDuplicateOverwrite() {
+  if (duplicateGroups.value.length === 0) return true;
+  const message = h('div', [
+    h('p', t('plans.manager.duplicateIntro')),
+    h(
+      'ul',
+      duplicateGroups.value.map((group) => h('li', `${group.name}：${formatDuplicateDates(group.dates)}`))
+    ),
+    h('p', t('plans.manager.duplicateOverwriteHint'))
+  ]);
+  try {
+    await ElMessageBox.confirm(message, t('plans.manager.duplicateTitle'), {
+      confirmButtonText: t('plans.manager.overwriteExisting'),
+      cancelButtonText: t('common.cancel'),
+      type: 'warning'
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 watch(
   () => props.modelValue,
@@ -174,6 +226,10 @@ function applyItemTargetUpdate({ item, patch }) {
 }
 
 function removeBatchSessionItem(index) {
+  // 批量生成是「同一套训练内容复制到多天」，删空就没有可生成的模板了。
+  if (batchSessionItems.value.length <= 1) {
+    return ElMessage.warning(t('plans.manager.minimumOneTrainingItem'));
+  }
   expandedBatchSessionItems.value = expandedBatchSessionItems.value.filter(
     (key) => key !== batchSessionItems.value[index].key
   );
@@ -192,7 +248,7 @@ function batchSessionDateDisabled(date) {
 }
 
 /** 校验通过后交给页面发请求：弹窗只负责把「补哪些天、补什么」讲清楚。 */
-function submitBatchSessions() {
+async function submitBatchSessions() {
   if (batchSessionForm.dates.length !== 2) return ElMessage.warning(t('plans.manager.datesRequired'));
   if (batchSessionForm.frequency === 'china_workdays' && chinaCalendarLoading.value) {
     return ElMessage.warning(t('plans.manager.chinaCalendarLoading'));
@@ -209,11 +265,24 @@ function submitBatchSessions() {
   }
   if (batchSessionDates.value.length === 0) return ElMessage.warning(t('plans.manager.batchNoDates'));
 
+  // 生成出来的每一节课都带同一套训练内容，目标填不全后续就没法计算完成度。
+  const itemsWithoutTargets = batchSessionItems.value.filter((item) => !hasCompleteTargets(item));
+  if (itemsWithoutTargets.length > 0) {
+    expandedBatchSessionItems.value = [
+      ...new Set([...expandedBatchSessionItems.value, ...itemsWithoutTargets.map((item) => item.key)])
+    ];
+    return ElMessage.warning(t('plans.manager.targetRequired', { count: itemsWithoutTargets.length }));
+  }
+
+  // 这些日期上已有同一动作时，问清楚是覆盖目标还是放弃，别静默跳过。
+  if (!(await confirmDuplicateOverwrite())) return;
+
   emit('submit', {
     dates: batchSessionDates.value,
     notes: batchSessionForm.notes,
     status: batchSessionForm.status,
-    items: batchSessionItems.value.map((item) => ({ exerciseId: item.exerciseId, targets: targetPayload(item) }))
+    items: batchSessionItems.value.map((item) => ({ exerciseId: item.exerciseId, targets: targetPayload(item) })),
+    overwriteExistingItems: duplicateGroups.value.length > 0
   });
 }
 </script>

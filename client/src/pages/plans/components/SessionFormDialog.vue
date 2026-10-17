@@ -73,9 +73,8 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { t } = useLocaleStore();
 const { statusLabel } = usePlanLabels();
-const { applyTargetUpdate, createItem, createNextItem, resetItemTargets, targetPayload } = useTrainingItemEditor(
-  toRef(props, 'exercises')
-);
+const { applyTargetUpdate, createItem, createNextItem, hasCompleteTargets, resetItemTargets, targetPayload } =
+  useTrainingItemEditor(toRef(props, 'exercises'));
 
 const sessionStatuses = SESSION_STATUSES;
 const sessionForm = reactive({ scheduledDate: '', notes: '', status: 'planned', items: [] });
@@ -138,6 +137,14 @@ function submitSession() {
   if (sessionForm.items.length === 0) return ElMessage.warning(t('plans.manager.itemsRequired'));
   if (sessionForm.items.some((item) => !item.exerciseId)) {
     return ElMessage.warning(t('plans.manager.exerciseRequired'));
+  }
+  // 目标填不全就没法计算完成度，保存前要求每个指标都有值。
+  const itemsWithoutTargets = sessionForm.items.filter((item) => !hasCompleteTargets(item));
+  if (itemsWithoutTargets.length > 0) {
+    expandedSessionItems.value = [
+      ...new Set([...expandedSessionItems.value, ...itemsWithoutTargets.map((item) => item.key)])
+    ];
+    return ElMessage.warning(t('plans.manager.targetRequired', { count: itemsWithoutTargets.length }));
   }
   emit('submit', {
     scheduledDate: sessionForm.scheduledDate,

@@ -180,7 +180,9 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { t } = useLocaleStore();
 const { statusLabel, statusTagType } = usePlanLabels();
-const { createItem, exerciseFor, targetPayload, targetsText } = useTrainingItemEditor(toRef(props, 'exercises'));
+const { createItem, exerciseFor, hasCompleteTargets, targetPayload, targetsText } = useTrainingItemEditor(
+  toRef(props, 'exercises')
+);
 const { chinaCalendar, chinaCalendarUnavailableYears, chinaCalendarLoading, loadChinaCalendar } = useChinaCalendar();
 
 const isEditingPlan = computed(() => Boolean(props.plan?.id));
@@ -247,6 +249,10 @@ function validateDraftSessions() {
     }
     if (dates.has(session.scheduledDate)) {
       ElMessage.warning(t('plans.manager.sessionDateExists'));
+      return false;
+    }
+    if (session.items.some((item) => !hasCompleteTargets(item))) {
+      ElMessage.warning(t('plans.manager.draftTargetRequired', { date: session.scheduledDate }));
       return false;
     }
     dates.add(session.scheduledDate);

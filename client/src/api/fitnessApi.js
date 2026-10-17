@@ -246,8 +246,8 @@ export function createTrainingSession(planId, session) {
   return apiClient.post(`/training-plans/${planId}/sessions`, session);
 }
 
-export function createTrainingSessionsBatch(planId, sessions) {
-  return apiClient.post(`/training-plans/${planId}/sessions/batch`, { sessions });
+export function createTrainingSessionsBatch(planId, sessions, { overwriteExistingItems = false } = {}) {
+  return apiClient.post(`/training-plans/${planId}/sessions/batch`, { sessions, overwriteExistingItems });
 }
 
 export function updateTrainingSession(id, session) {

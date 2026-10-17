@@ -132,6 +132,10 @@ function addBatchItem() {
 }
 
 function removeBatchItem(index) {
+  // 批量规则是生成多天训练单元用的模板，删空就没有内容可生成。
+  if (batchItems.value.length <= 1) {
+    return ElMessage.warning(t('plans.manager.minimumOneTrainingItem'));
+  }
   batchItems.value.splice(index, 1);
 }
 

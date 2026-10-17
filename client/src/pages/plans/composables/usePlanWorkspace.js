@@ -205,24 +205,25 @@ export function usePlanWorkspace() {
     }
   }
 
-  async function saveBatchSessions({ dates, notes, status, items }) {
+  async function saveBatchSessions({ dates, notes, status, items, overwriteExistingItems = false }) {
     saving.value = true;
     try {
       const response = await createTrainingSessionsBatch(
         planDetail.value.id,
-        dates.map((scheduledDate) => ({ scheduledDate, notes, status, items }))
+        dates.map((scheduledDate) => ({ scheduledDate, notes, status, items })),
+        { overwriteExistingItems }
       );
       batchSessionDialogVisible.value = false;
       await loadPlans(planDetail.value.id);
-      const generatedCount = Number(response?.createdCount || 0);
-      const appendedCount = Number(response?.updatedCount || 0);
-      if (generatedCount > 0 && appendedCount > 0) {
-        ElMessage.success(t('plans.manager.batchMixed', { generated: generatedCount, appended: appendedCount }));
-      } else if (appendedCount > 0) {
-        ElMessage.success(t('plans.manager.batchAppended', { count: appendedCount }));
-      } else {
-        ElMessage.success(t('plans.manager.batchGenerated', { count: generatedCount }));
-      }
+      const createdCount = Number(response?.createdCount || 0);
+      const updatedCount = Number(response?.updatedCount || 0);
+      const overwrittenCount = Number(response?.overwrittenItemCount || 0);
+      // 新建、更新、覆盖可能同时发生，分别说清楚，避免只报其中一项让人以为别的没生效。
+      const parts = [];
+      if (createdCount > 0) parts.push(t('plans.manager.batchResultCreated', { count: createdCount }));
+      if (updatedCount > 0) parts.push(t('plans.manager.batchResultUpdated', { count: updatedCount }));
+      if (overwrittenCount > 0) parts.push(t('plans.manager.batchResultOverwritten', { count: overwrittenCount }));
+      ElMessage.success(parts.join(t('common.listSeparator')) || t('plans.manager.saved'));
     } catch (requestError) {
       ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.saveFailed'));
     } finally {

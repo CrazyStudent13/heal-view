@@ -2,7 +2,14 @@
 // 复合条件和"候选行 + 派生状态"的查询层在 sessionFilterQuery.js，训练项目级的批量删除也用它。
 import { databaseService } from '../../services/database.js';
 import { queryRow, queryRows } from './queryHelpers.js';
-import { appendSessionItems, getPlan, getSession, saveSessionItems, validateExercises } from './planRepository.js';
+import {
+  appendSessionItems,
+  getPlan,
+  getSession,
+  saveSessionItems,
+  syncSessionItems,
+  validateExercises
+} from './planRepository.js';
 import { respondConflict } from './responses.js';
 import { selectSessionMatches, validateSessionDeleteFilter } from './sessionFilterQuery.js';
 import { serializeSessionListItem } from './serializers.js';
@@ -265,6 +272,7 @@ export function createTrainingSessionsBatch(req, res) {
   );
   const existingBySlot = new Map(existing.map((session) => [`${session.scheduled_date}:${session.sequence}`, session]));
 
+  const overwriteExistingItems = req.body?.overwriteExistingItems === true;
   const db = databaseService.getDb();
   let transactionOpen = false;
   try {
@@ -274,20 +282,39 @@ export function createTrainingSessionsBatch(req, res) {
     let createdCount = 0;
     let updatedCount = 0;
     let itemCount = 0;
+    let overwrittenItemCount = 0;
     sessionValues.forEach((session, index) => {
       const existingSession = existingBySlot.get(`${session.scheduledDate}:${session.sequence}`);
       if (existingSession) {
         const existingItems = queryRows(
-          'SELECT exercise_id FROM training_session_items WHERE session_id = ? ORDER BY position, id',
+          'SELECT id, exercise_id FROM training_session_items WHERE session_id = ? ORDER BY position, id',
           [existingSession.id]
         );
-        const existingExerciseIds = new Set(existingItems.map((item) => Number(item.exercise_id)));
-        const newItems = exerciseValues[index].filter((item) => !existingExerciseIds.has(item.exerciseId));
+        const existingByExercise = new Map(existingItems.map((item) => [Number(item.exercise_id), Number(item.id)]));
+        const newItems = [];
+        let overwritten = 0;
+        for (const item of exerciseValues[index]) {
+          const existingItemId = existingByExercise.get(item.exerciseId);
+          if (existingItemId == null) {
+            newItems.push(item);
+            continue;
+          }
+          // 默认保留原有项目；用户确认覆盖时，同一动作只更新目标与验证方式，不新增重复行。
+          if (!overwriteExistingItems) continue;
+          db.run('UPDATE training_session_items SET verification_mode = ?, targets = ?, updated_at = ? WHERE id = ?', [
+            item.verificationMode,
+            JSON.stringify(item.targets),
+            now,
+            existingItemId
+          ]);
+          overwritten += 1;
+        }
         appendSessionItems(db, existingSession.id, newItems, now);
-        if (newItems.length > 0) {
+        if (newItems.length > 0 || overwritten > 0) {
           db.run('UPDATE training_sessions SET updated_at = ? WHERE id = ?', [now, existingSession.id]);
           updatedCount += 1;
           itemCount += newItems.length;
+          overwrittenItemCount += overwritten;
         }
         return;
       }
@@ -309,6 +336,7 @@ export function createTrainingSessionsBatch(req, res) {
       createdCount,
       updatedCount,
       itemCount,
+      overwrittenItemCount,
       plan: getPlan(planId)
     });
   } catch (error) {
@@ -350,8 +378,8 @@ export function updateTrainingSession(req, res) {
        WHERE id = ?`,
       [value.scheduledDate, value.sequence, value.name, value.notes, value.status, now, id]
     );
-    db.run('DELETE FROM training_session_items WHERE session_id = ?', [id]);
-    saveSessionItems(db, id, exerciseValidation.items, now);
+    // 差异同步：只更新/增删真正变化的项目，保留已有项目行和它们的打卡记录。
+    syncSessionItems(db, id, exerciseValidation.items, now);
     db.run('COMMIT');
     transactionOpen = false;
     return res.json(getSession(id));

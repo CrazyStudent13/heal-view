@@ -77,6 +77,56 @@ export function appendSessionItems(db, sessionId, items, now) {
 }
 
 /**
+ * 按 exercise_id 同步训练单元里的项目，供「编辑训练单元」使用。
+ *
+ * 不能整表删了重建：training_session_log_items 通过 session_item_id 外键级联，
+ * 删掉项目行会把这一天所有项目已保存的打卡记录一起清空——哪怕用户只是改了备注。
+ * 这里保留已有行的 id（打卡记录随行保留），只更新顺序/目标/验证方式，
+ * 真正被移除的项目才删除（它自己的打卡记录随行级联，符合预期）。
+ */
+export function syncSessionItems(db, sessionId, items, now) {
+  const existingRows = queryRows(
+    'SELECT id, exercise_id FROM training_session_items WHERE session_id = ? ORDER BY position, id',
+    [sessionId]
+  );
+  const existingIdByExercise = new Map();
+  const strayIds = [];
+  for (const row of existingRows) {
+    const exerciseId = Number(row.exercise_id);
+    if (existingIdByExercise.has(exerciseId)) strayIds.push(Number(row.id));
+    else existingIdByExercise.set(exerciseId, Number(row.id));
+  }
+
+  const incomingExerciseIds = new Set(items.map((item) => item.exerciseId));
+  const removedIds = [
+    ...strayIds,
+    ...existingRows.filter((row) => !incomingExerciseIds.has(Number(row.exercise_id))).map((row) => Number(row.id))
+  ];
+  if (removedIds.length > 0) {
+    db.run(`DELETE FROM training_session_items WHERE id IN (${removedIds.map(() => '?').join(', ')})`, removedIds);
+  }
+
+  items.forEach((item, index) => {
+    const existingId = existingIdByExercise.get(item.exerciseId);
+    if (existingId != null) {
+      db.run(
+        `UPDATE training_session_items
+            SET position = ?, verification_mode = ?, targets = ?, updated_at = ?
+          WHERE id = ?`,
+        [index, item.verificationMode, JSON.stringify(item.targets), now, existingId]
+      );
+      return;
+    }
+    db.run(
+      `INSERT INTO training_session_items
+        (session_id, exercise_id, position, verification_mode, targets, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [sessionId, item.exerciseId, index, item.verificationMode, JSON.stringify(item.targets), now, now]
+    );
+  });
+}
+
+/**
  * 按 id 取训练项目行（只要 id 和所属单元），用于批量删除前的存在性判断。
  * 调用方自己分片，这里的 IN 列表不超过 SQLite 的参数上限。
  */
