@@ -23,13 +23,11 @@
       :plan="planDetail"
       :loading="detailLoading"
       :archiving="archivingPlan"
-      :updating-phase="updatingPhaseStatus"
       :weight-data="planWeightData"
       @edit="openPlanDialog"
       @toggle-archive="togglePlanArchived"
       @remove="removePlan"
       @add-sessions="openBatchSessionDialog"
-      @toggle-phase="togglePhaseCancelled"
       @add-review="openPlanReviewDialog"
       @edit-session="openSessionDialog($event.session, $event.scheduledDate)"
       @remove-session="removeSession"
@@ -105,7 +103,6 @@ const {
   sessionDialogSession,
   sessionDialogVisible,
   showArchived,
-  updatingPhaseStatus,
   openBatchSessionDialog,
   openMobileBackfill,
   openPlanDialog,
@@ -118,7 +115,6 @@ const {
   savePlanRequest,
   saveSession,
   selectPlan,
-  togglePhaseCancelled,
   togglePlanArchived
 } = usePlanWorkspace();
 </script>

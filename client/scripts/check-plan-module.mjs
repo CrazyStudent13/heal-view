@@ -102,7 +102,6 @@ const globalStyleFiles = listFiles(path.join(clientRoot, 'src/styles'), (file) =
 const UNSTYLED_HOOK_CLASSES = new Set([
   'batch-session-dialog', // 只是弹窗钩子，样式在 batch-session-dialog__description 上
   'phase-review-dialog', // 同上，样式都在内部元素上
-  'plan-phase-label', // 阶段名称那一行的钩子，暂未定义样式（历史遗留）
   'plan-review-content', // 与 phase-review-content 同时挂着，样式由后者承担
   'plan-review-summary' // 与 phase-review-summary 同时挂着，样式由后者承担
 ]);

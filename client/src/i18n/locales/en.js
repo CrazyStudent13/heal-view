@@ -165,6 +165,7 @@ export default {
       addPhase: 'Add phase',
       editPhase: 'Edit phase',
       phaseName: 'Phase name',
+      phaseInline: ' ({name})',
       phaseNamePlaceholder: 'For example: Foundation phase',
       phaseDescription: 'Phase description',
       phaseDescriptionPlaceholder: 'Describe the focus of this phase',
@@ -222,10 +223,6 @@ export default {
       },
       backfill: 'Backfill',
       backfillHint: 'This day has no check-in record yet; you can add it now',
-      cancelPhase: 'Cancel this phase',
-      restorePhase: 'Restore this phase',
-      cancelPhaseHint:
-        'Once cancelled, the training days this phase covers no longer count toward adherence. A phase cut short by surgery or health should not cost you points.',
       verifiableCompletionRate: 'Verifiable completion',
       verifiableCompletionRateHint: '{achieved} of {matched} items with data met their target',
       matchedRecord: 'Matched record',

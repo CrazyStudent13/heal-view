@@ -46,7 +46,6 @@ export function usePlanWorkspace() {
   const detailLoading = ref(false);
   const saving = ref(false);
   const archivingPlan = ref(false);
-  const updatingPhaseStatus = ref(false);
 
   // 弹窗只保留「打开哪一个、编辑哪一条」这类最小状态：表单内容留在各自的弹窗组件里。
   const planDialogVisible = ref(false);
@@ -144,10 +143,14 @@ export function usePlanWorkspace() {
     phaseReviewDialogVisible.value = true;
   }
 
-  /** 跳到手机端训练页的对应日期补卡：手机端已经支持 ?date=，这里只负责带过去。 */
+  /**
+   * 补卡单独开一个窗口，别把桌面端计划页顶掉：手机端是另一套布局，
+   * 用户补完卡往往还要回到计划页对照，同一标签页来回切换很别扭。
+   */
   function openMobileBackfill(date) {
     if (!date) return;
-    router.push({ name: 'mobile-today', query: { date } });
+    const { href } = router.resolve({ name: 'mobile-today', query: { date } });
+    window.open(href, '_blank', 'noopener');
   }
 
   async function savePlanRequest({ type, planId, plan, phaseName, sessions }) {
@@ -272,38 +275,6 @@ export function usePlanWorkspace() {
     }
   }
 
-  /**
-   * 取消 / 恢复阶段。
-   *
-   * 这是"计划开始后只能延长"的配套逃生口：达成度的分母会排除被 cancelled 阶段覆盖的训练日，
-   * 所以因为手术或身体状态提前结束的阶段不会倒扣分。其余阶段状态（planned/active/paused/completed）
-   * 目前不参与任何计算，所以这里只暴露这一个真正有作用的动作，而不是一个五选一的下拉。
-   */
-  async function togglePhaseCancelled(phase) {
-    if (!phase?.id) return;
-    const planId = planDetail.value?.id;
-    const nextStatus = phase.status === 'cancelled' ? 'planned' : 'cancelled';
-    updatingPhaseStatus.value = true;
-    try {
-      await updateTrainingPhase(phase.id, {
-        name: phase.name,
-        startDate: phase.startDate,
-        endDate: phase.endDate,
-        description: phase.description || '',
-        adjustmentReason: phase.adjustmentReason || '',
-        status: nextStatus
-      });
-      if (planId) {
-        await Promise.all([loadPlanDetail(planId), loadPlans(planId, showArchived.value)]);
-      }
-      ElMessage.success(t(nextStatus === 'cancelled' ? 'plans.manager.cancelPhase' : 'plans.manager.restorePhase'));
-    } catch (requestError) {
-      ElMessage.error(normalizeRequestError(requestError, t) || t('plans.manager.loadFailed'));
-    } finally {
-      updatingPhaseStatus.value = false;
-    }
-  }
-
   async function removePlan(plan) {
     try {
       await deleteTrainingPlan(plan.id);
@@ -356,7 +327,6 @@ export function usePlanWorkspace() {
     sessionDialogSession,
     sessionDialogVisible,
     showArchived,
-    updatingPhaseStatus,
     openBatchSessionDialog,
     openMobileBackfill,
     openPlanDialog,
@@ -369,7 +339,6 @@ export function usePlanWorkspace() {
     savePlanRequest,
     saveSession,
     selectPlan,
-    togglePhaseCancelled,
     togglePlanArchived
   };
 }

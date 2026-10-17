@@ -12,28 +12,13 @@
         <header class="plan-detail-header">
           <div class="plan-detail-title">
             <div class="plan-detail-title__line">
-              <h3>{{ plan.name }}</h3>
+              <h3>{{ planTitle }}</h3>
               <el-tag :type="lifecycleTagType(plan.lifecycle)">{{ lifecycleLabel(plan.lifecycle) }}</el-tag>
               <el-tag v-if="plan.archived" type="info" effect="plain">
                 {{ t('plans.manager.archived') }}
               </el-tag>
             </div>
             <p v-if="!plan.goal">{{ plan.startDate }} - {{ plan.endDate }}</p>
-            <p v-if="plan.phases?.[0]?.name" class="plan-phase-label">
-              {{ t('plans.manager.phaseName') }}：{{ plan.phases[0].name }}
-              <el-tag size="small" :type="statusTagType(plan.phases[0].status)">
-                {{ statusLabel(plan.phases[0].status) }}
-              </el-tag>
-              <el-tooltip :content="t('plans.manager.cancelPhaseHint')" placement="top">
-                <el-button link type="primary" :loading="updatingPhase" @click="emit('toggle-phase', plan.phases[0])">
-                  {{
-                    plan.phases[0].status === 'cancelled'
-                      ? t('plans.manager.restorePhase')
-                      : t('plans.manager.cancelPhase')
-                  }}
-                </el-button>
-              </el-tooltip>
-            </p>
           </div>
           <div class="plan-detail-actions">
             <el-button :icon="EditPen" @click="emit('edit', plan)">{{ t('common.edit') }}</el-button>
@@ -105,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Box, Delete, EditPen, Plus, RefreshLeft } from '@element-plus/icons-vue';
 import PlanCalendarTab from '@/pages/plans/components/PlanCalendarTab.vue';
 import PlanReviewTab from '@/pages/plans/components/PlanReviewTab.vue';
@@ -118,7 +103,6 @@ const props = defineProps({
   plan: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   archiving: { type: Boolean, default: false },
-  updatingPhase: { type: Boolean, default: false },
   weightData: { type: Object, default: null }
 });
 const emit = defineEmits([
@@ -127,7 +111,6 @@ const emit = defineEmits([
   'toggle-archive',
   'remove',
   'add-sessions',
-  'toggle-phase',
   'add-review',
   // 训练单元的三个动作由日历页签冒泡上来，抽屉只做转发。
   'edit-session',
@@ -136,10 +119,17 @@ const emit = defineEmits([
 ]);
 
 const { t } = useLocaleStore();
-const { lifecycleLabel, lifecycleTagType, statusLabel, statusTagType } = usePlanLabels();
+const { lifecycleLabel, lifecycleTagType } = usePlanLabels();
 
 const planTab = ref('calendar');
 const reviewPhase = ref(null);
+const primaryPhase = computed(() => props.plan?.phases?.[0] || null);
+// 阶段名称直接跟在计划标题后面，用括号附注，不再单独占一行、也不重复状态标签。
+const planTitle = computed(() => {
+  const name = props.plan?.name || '';
+  const phaseName = primaryPhase.value?.name;
+  return phaseName ? `${name}${t('plans.manager.phaseInline', { name: phaseName })}` : name;
+});
 
 // 换计划时回到训练日历页签；同一个计划重新拉取（例如刚保存训练单元）不打断当前页签。
 watch(
