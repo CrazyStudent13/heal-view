@@ -1,132 +1,300 @@
 <template>
   <div class="plan-table-region" :aria-label="t('plans.title')">
-    <div class="plan-table-toolbar">
-      <el-checkbox
-        :model-value="showArchived"
-        @update:model-value="emit('update:showArchived', $event)"
-        class="plan-archived-toggle"
-        >{{ t('plans.manager.showArchived') }}</el-checkbox
-      >
+    <div class="plan-toolbar">
+      <div class="plan-filters">
+        <el-input
+          v-model="searchDraft"
+          class="plan-search-filter"
+          clearable
+          maxlength="60"
+          :placeholder="t('plans.manager.filterSearch')"
+          :aria-label="t('plans.manager.filterSearch')"
+          @keyup.enter="applyFilters"
+          @clear="applyFilters"
+        />
+        <el-date-picker
+          v-model="dateRange"
+          class="plan-date-filter"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          :start-placeholder="t('nav.startDate')"
+          :end-placeholder="t('nav.endDate')"
+          :aria-label="t('plans.manager.filterPeriod')"
+          @change="handleFilterChange"
+        />
+        <el-select
+          v-model="lifecycle"
+          class="plan-lifecycle-filter"
+          clearable
+          :placeholder="t('plans.manager.filterLifecycle')"
+          @change="handleFilterChange"
+        >
+          <el-option v-for="value in lifecycles" :key="value" :label="lifecycleLabel(value)" :value="value" />
+        </el-select>
+        <el-select
+          :model-value="archivedFilter"
+          class="plan-archived-filter"
+          :placeholder="t('plans.manager.filterArchived')"
+          @change="changeArchivedFilter"
+        >
+          <el-option :label="t('plans.manager.archiveOptions.unarchived')" value="unarchived" />
+          <el-option :label="t('plans.manager.archiveOptions.all')" value="all" />
+          <el-option :label="t('plans.manager.archiveOptions.archived')" value="archived" />
+        </el-select>
+      </div>
+      <div class="plan-toolbar-actions">
+        <el-button :icon="Search" @click="applyFilters">{{ t('common.query') }}</el-button>
+        <el-button :icon="RefreshLeft" @click="resetFilters">{{ t('common.reset') }}</el-button>
+      </div>
     </div>
-    <el-table
-      :data="plans"
-      height="100%"
-      class="plan-table"
-      :row-class-name="({ row }) => (row.id === selectedPlanId ? 'is-selected' : '')"
-      @row-click="(row) => emit('select', row.id)"
-    >
-      <el-table-column :label="t('plans.manager.planName')" min-width="200">
-        <template #default="{ row }">
-          <div class="plan-cell">
-            <div class="plan-cell-name" :class="planProgressClass(row)">
-              {{ row.name }}-{{ row.phaseName || t('plans.manager.noPhase') }}
+
+    <div class="plan-table-body">
+      <el-table
+        :data="pagedPlans"
+        height="100%"
+        class="plan-table"
+        :row-class-name="({ row }) => (row.id === selectedPlanId ? 'is-selected' : '')"
+        @row-click="(row) => emit('select', row.id)"
+      >
+        <el-table-column :label="t('plans.manager.planName')" min-width="210">
+          <template #default="{ row }">
+            <div class="plan-cell">
+              <div class="plan-cell-name" :class="planProgressClass(row)" :title="planTitle(row)">
+                {{ planTitle(row) }}
+              </div>
+              <small v-if="row.coverage?.verifiableItems" class="plan-cell-coverage">
+                {{ t('plans.manager.coverageRate') }} {{ formatRate(row.coverage.coverageRate) }}
+              </small>
             </div>
-            <!-- 数据覆盖率放在列表里，不用打开计划详情也能看出这两天到底有没有手表数据 -->
-            <small v-if="row.coverage?.verifiableItems" class="plan-cell-coverage">
-              {{ t('plans.manager.coverageRate') }} {{ formatRate(row.coverage.coverageRate) }}
-            </small>
-          </div>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('plans.manager.planGoal')" min-width="130">
+          <template #default="{ row }">
+            <span class="plan-cell-goal" :title="row.goal || ''">{{ row.goal || t('common.empty') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('plans.manager.planPeriod')" width="175">
+          <template #default="{ row }">
+            <span class="plan-period">{{ row.startDate }} - {{ row.endDate }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('plans.manager.lifecycle')" width="100">
+          <template #default="{ row }">
+            <div class="plan-lifecycle-cell">
+              <el-tag
+                size="small"
+                :type="row.archived ? 'info' : lifecycleTagType(row.lifecycle)"
+                :effect="row.archived ? 'plain' : 'light'"
+                >{{ lifecycleLabel(row.lifecycle) }}</el-tag
+              >
+              <el-tag v-if="row.archived" size="small" type="info" effect="plain">
+                {{ t('plans.manager.archived') }}
+              </el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <!-- 达成度用「比率 + 分数」两个口径一起显示：只给百分比时，四舍五入后的数字
+               会和档位区间看起来矛盾（例如 74.6% 显示成 75% 却仍是「略有缺口」）。 -->
+        <el-table-column :label="t('plans.manager.adherence.title')" width="155">
+          <template #default="{ row }">
+            <div class="plan-adherence-cell">
+              <el-tooltip :content="adherenceTooltip(row)" placement="top" :disabled="!adherenceTooltip(row)">
+                <span class="plan-adherence-cell__rate">{{ adherenceRateText(row) }}</span>
+              </el-tooltip>
+              <small v-if="adherenceDetailText(row)" class="plan-adherence-cell__detail">
+                {{ adherenceDetailText(row) }}
+              </small>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('plans.sessions.title')" width="92" align="center" prop="sessionCount" />
+        <el-table-column :label="t('plans.sessions.actions')" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click.stop="emit('select', row.id)">{{
+              t('plans.sessions.viewPlan')
+            }}</el-button>
+            <el-popconfirm
+              :title="t('plans.manager.confirmDeletePlan', { name: row.name })"
+              :width="360"
+              confirm-button-type="danger"
+              :confirm-button-text="t('common.delete')"
+              :cancel-button-text="t('common.cancel')"
+              @confirm="emit('remove', row)"
+            >
+              <template #reference>
+                <el-button link type="danger" @click.stop>{{ t('common.delete') }}</el-button>
+              </template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty :description="t('plans.overviewEmpty')" :image-size="76" />
         </template>
-      </el-table-column>
-      <el-table-column :label="t('plans.manager.planGoal')" min-width="240">
-        <template #default="{ row }">
-          <span class="plan-cell-goal">{{ row.goal || t('common.empty') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('plans.manager.planPeriod')" width="208">
-        <template #default="{ row }">
-          <span class="plan-period">{{ row.startDate }} - {{ row.endDate }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('plans.manager.lifecycle')" width="120">
-        <template #default="{ row }">
-          <div class="plan-lifecycle-cell">
-            <el-tag size="small" :type="lifecycleTagType(row.lifecycle)">{{ lifecycleLabel(row.lifecycle) }}</el-tag>
-            <el-tag v-if="row.archived" size="small" type="info" effect="plain">
-              {{ t('plans.manager.archived') }}
-            </el-tag>
-          </div>
-        </template>
-      </el-table-column>
-      <!-- 达成度用「比率 + 分数」两个口径一起显示：只给百分比时，四舍五入后的数字
-             会和档位区间看起来矛盾（例如 74.6% 显示成 75% 却仍是「略有缺口」）。 -->
-      <el-table-column :label="t('plans.manager.adherence.title')" width="180">
-        <template #default="{ row }">
-          <div class="plan-adherence-cell">
-            <el-tooltip :content="adherenceTooltip(row)" placement="top" :disabled="!adherenceTooltip(row)">
-              <span class="plan-adherence-cell__rate">{{ adherenceRateText(row) }}</span>
-            </el-tooltip>
-            <small v-if="adherenceDetailText(row)" class="plan-adherence-cell__detail">
-              {{ adherenceDetailText(row) }}
-            </small>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('plans.sessions.title')" width="104" align="center" prop="sessionCount" />
-      <el-table-column :label="t('plans.sessions.actions')" width="152" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" @click.stop="emit('select', row.id)">{{
-            t('plans.sessions.viewPlan')
-          }}</el-button>
-          <el-popconfirm
-            :title="t('plans.manager.confirmDeletePlan', { name: row.name })"
-            :width="360"
-            confirm-button-type="danger"
-            :confirm-button-text="t('common.delete')"
-            :cancel-button-text="t('common.cancel')"
-            @confirm="emit('remove', row)"
-          >
-            <template #reference>
-              <el-button link type="danger" @click.stop>{{ t('common.delete') }}</el-button>
-            </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-      <template #empty>
-        <el-empty :description="t('plans.overviewEmpty')" :image-size="76" />
-      </template>
-    </el-table>
+      </el-table>
+    </div>
+
+    <div class="plan-pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="pageSizes"
+        :total="total"
+        layout="total, sizes, prev, pager, next"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
+import { computed, ref, watch } from 'vue';
+import { RefreshLeft, Search } from '@element-plus/icons-vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
 import { usePlanProgress } from '@/pages/plans/composables/usePlanProgress.js';
 
-defineProps({
+const props = defineProps({
   plans: { type: Array, default: () => [] },
   selectedPlanId: { type: [Number, String], default: null },
-  showArchived: { type: Boolean, default: false }
+  archivedFilter: { type: String, default: 'unarchived' }
 });
-const emit = defineEmits(['select', 'remove', 'update:showArchived']);
+const emit = defineEmits(['select', 'remove', 'update:archivedFilter']);
 
 const { t } = useLocaleStore();
 const { lifecycleLabel, lifecycleTagType } = usePlanLabels();
 const { adherenceDetailText, adherenceRateText, adherenceTooltip, formatRate, planProgressClass } = usePlanProgress();
+
+const lifecycles = ['draft', 'active', 'ended'];
+const pageSizes = [10, 20, 50];
+
+const searchDraft = ref('');
+const appliedSearch = ref('');
+const dateRange = ref([]);
+const lifecycle = ref('');
+const currentPage = ref(1);
+const pageSize = ref(pageSizes[0]);
+
+// 计划列表本来就一次性返回，筛选和翻页都放在前端做，避免为一个轻量列表再写一套接口参数。
+const filteredPlans = computed(() => {
+  const keyword = appliedSearch.value.trim().toLowerCase();
+  return props.plans.filter((plan) => {
+    if (props.archivedFilter === 'unarchived' && plan.archived) return false;
+    if (props.archivedFilter === 'archived' && !plan.archived) return false;
+    if (lifecycle.value && plan.lifecycle !== lifecycle.value) return false;
+    if (dateRange.value?.length === 2) {
+      const [from, to] = dateRange.value;
+      // 与所选区间有交集就算命中：只看计划完整落在区间内会漏掉跨月计划。
+      if (plan.endDate < from || plan.startDate > to) return false;
+    }
+    if (!keyword) return true;
+    return [plan.name, plan.goal, plan.phaseName]
+      .filter(Boolean)
+      .some((text) => String(text).toLowerCase().includes(keyword));
+  });
+});
+
+const total = computed(() => filteredPlans.value.length);
+
+const pagedPlans = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredPlans.value.slice(start, start + pageSize.value);
+});
+
+watch([appliedSearch, dateRange, lifecycle], () => {
+  currentPage.value = 1;
+});
+
+watch([pageSize, total], () => {
+  const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
+});
+
+/** 阶段名称和计划详情一致：用括号附在计划名后面，不再单独占一行。 */
+function planTitle(row) {
+  return row.phaseName ? `${row.name}${t('plans.manager.phaseInline', { name: row.phaseName })}` : row.name;
+}
+
+function applyFilters() {
+  appliedSearch.value = searchDraft.value;
+  currentPage.value = 1;
+}
+
+function handleFilterChange() {
+  currentPage.value = 1;
+}
+
+function resetFilters() {
+  searchDraft.value = '';
+  appliedSearch.value = '';
+  dateRange.value = [];
+  lifecycle.value = '';
+  if (props.archivedFilter !== 'unarchived') emit('update:archivedFilter', 'unarchived');
+  currentPage.value = 1;
+}
+
+function changeArchivedFilter(value) {
+  emit('update:archivedFilter', value);
+  currentPage.value = 1;
+}
 </script>
 
 <style scoped lang="scss">
 .plan-table-region {
-  flex: 1;
-  min-height: 380px;
-  margin-top: 20px;
-  overflow: auto;
-}
-
-.plan-table-toolbar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.plan-archived-toggle {
-  height: auto;
-  font-size: 13px;
+.plan-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 18px 0;
+}
+
+.plan-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1 1 560px;
+  min-width: 0;
+  gap: 10px;
+}
+
+.plan-toolbar :deep(.el-input.plan-search-filter) {
+  width: 200px;
+}
+
+.plan-toolbar :deep(.el-date-editor.plan-date-filter) {
+  width: 224px !important;
+  flex: 0 0 224px !important;
+}
+
+.plan-toolbar :deep(.el-select.plan-lifecycle-filter),
+.plan-toolbar :deep(.el-select.plan-archived-filter) {
+  width: 156px;
+}
+
+.plan-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.plan-table-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .plan-table {
-  min-width: 1080px;
+  width: 100%;
 }
 
 .plan-table :deep(.el-table__row) {
@@ -146,7 +314,15 @@ const { adherenceDetailText, adherenceRateText, adherenceTooltip, formatRate, pl
 .plan-cell-name {
   color: var(--text-primary);
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-cell-coverage {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 生命周期只影响名称的强调程度：已归档最淡，进行中正常，结束且没练过任何一天标红。 */
@@ -189,10 +365,11 @@ const { adherenceDetailText, adherenceRateText, adherenceTooltip, formatRate, pl
   font-size: 12px;
 }
 
-.plan-cell-coverage {
+.plan-period {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .plan-cell-goal {
@@ -203,16 +380,48 @@ const { adherenceDetailText, adherenceRateText, adherenceTooltip, formatRate, pl
   white-space: nowrap;
 }
 
-.plan-period {
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.plan-pagination {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  margin-top: 16px;
+  overflow-x: auto;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .plan-table-region {
+    flex: none;
+  }
+
+  .plan-table-body {
+    flex: none;
+    height: 60vh;
+    min-height: 360px;
     overflow: auto;
+  }
+
+  .plan-toolbar :deep(.el-input.plan-search-filter),
+  .plan-toolbar :deep(.el-select.plan-lifecycle-filter),
+  .plan-toolbar :deep(.el-select.plan-archived-filter) {
+    width: 100%;
+  }
+
+  .plan-toolbar :deep(.el-date-editor.plan-date-filter) {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .plan-filters,
+  .plan-toolbar-actions {
+    flex: 1 1 100%;
+  }
+
+  .plan-toolbar-actions {
+    margin-left: 0;
+  }
+
+  .plan-pagination {
+    justify-content: flex-start;
   }
 }
 </style>

@@ -39,7 +39,7 @@ export function usePlanWorkspace() {
   const plans = ref([]);
   const exercises = ref([]);
   const selectedPlanId = ref(null);
-  const showArchived = ref(false);
+  const archivedFilter = ref('unarchived');
   const planDetail = ref(null);
   const planWeightData = ref(null);
   const detailDrawerVisible = ref(false);
@@ -83,7 +83,10 @@ export function usePlanWorkspace() {
     }
   }
 
-  async function loadPlans(preferredId = selectedPlanId.value, includeArchived = showArchived.value) {
+  async function loadPlans(
+    preferredId = selectedPlanId.value,
+    includeArchived = archivedFilter.value !== 'unarchived'
+  ) {
     // 服务端已经按「已归档最后 → active → draft → ended → startDate 倒序 → id 倒序」排好，
     // 客户端不再重排，避免两套排序规则各自漂移。
     const response = await getTrainingPlans(includeArchived ? { includeArchived: true } : {});
@@ -298,7 +301,7 @@ export function usePlanWorkspace() {
     }
   }
 
-  watch(showArchived, () => {
+  watch(archivedFilter, () => {
     loadPlans(selectedPlanId.value).catch((requestError) => {
       error.value = normalizeRequestError(requestError, t) || t('plans.manager.loadFailed');
     });
@@ -326,7 +329,7 @@ export function usePlanWorkspace() {
     sessionDialogDate,
     sessionDialogSession,
     sessionDialogVisible,
-    showArchived,
+    archivedFilter,
     openBatchSessionDialog,
     openMobileBackfill,
     openPlanDialog,

@@ -11,7 +11,7 @@
     <el-alert v-if="error" class="plan-alert" type="error" :title="error" show-icon :closable="false" />
 
     <PlanListTable
-      v-model:show-archived="showArchived"
+      v-model:archived-filter="archivedFilter"
       :plans="plans"
       :selected-plan-id="selectedPlanId"
       @select="selectPlan"
@@ -102,7 +102,7 @@ const {
   sessionDialogDate,
   sessionDialogSession,
   sessionDialogVisible,
-  showArchived,
+  archivedFilter,
   openBatchSessionDialog,
   openMobileBackfill,
   openPlanDialog,
@@ -123,13 +123,16 @@ const {
 .plan-manager {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .plan-content-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 16px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--card-border);
@@ -153,10 +156,17 @@ h2 {
 }
 
 .plan-alert {
+  flex: 0 0 auto;
   margin-top: 16px;
 }
 
 @media (max-width: 640px) {
+  .plan-manager {
+    height: auto;
+    min-height: 360px;
+    overflow: visible;
+  }
+
   .plan-content-header {
     flex-direction: column;
   }
