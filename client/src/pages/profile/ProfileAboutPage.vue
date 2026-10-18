@@ -40,6 +40,13 @@ const description = computed(() => t(route.meta.descriptionKey || 'profile.descr
 // Keep page entries data-driven so future runtime and version details can be added here.
 const aboutItems = [
   {
+    key: 'api-docs',
+    titleKey: 'profile.apiDocs',
+    descriptionKey: 'profile.apiDocsDescription',
+    href: '/api/docs',
+    value: '/api/docs'
+  },
+  {
     key: 'github',
     titleKey: 'profile.github',
     descriptionKey: 'profile.githubDescription',
