@@ -61,7 +61,11 @@ const SESSION_LIST_SELECT = `SELECT s.*, p.name AS plan_name,
    JOIN training_plans p ON p.id = s.plan_id
    LEFT JOIN training_session_logs log ON log.session_id = s.id`;
 
-const SESSION_LIST_ORDER = 'ORDER BY s.scheduled_date DESC, s.sequence ASC, s.id DESC';
+const SESSION_LIST_ORDER = (sort) => {
+  // 只认 asc，其余（含缺省、非法值）都按原来的时间倒序。
+  const direction = sort === 'asc' ? 'ASC' : 'DESC';
+  return `ORDER BY s.scheduled_date ${direction}, s.sequence ASC, s.id ${direction}`;
+};
 
 /** 把条件片段拼成 WHERE 子句；调用方可能要在此基础上再叠自己的条件（例如"某个训练项目"）。 */
 export function toWhereClause(conditions) {
@@ -145,7 +149,10 @@ function escapeLikePattern(value) {
  */
 export function selectSessionMatches(filter) {
   const built = buildSessionFilter(filter);
-  const rows = queryRows(`${SESSION_LIST_SELECT} ${built.whereClause} ${SESSION_LIST_ORDER}`, built.params);
+  const rows = queryRows(
+    `${SESSION_LIST_SELECT} ${built.whereClause} ${SESSION_LIST_ORDER(filter?.sort)}`,
+    built.params
+  );
   const statuses = deriveSessionListStatuses(rows, todayDateKey(), built.whereClause, built.params);
   const matched = built.status ? rows.filter((row) => statuses.get(Number(row.id)) === built.status) : rows;
   return { rows: matched, statuses, status: built.status, hasCondition: built.hasCondition };

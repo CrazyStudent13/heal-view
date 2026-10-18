@@ -583,6 +583,17 @@ test('filters the global session list by derived completion status', async () =>
     assert.equal(statusById.get(noData.id), 'no_data');
     assert.equal(statusById.get(upcoming.id), 'planned');
 
+    // 时间排序：默认倒序，传 asc 才是正序；非法值退回默认倒序。
+    const descDates = listed.sessions.map((session) => session.scheduledDate);
+    const ascDates = sessionList({ planId: String(plan.id), sort: 'asc' }).sessions.map(
+      (session) => session.scheduledDate
+    );
+    assert.deepEqual(ascDates, [...descDates].reverse());
+    assert.deepEqual(
+      sessionList({ planId: String(plan.id), sort: 'bogus' }).sessions.map((session) => session.scheduledDate),
+      descDates
+    );
+
     // 四个完成状态各筛各的；过滤发生在分页之前，所以 total 也是过滤后的数量。
     assert.equal(sessionList({ planId: String(plan.id), status: 'achieved' }).total, 2);
     assert.deepEqual(listedSessionIds(sessionList({ planId: String(plan.id), status: 'achieved' })), [

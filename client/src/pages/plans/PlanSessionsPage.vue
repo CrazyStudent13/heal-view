@@ -104,9 +104,11 @@
         height="100%"
         class="sessions-table"
         row-key="id"
+        :default-sort="{ prop: 'scheduledDate', order: 'descending' }"
         :expand-row-keys="expandedRowKeys"
         @selection-change="handleSelectionChange"
         @expand-change="handleExpandChange"
+        @sort-change="handleSortChange"
       >
         <el-table-column type="expand" width="44">
           <template #default="{ row }">
@@ -139,7 +141,18 @@
           </template>
         </el-table-column>
         <el-table-column type="selection" width="48" reserve-selection />
-        <el-table-column :label="t('plans.sessions.date')" width="164">
+        <el-table-column
+          :label="t('plans.sessions.date')"
+          width="164"
+          prop="scheduledDate"
+          sortable="custom"
+          :sort-orders="['descending', 'ascending']"
+        >
+          <template #header>
+            <el-tooltip :content="sortTooltip" placement="top">
+              <span>{{ t('plans.sessions.date') }}</span>
+            </el-tooltip>
+          </template>
           <template #default="{ row }">
             <div class="session-date-cell">
               <time :datetime="row.scheduledDate">{{ row.scheduledDate }}</time>
@@ -356,6 +369,11 @@ const planId = ref('');
 const status = ref('');
 const logged = ref('');
 const search = ref('');
+const sortOrder = ref('desc');
+// 表头排序没有文字提示，用 tooltip 把"当前方向 + 点击后会切到哪一档"说清楚。
+const sortTooltip = computed(() =>
+  sortOrder.value === 'asc' ? t('plans.manager.sortTooltipAsc') : t('plans.manager.sortTooltipDesc')
+);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -491,6 +509,7 @@ async function loadSessions() {
   try {
     const response = await getTrainingSessions({
       ...requestFilters(appliedFilters.value),
+      sort: sortOrder.value,
       page: currentPage.value,
       pageSize: pageSize.value
     });
@@ -517,6 +536,14 @@ function resetFilters() {
   logged.value = '';
   search.value = '';
   applyFilters();
+}
+
+/** 表头只按训练日期排；两档切换，不提供"取消排序"。 */
+function handleSortChange({ prop, order }) {
+  if (prop !== 'scheduledDate' || !order) return;
+  sortOrder.value = order === 'ascending' ? 'asc' : 'desc';
+  currentPage.value = 1;
+  loadSessions();
 }
 
 function handlePageSizeChange() {

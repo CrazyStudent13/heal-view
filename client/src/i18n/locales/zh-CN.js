@@ -158,6 +158,8 @@ export default {
       filterSearch: '搜索计划名称',
       filterPeriod: '按计划周期筛选',
       filterLifecycle: '按生命周期筛选',
+      sortTooltipDesc: '当前时间倒序（最新在前），点击切换为时间正序',
+      sortTooltipAsc: '当前时间正序（最早在前），点击切换为时间倒序',
       archiveFailed: '归档操作失败',
       phases: '训练阶段',
       noPhase: '未分阶段',

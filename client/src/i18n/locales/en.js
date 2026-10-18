@@ -159,6 +159,8 @@ export default {
       filterSearch: 'Search plan name',
       filterPeriod: 'Filter by plan period',
       filterLifecycle: 'Filter by lifecycle',
+      sortTooltipDesc: 'Currently newest first; click to switch to oldest first',
+      sortTooltipAsc: 'Currently oldest first; click to switch to newest first',
       archiveFailed: 'Failed to update the archived state',
       phases: 'Training phases',
       noPhase: 'No phase',

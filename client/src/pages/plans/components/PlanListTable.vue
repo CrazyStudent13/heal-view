@@ -53,8 +53,10 @@
         :data="pagedPlans"
         height="100%"
         class="plan-table"
+        :default-sort="{ prop: 'startDate', order: 'descending' }"
         :row-class-name="({ row }) => (row.id === selectedPlanId ? 'is-selected' : '')"
         @row-click="(row) => emit('select', row.id)"
+        @sort-change="handleSortChange"
       >
         <el-table-column :label="t('plans.manager.planName')" min-width="210">
           <template #default="{ row }">
@@ -73,7 +75,18 @@
             <span class="plan-cell-goal" :title="row.goal || ''">{{ row.goal || t('common.empty') }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('plans.manager.planPeriod')" width="175">
+        <el-table-column
+          :label="t('plans.manager.planPeriod')"
+          width="175"
+          prop="startDate"
+          sortable="custom"
+          :sort-orders="['descending', 'ascending']"
+        >
+          <template #header>
+            <el-tooltip :content="sortTooltip" placement="top">
+              <span>{{ t('plans.manager.planPeriod') }}</span>
+            </el-tooltip>
+          </template>
           <template #default="{ row }">
             <span class="plan-period">{{ row.startDate }} - {{ row.endDate }}</span>
           </template>
@@ -170,29 +183,44 @@ const searchDraft = ref('');
 const appliedSearch = ref('');
 const dateRange = ref([]);
 const lifecycle = ref('');
+const sortOrder = ref('desc');
 const currentPage = ref(1);
 const pageSize = ref(pageSizes[0]);
 
 // 计划列表本来就一次性返回，筛选和翻页都放在前端做，避免为一个轻量列表再写一套接口参数。
 const filteredPlans = computed(() => {
   const keyword = appliedSearch.value.trim().toLowerCase();
-  return props.plans.filter((plan) => {
-    if (props.archivedFilter === 'unarchived' && plan.archived) return false;
-    if (props.archivedFilter === 'archived' && !plan.archived) return false;
-    if (lifecycle.value && plan.lifecycle !== lifecycle.value) return false;
-    if (dateRange.value?.length === 2) {
-      const [from, to] = dateRange.value;
-      // 与所选区间有交集就算命中：只看计划完整落在区间内会漏掉跨月计划。
-      if (plan.endDate < from || plan.startDate > to) return false;
-    }
-    if (!keyword) return true;
-    return [plan.name, plan.goal, plan.phaseName]
-      .filter(Boolean)
-      .some((text) => String(text).toLowerCase().includes(keyword));
-  });
+  return props.plans
+    .filter((plan) => {
+      if (props.archivedFilter === 'unarchived' && plan.archived) return false;
+      if (props.archivedFilter === 'archived' && !plan.archived) return false;
+      if (lifecycle.value && plan.lifecycle !== lifecycle.value) return false;
+      if (dateRange.value?.length === 2) {
+        const [from, to] = dateRange.value;
+        // 与所选区间有交集就算命中：只看计划完整落在区间内会漏掉跨月计划。
+        if (plan.endDate < from || plan.startDate > to) return false;
+      }
+      if (!keyword) return true;
+      return [plan.name, plan.goal, plan.phaseName]
+        .filter(Boolean)
+        .some((text) => String(text).toLowerCase().includes(keyword));
+    })
+    .sort((left, right) => {
+      // 按计划周期的开始日期排；同一天再按 id 保证顺序稳定。
+      const direction = sortOrder.value === 'asc' ? 1 : -1;
+      if (left.startDate !== right.startDate) {
+        return left.startDate < right.startDate ? -direction : direction;
+      }
+      return (left.id - right.id) * direction;
+    });
 });
 
 const total = computed(() => filteredPlans.value.length);
+
+// 表头排序没有文字提示，用 tooltip 把"当前方向 + 点击后会切到哪一档"说清楚。
+const sortTooltip = computed(() =>
+  sortOrder.value === 'asc' ? t('plans.manager.sortTooltipAsc') : t('plans.manager.sortTooltipDesc')
+);
 
 const pagedPlans = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
@@ -219,6 +247,13 @@ function applyFilters() {
 }
 
 function handleFilterChange() {
+  currentPage.value = 1;
+}
+
+/** 表头排序只认计划周期的开始日期；两档切换，不提供"取消排序"。 */
+function handleSortChange({ prop, order }) {
+  if (prop !== 'startDate' || !order) return;
+  sortOrder.value = order === 'ascending' ? 'asc' : 'desc';
   currentPage.value = 1;
 }
 
