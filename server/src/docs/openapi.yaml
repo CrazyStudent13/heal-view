@@ -1,0 +1,1929 @@
+openapi: 3.0.3
+info:
+  title: Heal View API
+  version: 1.0.0
+  description: |
+    运动健康数据可视化仪表板的后端接口。
+
+    - 除明确标注“公开”的接口外，其余接口都受访问保护控制；开启访问保护后需要先登录取得
+      `heal_view_session` Cookie。
+    - 日期统一使用 `YYYY-MM-DD`，时间戳统一使用毫秒。
+    - 业务错误通常在响应体里带 `error`、`code`、`fields` 或 `details`，请以具体接口说明为准。
+    - 这份文档是给前端、脚本以及未来的 AI 接入使用的契约，新增接口请同步更新并跑
+      `pnpm test` 里的文档契约测试。
+servers:
+  - url: /api
+tags:
+  - name: docs
+    description: 接口文档自身
+  - name: auth
+    description: 访问保护与登录
+  - name: health
+    description: 健康数据查询
+  - name: exercises
+    description: 运动项目目录
+  - name: plans
+    description: 训练计划与阶段
+  - name: sessions
+    description: 训练单元与训练内容
+  - name: execution
+    description: 训练执行与打卡
+  - name: imports
+    description: 运动健康归档导入
+security:
+  - cookieAuth: []
+paths:
+  /openapi.json:
+    get:
+      tags: [docs]
+      operationId: getOpenApiDocument
+      summary: 获取 OpenAPI 文档
+      description: 返回本文件解析后的 JSON，供脚本 / AI 直接读取接口契约。
+      responses:
+        '200':
+          description: OpenAPI 文档
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /auth/status:
+    get:
+      tags: [auth]
+      operationId: getAuthStatus
+      summary: 获取访问保护状态
+      security: []
+      responses:
+        '200':
+          description: 当前访问保护状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthStatus'
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: 使用统一密码登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                remember:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Set-Cookie:
+              description: 写入 `heal_view_session` 会话 Cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                    example: true
+        '401':
+          description: 密码不正确
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: 退出访问保护会话
+      security: []
+      responses:
+        '200':
+          description: 已退出
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                    example: false
+  /auth/settings:
+    get:
+      tags: [auth]
+      operationId: getAccessSettings
+      summary: 读取访问保护配置
+      responses:
+        '200':
+          description: 访问保护配置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessSettings'
+    put:
+      tags: [auth]
+      operationId: saveAccessSettings
+      summary: 修改访问保护配置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                password:
+                  type: string
+                  description: 设置或更换统一密码；留空表示不修改。
+      responses:
+        '200':
+          description: 更新后的配置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /training-execution:
+    get:
+      tags: [execution]
+      operationId: getTrainingExecutionByDate
+      summary: 获取某天的训练执行入口
+      description: 公开接口，供手机端打卡页按日期读取当天训练单元及执行状态。
+      security: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 指定日期（缺省为今天）的训练单元与执行状态
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+  /training-sessions/{id}/execution:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [execution]
+      operationId: getSessionExecution
+      summary: 获取训练单元的执行记录
+      security: []
+      responses:
+        '200':
+          description: 训练单元与执行记录
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/Session'
+                  execution:
+                    $ref: '#/components/schemas/Execution'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [execution]
+      operationId: saveSessionExecution
+      summary: 保存训练单元打卡
+      description: 只接受需要人工确认的训练项目；自动验证项目由导入记录匹配。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionInput'
+      responses:
+        '200':
+          description: 保存后的执行记录
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/Session'
+                  execution:
+                    $ref: '#/components/schemas/Execution'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-execution/history:
+    get:
+      tags: [execution]
+      operationId: getTrainingExecutionHistory
+      summary: 查询训练执行历史
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: 区间内已有执行记录的训练单元
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  startDate:
+                    type: string
+                    format: date
+                  endDate:
+                    type: string
+                    format: date
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /dates:
+    get:
+      tags: [health]
+      operationId: listDataDates
+      summary: 获取有数据的日期列表
+      responses:
+        '200':
+          description: 日期列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dates:
+                    type: array
+                    items:
+                      type: string
+                      format: date
+  /dates/{date}/summary:
+    parameters:
+      - $ref: '#/components/parameters/Date'
+    get:
+      tags: [health]
+      operationId: getDailySummary
+      summary: 获取某天的健康汇总
+      responses:
+        '200':
+          description: 当日汇总（步数、卡路里、心率、睡眠等）
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /dates/{date}/{metric}:
+    parameters:
+      - $ref: '#/components/parameters/Date'
+      - name: metric
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [steps, calories, heart_rate, stress, blood_pressure]
+    get:
+      tags: [health]
+      operationId: getTimeSeries
+      summary: 获取某天某个指标的时序数据
+      responses:
+        '200':
+          description: 指标时序数据
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /sports:
+    get:
+      tags: [health]
+      operationId: listSportRecords
+      summary: 查询运动记录
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 运动记录
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /filters/options:
+    get:
+      tags: [health]
+      operationId: getFilterOptions
+      summary: 获取筛选项
+      responses:
+        '200':
+          description: 运动类型等筛选项
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /sleep/timeline/{date}:
+    parameters:
+      - $ref: '#/components/parameters/Date'
+    get:
+      tags: [health]
+      operationId: getSleepTimeline
+      summary: 获取睡眠阶段时间线
+      responses:
+        '200':
+          description: 睡眠阶段与时间线
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /weight/data:
+    get:
+      tags: [health]
+      operationId: getWeightData
+      summary: 获取体重数据
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: 体重记录
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /user/profile:
+    get:
+      tags: [health]
+      operationId: getUserProfile
+      summary: 获取用户档案
+      responses:
+        '200':
+          description: 身高、体重、BMI、BMR 等档案信息
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /training-exercises:
+    get:
+      tags: [exercises]
+      operationId: listTrainingExercises
+      summary: 获取运动项目
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: 运动项目与可选的导入运动类型
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exercises:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Exercise'
+                  sportTypeOptions:
+                    type: array
+                    items:
+                      type: string
+    post:
+      tags: [exercises]
+      operationId: createTrainingExercise
+      summary: 新增运动项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExerciseInput'
+      responses:
+        '201':
+          description: 新建的运动项目
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [exercises]
+      operationId: deleteTrainingExercises
+      summary: 批量删除运动项目
+      description: 被计划或打卡记录引用的项目会被跳过或拒绝，具体见响应。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: 删除结果
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /training-exercises/enabled:
+    patch:
+      tags: [exercises]
+      operationId: updateTrainingExercisesEnabled
+      summary: 批量启用 / 停用运动项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, enabled]
+              properties:
+                ids:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: integer
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新后的运动项目
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /training-exercises/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ExerciseId'
+    get:
+      tags: [exercises]
+      operationId: getTrainingExercise
+      summary: 获取单个运动项目
+      responses:
+        '200':
+          description: 运动项目
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [exercises]
+      operationId: updateTrainingExercise
+      summary: 修改运动项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExerciseInput'
+      responses:
+        '200':
+          description: 更新后的运动项目
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [exercises]
+      operationId: deleteTrainingExercise
+      summary: 删除运动项目
+      description: 被计划或打卡记录引用时返回 409。
+      responses:
+        '204':
+          description: 已删除
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /training-exercises/{id}/enabled:
+    parameters:
+      - $ref: '#/components/parameters/ExerciseId'
+    patch:
+      tags: [exercises]
+      operationId: updateTrainingExerciseEnabled
+      summary: 启用 / 停用单个运动项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新后的运动项目
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /china-workday-calendar:
+    get:
+      tags: [plans]
+      operationId: getChinaWorkdayCalendar
+      summary: 获取中国法定工作日日历
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: 区间内的中国法定工作日信息
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /training-plans:
+    get:
+      tags: [plans]
+      operationId: listTrainingPlans
+      summary: 获取训练计划列表
+      parameters:
+        - name: includeArchived
+          in: query
+          description: 传 `true` 时把已归档计划一起返回（排在最后）。
+          schema:
+            type: string
+            enum: ['true']
+      responses:
+        '200':
+          description: 计划列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Plan'
+    post:
+      tags: [plans]
+      operationId: createTrainingPlan
+      summary: 创建训练计划
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanInput'
+      responses:
+        '201':
+          description: 新建的计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /training-plans/with-sessions:
+    post:
+      tags: [plans]
+      operationId: createTrainingPlanWithSessions
+      summary: 创建计划并一次写入训练单元
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan, sessions]
+              properties:
+                plan:
+                  $ref: '#/components/schemas/PlanInput'
+                sessions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SessionInput'
+      responses:
+        '201':
+          description: 新建的计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /training-plans/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PlanId'
+    get:
+      tags: [plans]
+      operationId: getTrainingPlan
+      summary: 获取计划详情
+      description: 返回计划、阶段、训练单元、达成度、覆盖率以及有氧匹配结果。
+      responses:
+        '200':
+          description: 计划详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [plans]
+      operationId: updateTrainingPlan
+      summary: 修改训练计划
+      description: 计划开始后不允许缩短结束日期，否则返回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanInput'
+      responses:
+        '200':
+          description: 更新后的计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [plans]
+      operationId: deleteTrainingPlan
+      summary: 删除训练计划
+      description: 计划下的阶段、训练单元和打卡记录会一并删除。
+      responses:
+        '204':
+          description: 已删除
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-plans/{id}/archived:
+    parameters:
+      - $ref: '#/components/parameters/PlanId'
+    patch:
+      tags: [plans]
+      operationId: updateTrainingPlanArchived
+      summary: 归档 / 取消归档计划
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [archived]
+              properties:
+                archived:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新后的计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-plans/{planId}/phases:
+    parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    post:
+      tags: [plans]
+      operationId: createTrainingPhase
+      summary: 为计划新增训练阶段
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhaseInput'
+      responses:
+        '201':
+          description: 新建的阶段
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Phase'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /training-phases/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PhaseId'
+    put:
+      tags: [plans]
+      operationId: updateTrainingPhase
+      summary: 修改训练阶段
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhaseInput'
+      responses:
+        '200':
+          description: 更新后的阶段
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Phase'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [plans]
+      operationId: deleteTrainingPhase
+      summary: 删除训练阶段
+      responses:
+        '204':
+          description: 已删除
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-phases/{id}/review:
+    parameters:
+      - $ref: '#/components/parameters/PhaseId'
+    get:
+      tags: [plans]
+      operationId: getTrainingPhaseReview
+      summary: 获取阶段复盘
+      responses:
+        '200':
+          description: 阶段复盘与执行汇总
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  review:
+                    $ref: '#/components/schemas/PhaseReview'
+                  executionSummary:
+                    $ref: '#/components/schemas/ExecutionSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [plans]
+      operationId: saveTrainingPhaseReview
+      summary: 保存阶段复盘
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhaseReviewInput'
+      responses:
+        '200':
+          description: 保存后的阶段复盘
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  review:
+                    $ref: '#/components/schemas/PhaseReview'
+                  executionSummary:
+                    $ref: '#/components/schemas/ExecutionSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-sessions:
+    get:
+      tags: [sessions]
+      operationId: listTrainingSessions
+      summary: 查询训练单元
+      description: 五个筛选条件之间是 AND；完成状态在读取时派生，因此筛选、分页和 total 是同一份结果。
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: 按训练日期排序，缺省倒序。
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: planId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 完成状态；只接受 achieved / partial / skipped / missed。
+          schema:
+            type: string
+            enum: [achieved, partial, skipped, missed]
+        - name: logged
+          in: query
+          description: 打卡状态。
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - name: search
+          in: query
+          description: 只检索训练内容（训练项目名），最多 60 个字符。
+          schema:
+            type: string
+            maxLength: 60
+      responses:
+        '200':
+          description: 分页后的训练单元
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessionListItem'
+                  total:
+                    type: integer
+                  executionCount:
+                    type: integer
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+    delete:
+      tags: [sessions]
+      operationId: deleteTrainingSessions
+      summary: 批量删除训练单元
+      description: |
+        二选一：
+        - `{ ids }`：删除明确勾选的训练单元（最多 1000 个）。
+        - `{ filter, expectedCount }`：按和列表相同的条件重新求交后删除；`expectedCount` 必须和
+          服务端匹配到的条数一致，否则返回 409 且一行不删。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [ids]
+                  properties:
+                    ids:
+                      type: array
+                      maxItems: 1000
+                      items:
+                        type: integer
+                - type: object
+                  required: [filter, expectedCount]
+                  properties:
+                    filter:
+                      $ref: '#/components/schemas/SessionFilter'
+                    expectedCount:
+                      type: integer
+                      minimum: 0
+      responses:
+        '200':
+          description: 删除结果
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /training-session-items/delete-preview:
+    get:
+      tags: [sessions]
+      operationId: previewTrainingSessionItemDeletion
+      summary: 预览按训练项目批量删除训练内容
+      parameters:
+        - name: exerciseId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: planId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: logged
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 删除范围预览
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-session-items:
+    delete:
+      tags: [sessions]
+      operationId: deleteTrainingSessionItems
+      summary: 批量删除训练内容（训练项目）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [ids]
+                  properties:
+                    ids:
+                      type: array
+                      items:
+                        type: integer
+                - type: object
+                  required: [exerciseId, filter, expectedCount]
+                  properties:
+                    exerciseId:
+                      type: integer
+                    filter:
+                      $ref: '#/components/schemas/SessionFilter'
+                    expectedCount:
+                      type: integer
+                      minimum: 0
+      responses:
+        '200':
+          description: 删除结果
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /training-plans/{planId}/sessions:
+    parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    post:
+      tags: [sessions]
+      operationId: createTrainingSession
+      summary: 为计划新增训练单元
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '201':
+          description: 新建的训练单元
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /training-plans/{planId}/sessions/batch:
+    parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    post:
+      tags: [sessions]
+      operationId: createTrainingSessionsBatch
+      summary: 批量生成训练单元
+      description: |
+        已存在的日期默认只追加不重复的训练项目；传 `overwriteExistingItems: true` 时，
+        重复项目会原地覆盖目标值，而不是跳过。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessions]
+              properties:
+                overwriteExistingItems:
+                  type: boolean
+                  default: false
+                sessions:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: '#/components/schemas/SessionInput'
+      responses:
+        '201':
+          description: 批量生成结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  createdCount:
+                    type: integer
+                  updatedCount:
+                    type: integer
+                  itemCount:
+                    type: integer
+                  overwrittenItemCount:
+                    type: integer
+                  plan:
+                    $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /training-sessions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    put:
+      tags: [sessions]
+      operationId: updateTrainingSession
+      summary: 修改训练单元及训练内容
+      description: 按训练项目差异同步；保留未变项目的 id 与打卡记录，只删真正移除的项目。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '200':
+          description: 更新后的训练单元
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [sessions]
+      operationId: deleteTrainingSession
+      summary: 删除训练单元
+      responses:
+        '204':
+          description: 已删除
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /imports/parse:
+    post:
+      tags: [imports]
+      operationId: parseImportArchive
+      summary: 上传并解析运动健康归档
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archive]
+              properties:
+                archive:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 解析结果与导入预览
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /imports/history:
+    get:
+      tags: [imports]
+      operationId: listImportHistory
+      summary: 获取导入历史
+      responses:
+        '200':
+          description: 导入历史记录
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+  /imports/data:
+    delete:
+      tags: [imports]
+      operationId: clearImportedData
+      summary: 清空已导入数据
+      responses:
+        '200':
+          description: 已清空
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /imports/{importId}/import:
+    parameters:
+      - name: importId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      tags: [imports]
+      operationId: commitImportArchive
+      summary: 提交解析后的归档
+      responses:
+        '200':
+          description: 导入结果
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /imports/{importId}:
+    parameters:
+      - name: importId
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      tags: [imports]
+      operationId: deleteImportHistory
+      summary: 删除一条导入历史
+      responses:
+        '200':
+          description: 已删除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: heal_view_session
+      description: 开启访问保护后，由 `/auth/login` 写入的会话 Cookie。
+  parameters:
+    PlanId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    PhaseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    ExerciseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    Date:
+      name: date
+      in: path
+      required: true
+      schema:
+        type: string
+        format: date
+    StartDate:
+      name: startDate
+      in: query
+      schema:
+        type: string
+        format: date
+    EndDate:
+      name: endDate
+      in: query
+      schema:
+        type: string
+        format: date
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+  responses:
+    BadRequest:
+      description: 参数不合法
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: 与现有数据冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      description: 错误响应。`error` / `code` / `message` 至少出现一个，字段级错误放在 `fields`。
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+        details:
+          type: object
+          additionalProperties: true
+    AuthStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+        authenticated:
+          type: boolean
+    AccessSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+    Targets:
+      type: object
+      description: |
+        目标值，键为指标名，值为正数。常用指标：
+        `durationSeconds`（时长，秒）、`distance`（公里）、`sets`（组数）、`repetitions`（次数）、
+        `weight`（公斤）、`speed`、`incline`、`resistance`、`heart_rate`、`calories`。
+        同一动作的 `duration` 与 `durationSeconds` 不能同时出现。
+      additionalProperties:
+        type: number
+      example:
+        weight: 52.5
+        repetitions: 12
+        sets: 2
+    TrainingItemInput:
+      type: object
+      required: [exerciseId, targets]
+      properties:
+        exerciseId:
+          type: integer
+          minimum: 1
+        targets:
+          $ref: '#/components/schemas/Targets'
+    SessionInput:
+      type: object
+      required: [scheduledDate, items]
+      properties:
+        scheduledDate:
+          type: string
+          format: date
+        sequence:
+          type: integer
+          minimum: 1
+          default: 1
+        name:
+          type: string
+          maxLength: 100
+        notes:
+          type: string
+          maxLength: 2000
+        status:
+          type: string
+          enum: [planned, achieved, partial, no_data, unverifiable, skipped]
+          default: planned
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TrainingItemInput'
+    SessionFilter:
+      type: object
+      description: 与训练单元列表相同的筛选条件，五个条件之间是 AND。
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        planId:
+          type: integer
+        status:
+          type: string
+          enum: [achieved, partial, skipped, missed]
+        logged:
+          type: string
+          enum: ['true', 'false']
+        search:
+          type: string
+          maxLength: 60
+    PlanInput:
+      type: object
+      required: [name, startDate, endDate]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        goal:
+          type: string
+          maxLength: 1000
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        notes:
+          type: string
+          maxLength: 2000
+    PhaseInput:
+      type: object
+      required: [name, startDate, endDate]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        description:
+          type: string
+          maxLength: 2000
+        adjustmentReason:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [planned, active, paused, completed, cancelled]
+          default: planned
+    PhaseReviewInput:
+      type: object
+      properties:
+        summary:
+          type: string
+          maxLength: 4000
+        fatigueLevel:
+          type: integer
+          minimum: 0
+          maximum: 10
+        discomfort:
+          type: string
+          maxLength: 2000
+        weightChange:
+          type: number
+          minimum: -100
+          maximum: 100
+        adjustment:
+          type: string
+          maxLength: 2000
+    ExerciseInput:
+      type: object
+      required: [name, icon, category, scene, verificationMode, equipmentMode, metrics]
+      properties:
+        name:
+          type: string
+          maxLength: 80
+        icon:
+          type: string
+          example: mdi:dumbbell
+        category:
+          type: string
+          enum: [aerobic, strength, flexibility, balance, other]
+        scene:
+          type: string
+          enum: [indoor, outdoor]
+        verificationMode:
+          type: string
+          enum: [auto, manual, mixed]
+        equipmentMode:
+          type: string
+          enum: [bodyweight, equipment]
+        equipment:
+          type: string
+          maxLength: 80
+        metrics:
+          type: array
+          items:
+            type: string
+            enum:
+              - duration
+              - distance
+              - sets
+              - repetitions
+              - weight
+              - speed
+              - incline
+              - resistance
+              - heart_rate
+              - calories
+        sportTypes:
+          type: array
+          items:
+            type: string
+        purpose:
+          type: string
+          maxLength: 500
+    ExecutionInput:
+      type: object
+      required: [items]
+      properties:
+        status:
+          type: string
+          enum: [completed, partial, skipped]
+          default: completed
+        sessionFeel:
+          type: string
+          enum: [easy, normal, hard]
+        discomfort:
+          type: string
+          maxLength: 2000
+        note:
+          type: string
+          maxLength: 2000
+        completedAt:
+          type: integer
+          description: 毫秒时间戳；缺省为当前时间。
+        items:
+          type: array
+          items:
+            type: object
+            required: [sessionItemId, status]
+            properties:
+              sessionItemId:
+                type: integer
+              status:
+                type: string
+                enum: [done, skipped]
+              actuals:
+                $ref: '#/components/schemas/Targets'
+              skipReason:
+                type: string
+                enum: [equipment_busy, no_time, discomfort, too_hard, other]
+              note:
+                type: string
+                maxLength: 500
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        goal:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        lifecycle:
+          type: string
+          enum: [draft, active, ended]
+        archived:
+          type: boolean
+        archivedAt:
+          type: integer
+          nullable: true
+        phaseName:
+          type: string
+        notes:
+          type: string
+        phaseCount:
+          type: integer
+        sessionCount:
+          type: integer
+        trainingDayCount:
+          type: integer
+        adherence:
+          $ref: '#/components/schemas/Adherence'
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer
+    PlanDetail:
+      allOf:
+        - $ref: '#/components/schemas/Plan'
+        - type: object
+          properties:
+            phases:
+              type: array
+              items:
+                $ref: '#/components/schemas/Phase'
+            sessions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Session'
+            extraTrainingDates:
+              type: array
+              items:
+                type: string
+                format: date
+    Adherence:
+      type: object
+      properties:
+        eligibleDays:
+          type: integer
+        fulfilledDays:
+          type: integer
+        extraDays:
+          type: integer
+        completedDays:
+          type: integer
+        rate:
+          type: number
+          nullable: true
+        tier:
+          type: string
+          nullable: true
+    Coverage:
+      type: object
+      properties:
+        verifiableItems:
+          type: integer
+        matchedItems:
+          type: integer
+        coverageRate:
+          type: number
+          nullable: true
+        achievedItems:
+          type: integer
+        partialItems:
+          type: integer
+        verifiableCompletionRate:
+          type: number
+          nullable: true
+    Phase:
+      type: object
+      properties:
+        id:
+          type: integer
+        planId:
+          type: integer
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        description:
+          type: string
+        adjustmentReason:
+          type: string
+        status:
+          type: string
+          enum: [planned, active, paused, completed, cancelled]
+        position:
+          type: integer
+        review:
+          $ref: '#/components/schemas/PhaseReview'
+        executionSummary:
+          $ref: '#/components/schemas/ExecutionSummary'
+    PhaseReview:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: integer
+        phaseId:
+          type: integer
+        summary:
+          type: string
+        fatigueLevel:
+          type: integer
+          nullable: true
+        discomfort:
+          type: string
+        weightChange:
+          type: number
+          nullable: true
+        adjustment:
+          type: string
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer
+    ExecutionSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        achieved:
+          type: integer
+        partial:
+          type: integer
+        noData:
+          type: integer
+        unverifiable:
+          type: integer
+        planned:
+          type: integer
+        skipped:
+          type: integer
+    Session:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        planId:
+          type: integer
+        scheduledDate:
+          type: string
+          format: date
+        sequence:
+          type: integer
+        name:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [planned, achieved, partial, no_data, unverifiable, skipped, missed]
+        itemCount:
+          type: integer
+        doneCount:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionItem'
+    SessionListItem:
+      allOf:
+        - $ref: '#/components/schemas/Session'
+        - type: object
+          properties:
+            planName:
+              type: string
+            exercises:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            execution:
+              $ref: '#/components/schemas/Execution'
+            executionCount:
+              type: integer
+    SessionItem:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        exerciseId:
+          type: integer
+        position:
+          type: integer
+        verificationMode:
+          type: string
+          enum: [auto, manual, mixed]
+        targets:
+          $ref: '#/components/schemas/Targets'
+        exercise:
+          type: object
+          additionalProperties: true
+        execution:
+          $ref: '#/components/schemas/ExecutionItem'
+        match:
+          type: object
+          nullable: true
+          additionalProperties: true
+    Execution:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        status:
+          type: string
+          enum: [completed, partial, skipped]
+        source:
+          type: string
+          example: manual
+        completedAt:
+          type: integer
+        sessionFeel:
+          type: string
+          nullable: true
+          enum: [easy, normal, hard]
+        discomfort:
+          type: string
+        note:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionItem'
+    ExecutionItem:
+      type: object
+      properties:
+        sessionItemId:
+          type: integer
+        status:
+          type: string
+          enum: [done, skipped]
+        actuals:
+          $ref: '#/components/schemas/Targets'
+        skipReason:
+          type: string
+        note:
+          type: string
+        comparisons:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Exercise:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icon:
+          type: string
+        category:
+          type: string
+          enum: [aerobic, strength, flexibility, balance, other]
+        scene:
+          type: string
+          enum: [indoor, outdoor]
+        verificationMode:
+          type: string
+          enum: [auto, manual, mixed]
+        equipmentMode:
+          type: string
+          enum: [bodyweight, equipment]
+        equipment:
+          type: string
+        metrics:
+          type: array
+          items:
+            type: string
+        sportTypes:
+          type: array
+          items:
+            type: string
+        purpose:
+          type: string
+        enabled:
+          type: boolean
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer

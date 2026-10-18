@@ -628,6 +628,8 @@ export default {
     about: '关于与运行信息',
     comingSoon: '该配置模块即将接入',
     aboutDescription: '查看项目说明和相关信息',
+    apiDocs: 'API 接口文档',
+    apiDocsDescription: '查看后端接口、请求参数与响应结构（Swagger UI）',
     github: 'GitHub 项目地址',
     githubDescription: '查看源代码、提交记录和项目文档'
   },

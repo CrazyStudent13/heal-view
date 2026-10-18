@@ -216,6 +216,12 @@ heal-view/
 
 ## API端点
 
+完整的请求参数、请求体和响应结构以 OpenAPI 文档为准：
+
+- Swagger UI：http://localhost:43128/api/docs （开启访问保护后需先登录）
+- 机器可读规范：http://localhost:43128/api/openapi.json
+- 源文件：`server/src/docs/openapi.yaml`，新增接口时请同步更新，`pnpm test` 会校验路由与文档是否一一对应
+
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/dates` | GET | 获取所有有数据的日期列表 |

@@ -641,6 +641,8 @@ export default {
     about: 'About & Runtime',
     comingSoon: 'This settings module is coming soon',
     aboutDescription: 'View project details and related information',
+    apiDocs: 'API Reference',
+    apiDocsDescription: 'Browse backend endpoints, request parameters, and responses (Swagger UI)',
     github: 'GitHub Repository',
     githubDescription: 'View the source code, commit history, and project documentation'
   },

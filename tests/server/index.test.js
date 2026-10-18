@@ -15,3 +15,4 @@ import './trainingSessionItemDeletion.test.js';
 import './trainingExecution.test.js';
 import './jsonSafe.test.js';
 import './apiSmoke.test.js';
+import './apiDocs.test.js';

@@ -1,4 +1,6 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
+import { openApiDocument } from '../docs/openapi.js';
 import {
   getDates,
   getDailySummary,
@@ -76,6 +78,17 @@ router.get('/training-sessions/:id/execution', getTrainingSessionExecution);
 router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
 
 router.use(requireAccess);
+
+// 接口文档：开启访问保护后同样需要登录。JSON 给脚本 / AI 读，页面给人看。
+router.get('/openapi.json', (req, res) => res.json(openApiDocument));
+router.use(
+  '/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, {
+    customSiteTitle: 'Heal View API',
+    swaggerOptions: { persistAuthorization: true }
+  })
+);
 
 // Get list of dates
 router.get('/dates', getDates);
