@@ -629,7 +629,9 @@ export default {
     comingSoon: '该配置模块即将接入',
     aboutDescription: '查看项目说明和相关信息',
     apiDocs: 'API 接口文档',
-    apiDocsDescription: '查看后端接口、请求参数与响应结构（Swagger UI）',
+    apiDocsDescription: '查看并调试后端接口（Scalar）',
+    apiRedoc: 'Redoc 备用文档',
+    apiRedocDescription: '只读接口文档，不依赖外网（Redoc）',
     github: 'GitHub 项目地址',
     githubDescription: '查看源代码、提交记录和项目文档'
   },
