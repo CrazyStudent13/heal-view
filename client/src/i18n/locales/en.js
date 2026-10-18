@@ -635,7 +635,9 @@ export default {
     comingSoon: 'This settings module is coming soon',
     aboutDescription: 'View project details and related information',
     apiDocs: 'API Reference',
-    apiDocsDescription: 'Browse backend endpoints, request parameters, and responses (Swagger UI)',
+    apiDocsDescription: 'Browse and try out backend endpoints (Scalar)',
+    apiRedoc: 'Redoc Reference',
+    apiRedocDescription: 'Read-only API reference that works offline (Redoc)',
     github: 'GitHub Repository',
     githubDescription: 'View the source code, commit history, and project documentation'
   },

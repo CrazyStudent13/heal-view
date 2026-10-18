@@ -218,7 +218,8 @@ heal-view/
 
 完整的请求参数、请求体和响应结构以 OpenAPI 文档为准：
 
-- Swagger UI：http://localhost:43128/api/docs （开启访问保护后需先登录）
+- Scalar（阅读 + 调试，主入口）：http://localhost:43128/api/docs （开启访问保护后需先登录）
+- Redoc（只读备用，本地 bundle 不依赖外网）：http://localhost:43128/api/redoc
 - 机器可读规范：http://localhost:43128/api/openapi.json
 - 源文件：`server/src/docs/openapi.yaml`，新增接口时请同步更新，`pnpm test` 会校验路由与文档是否一一对应
 

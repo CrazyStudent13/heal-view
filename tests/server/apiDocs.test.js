@@ -8,6 +8,9 @@ const routeSource = fs.readFileSync(fileURLToPath(new URL('../../server/src/rout
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
 
+/** Redoc 的静态 bundle 是文档页资源，不是业务接口，不要求写进 OpenAPI。 */
+const STATIC_ASSET_ROUTES = new Set(['GET /redoc/redoc.standalone.js']);
+
 /** Express 的 `:id` 在 OpenAPI 里写成 `{id}`。 */
 function toSpecPath(path) {
   return path.replace(/:([A-Za-z0-9_]+)/g, '{$1}');
@@ -15,7 +18,7 @@ function toSpecPath(path) {
 
 function routeOperations() {
   const operations = new Set();
-  for (const match of routeSource.matchAll(/router\.(get|post|put|patch|delete)\('([^']+)'/g)) {
+  for (const match of routeSource.matchAll(/router\.(get|post|put|patch|delete)\(\s*'([^']+)'/g)) {
     operations.add(`${match[1].toUpperCase()} ${toSpecPath(match[2])}`);
   }
   return operations;
@@ -37,7 +40,7 @@ test('OpenAPI document is valid enough to serve and covers every route', () => {
   assert.ok(openApiDocument.servers?.length > 0);
   assert.ok(openApiDocument.components?.securitySchemes?.cookieAuth);
 
-  const routes = [...routeOperations()].sort();
+  const routes = [...routeOperations()].filter((operation) => !STATIC_ASSET_ROUTES.has(operation)).sort();
   const spec = [...specOperations()].sort();
   // 文档和路由必须一一对应：新增接口漏文档、或删接口留下死文档，都会在这里失败。
   assert.deepEqual(spec, routes);

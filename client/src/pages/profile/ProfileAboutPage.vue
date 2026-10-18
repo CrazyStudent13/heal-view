@@ -47,6 +47,13 @@ const aboutItems = [
     value: '/api/docs'
   },
   {
+    key: 'api-redoc',
+    titleKey: 'profile.apiRedoc',
+    descriptionKey: 'profile.apiRedocDescription',
+    href: '/api/redoc',
+    value: '/api/redoc'
+  },
+  {
     key: 'github',
     titleKey: 'profile.github',
     descriptionKey: 'profile.githubDescription',

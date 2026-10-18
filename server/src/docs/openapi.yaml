@@ -47,6 +47,32 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  /docs:
+    get:
+      tags: [docs]
+      operationId: getApiDocsPage
+      summary: 接口文档页面
+      description: Scalar API Reference（阅读 + Try it out）；开启访问保护后需要先登录。
+      responses:
+        '200':
+          description: HTML 页面
+          content:
+            text/html:
+              schema:
+                type: string
+  /redoc:
+    get:
+      tags: [docs]
+      operationId: getApiRedocPage
+      summary: Redoc 备用页面
+      description: 只读接口文档，Redoc bundle 在本地，不依赖外网。
+      responses:
+        '200':
+          description: HTML 页面
+          content:
+            text/html:
+              schema:
+                type: string
   /auth/status:
     get:
       tags: [auth]

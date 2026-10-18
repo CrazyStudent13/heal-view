@@ -1,5 +1,6 @@
 import express from 'express';
-import swaggerUi from 'swagger-ui-express';
+import { createRequire } from 'node:module';
+import { apiReference } from '@scalar/express-api-reference';
 import { openApiDocument } from '../docs/openapi.js';
 import {
   getDates,
@@ -62,6 +63,25 @@ import {
   saveTrainingSessionExecution
 } from '../controllers/trainingExecutionController.js';
 
+const require = createRequire(import.meta.url);
+// Redoc 的 standalone bundle 随依赖一起安装，文档页不依赖外网 CDN。
+const redocStandalonePath = require.resolve('redoc/bundles/redoc.standalone.js');
+const REDOC_PAGE = `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Heal View API · Redoc</title>
+    <style>
+      body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <redoc spec-url="/api/openapi.json"></redoc>
+    <script type="module" src="/api/redoc/redoc.standalone.js"></script>
+  </body>
+</html>`;
+
 const router = express.Router();
 
 router.get('/auth/status', getAuthStatus);
@@ -80,13 +100,20 @@ router.put('/training-sessions/:id/execution', saveTrainingSessionExecution);
 router.use(requireAccess);
 
 // 接口文档：开启访问保护后同样需要登录。JSON 给脚本 / AI 读，页面给人看。
+// 主入口用 Scalar（阅读 + 调试一体），Redoc 作为只读、离线可用的备用页面。
 router.get('/openapi.json', (req, res) => res.json(openApiDocument));
-router.use(
+router.get('/redoc/redoc.standalone.js', (req, res) =>
+  // pnpm 的依赖路径里带 .pnpm 目录，sendFile 默认把点开头的目录当 dotfile 拒掉。
+  res.sendFile(redocStandalonePath, { dotfiles: 'allow' })
+);
+router.get('/redoc', (req, res) => res.type('html').send(REDOC_PAGE));
+router.get(
   '/docs',
-  swaggerUi.serve,
-  swaggerUi.setup(openApiDocument, {
-    customSiteTitle: 'Heal View API',
-    swaggerOptions: { persistAuthorization: true }
+  apiReference({
+    url: '/api/openapi.json',
+    pageTitle: 'Heal View API',
+    // 固定版本，避免 CDN 上的 latest 变更把文档页打挂。
+    bundle: 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.75.0/esm.js'
   })
 );
 
