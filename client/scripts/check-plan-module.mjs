@@ -634,6 +634,22 @@ async function checkSmokeRender() {
       ],
       ['训练日历页签', PlanCalendarTab, { plan }, '/', ['plan-calendar-section', 'calendar-workspace']],
       [
+        // 周视图：训练单元 2026-10-05 是周一，锚点周固定为 10-05 ~ 10-11。
+        '训练日历页签-周视图',
+        PlanCalendarTab,
+        { plan, initialView: 'week' },
+        '/',
+        ['training-week-grid', 'week-day__header', 'week-session-card']
+      ],
+      [
+        // 仅工作日：五列布局修饰类必须真的挂上，周末两列不参与渲染。
+        '训练日历页签-周视图仅工作日',
+        PlanCalendarTab,
+        { plan, initialView: 'week', initialWeekdaysOnly: true },
+        '/',
+        ['training-week-grid--weekdays-only', 'week-day__header']
+      ],
+      [
         '训练单元明细',
         PlanCalendarDayDetail,
         {

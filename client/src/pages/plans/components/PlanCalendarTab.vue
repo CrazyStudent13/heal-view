@@ -9,14 +9,36 @@
           </el-icon>
         </el-tooltip>
       </div>
-      <div class="calendar-navigation">
-        <el-tooltip :content="t('plans.manager.previousMonth')" placement="top">
-          <el-button circle :icon="ArrowLeft" :aria-label="t('plans.manager.previousMonth')" @click="shiftMonth(-1)" />
-        </el-tooltip>
-        <strong>{{ calendarMonthLabel }}</strong>
-        <el-tooltip :content="t('plans.manager.nextMonth')" placement="top">
-          <el-button circle :icon="ArrowRight" :aria-label="t('plans.manager.nextMonth')" @click="shiftMonth(1)" />
-        </el-tooltip>
+      <div class="calendar-toolbar">
+        <el-radio-group
+          v-model="calendarView"
+          size="small"
+          class="calendar-view-switch"
+          :aria-label="t('plans.manager.calendarViewLabel')"
+        >
+          <el-radio-button value="month">{{ t('plans.manager.viewModeMonth') }}</el-radio-button>
+          <el-radio-button value="week">{{ t('plans.manager.viewModeWeek') }}</el-radio-button>
+        </el-radio-group>
+        <!-- 仅在周视图出现：收起周末两列，五列平分宽度，窄屏也能看清训练内容。 -->
+        <el-button
+          v-if="calendarView === 'week'"
+          size="small"
+          class="calendar-weekdays-toggle"
+          :type="weekdaysOnly ? 'primary' : ''"
+          :aria-pressed="weekdaysOnly"
+          @click="weekdaysOnly = !weekdaysOnly"
+        >
+          {{ t('plans.manager.weekdaysOnly') }}
+        </el-button>
+        <div class="calendar-navigation">
+          <el-tooltip :content="previousRangeLabel" placement="top">
+            <el-button circle :icon="ArrowLeft" :aria-label="previousRangeLabel" @click="shiftRange(-1)" />
+          </el-tooltip>
+          <strong>{{ calendarRangeLabel }}</strong>
+          <el-tooltip :content="nextRangeLabel" placement="top">
+            <el-button circle :icon="ArrowRight" :aria-label="nextRangeLabel" @click="shiftRange(1)" />
+          </el-tooltip>
+        </div>
       </div>
     </header>
 
@@ -68,35 +90,72 @@
 
     <div class="calendar-workspace">
       <div class="calendar-overview">
-        <div class="calendar-weekdays" aria-hidden="true">
-          <span v-for="day in weekdayOptions" :key="day.value">{{ day.label }}</span>
-        </div>
-        <div class="training-calendar-grid">
+        <template v-if="calendarView === 'month'">
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span v-for="day in weekdayOptions" :key="day.value">{{ day.label }}</span>
+          </div>
+          <div class="training-calendar-grid">
+            <div
+              v-for="day in days"
+              :key="day.key"
+              class="calendar-day"
+              :class="dayClass(day)"
+              role="button"
+              tabindex="0"
+              @click="day.date && selectDate(day.date)"
+              @keydown.enter="day.date && selectDate(day.date)"
+            >
+              <template v-if="day.date">
+                <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
+                <div v-if="day.sessions.length" class="calendar-day__sessions">
+                  <span
+                    v-for="session in day.sessions.slice(0, 2)"
+                    :key="session.id"
+                    class="calendar-session-chip"
+                    :class="sessionClass(session)"
+                  >
+                    {{ sessionExercisesText(session) }}
+                  </span>
+                  <small v-if="day.sessions.length > 2">+{{ day.sessions.length - 2 }}</small>
+                </div>
+                <span v-else-if="day.inPlan" class="calendar-day__empty">{{
+                  t('plans.manager.calendarNoSession')
+                }}</span>
+              </template>
+            </div>
+          </div>
+        </template>
+        <!-- 周课程表：星期抬头放在每列头部，训练单元整卡展示不截断；仅工作日时收起周末两列。 -->
+        <div v-else class="training-week-grid" :class="{ 'training-week-grid--weekdays-only': weekdaysOnly }">
           <div
-            v-for="day in days"
+            v-for="day in weekDays"
             :key="day.key"
-            class="calendar-day"
+            class="week-day"
             :class="dayClass(day)"
             role="button"
             tabindex="0"
-            @click="day.date && selectDate(day.date)"
-            @keydown.enter="day.date && selectDate(day.date)"
+            @click="selectDate(day.date)"
+            @keydown.enter="selectDate(day.date)"
           >
-            <template v-if="day.date">
-              <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
-              <div v-if="day.sessions.length" class="calendar-day__sessions">
-                <span
-                  v-for="session in day.sessions.slice(0, 2)"
-                  :key="session.id"
-                  class="calendar-session-chip"
-                  :class="sessionClass(session)"
-                >
-                  {{ sessionExercisesText(session) }}
+            <header class="week-day__header">
+              <span class="week-day__weekday">{{ day.weekday }}</span>
+              <time class="week-day__date" :datetime="day.date">{{ day.day }}</time>
+              <span v-if="isToday(day.date)" class="week-day__today-badge">{{ t('plans.manager.weekToday') }}</span>
+            </header>
+            <div v-if="day.sessions.length" class="week-day__sessions">
+              <!-- 项目名逐行铺开：顿号连成一整段在窄列里太挤，课程表式一行一项更好扫读。 -->
+              <span
+                v-for="session in day.sessions"
+                :key="session.id"
+                class="week-session-card"
+                :class="weekSessionClass(session)"
+              >
+                <span v-for="name in sessionExerciseNames(session)" :key="name" class="week-session-card__item">
+                  {{ name }}
                 </span>
-                <small v-if="day.sessions.length > 2">+{{ day.sessions.length - 2 }}</small>
-              </div>
-              <span v-else-if="day.inPlan" class="calendar-day__empty">{{ t('plans.manager.calendarNoSession') }}</span>
-            </template>
+              </span>
+            </div>
+            <span v-else-if="day.inPlan" class="week-day__empty">{{ t('plans.manager.calendarNoSession') }}</span>
           </div>
         </div>
       </div>
@@ -117,16 +176,24 @@
 </template>
 
 <script setup>
-import { toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import { ArrowLeft, ArrowRight, QuestionFilled } from '@element-plus/icons-vue';
 import PlanCalendarDayDetail from '@/pages/plans/components/PlanCalendarDayDetail.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
-import { usePlanCalendar } from '@/pages/plans/composables/usePlanCalendar.js';
+import { todayKey, usePlanCalendar } from '@/pages/plans/composables/usePlanCalendar.js';
 import { usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
 import { usePlanCoverage, usePlanProgress } from '@/pages/plans/composables/usePlanProgress.js';
 
 const props = defineProps({
-  plan: { type: Object, default: null }
+  plan: { type: Object, default: null },
+  /** 初始视图：月 / 周。默认月视图，冒烟渲染用它指定周视图。 */
+  initialView: {
+    type: String,
+    default: 'month',
+    validator: (value) => ['month', 'week'].includes(value)
+  },
+  /** 周视图初始是否只显示工作日；冒烟渲染用它验证五列布局。 */
+  initialWeekdaysOnly: { type: Boolean, default: false }
 });
 const emit = defineEmits(['edit-session', 'remove-session', 'backfill']);
 
@@ -137,11 +204,14 @@ const planRef = toRef(props, 'plan');
 const { coverage, hasVerifiableItems, coverageRateText, verifiableCompletionRateText } = usePlanCoverage(planRef);
 const {
   adherenceSummaryTooltip,
-  calendarMonthLabel,
+  calendarView,
+  weekdaysOnly,
+  calendarRangeLabel,
   calendarSelectedDate,
   canBackfill,
   dayClass,
   days,
+  weekDays,
   achievedDays,
   partialDays,
   plannedDays,
@@ -150,12 +220,33 @@ const {
   selectedSession,
   selectedSessions,
   sessionClass,
-  shiftMonth
-} = usePlanCalendar(planRef);
+  weekSessionClass,
+  shiftRange
+} = usePlanCalendar(planRef, {
+  initialView: props.initialView,
+  initialWeekdaysOnly: props.initialWeekdaysOnly
+});
+
+const previousRangeLabel = computed(() =>
+  calendarView.value === 'week' ? t('plans.manager.previousWeek') : t('plans.manager.previousMonth')
+);
+const nextRangeLabel = computed(() =>
+  calendarView.value === 'week' ? t('plans.manager.nextWeek') : t('plans.manager.nextMonth')
+);
+
+function isToday(date) {
+  return date === todayKey();
+}
 
 function sessionExercisesText(session) {
   const names = (session.items || []).map((item) => item.exercise?.name).filter(Boolean);
   return names.join('、') || t('plans.manager.calendarNoSession');
+}
+
+/** 周视图逐行渲染的项目名清单；没有名字时退回"无训练安排"占位。 */
+function sessionExerciseNames(session) {
+  const names = (session.items || []).map((item) => item.exercise?.name).filter(Boolean);
+  return names.length ? names : [t('plans.manager.calendarNoSession')];
 }
 </script>
 
@@ -195,6 +286,21 @@ function sessionExercisesText(session) {
   color: var(--text-primary);
   font-size: 16px;
   letter-spacing: 0;
+}
+
+.calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.calendar-view-switch {
+  flex: none;
+}
+
+.calendar-weekdays-toggle {
+  flex: none;
 }
 
 .calendar-navigation {
@@ -455,6 +561,123 @@ function sessionExercisesText(session) {
   font-size: 11px;
 }
 
+/* 周课程表：七天各一列，列头自带星期与日期，训练单元整卡铺开不截断。
+   选中、今天、计划内外的底色口径复用 .calendar-day--* 那组状态类。 */
+.training-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+/* 仅工作日：收起周末两列，五列平分整行宽度。 */
+.training-week-grid--weekdays-only {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 180px;
+  padding: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.week-day[role='button']:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+  cursor: pointer;
+}
+
+.week-day__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--card-border);
+}
+
+.week-day__weekday {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.week-day__date {
+  margin-left: auto;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-day__today-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.week-day__sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.week-session-card {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--primary-light);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.week-session-card--achieved {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, var(--card-bg));
+}
+
+.week-session-card--partial {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, var(--card-bg));
+}
+
+.week-session-card--skipped,
+.week-session-card--missed {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, var(--card-bg));
+}
+
+/* 项目名一行一个：行距只给一点，行多了卡片自然变高，列宽不受影响。 */
+.week-session-card__item {
+  display: block;
+}
+
+.week-session-card__item + .week-session-card__item {
+  margin-top: 5px;
+}
+
+.week-day__empty {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .calendar-workspace {
     grid-template-columns: 1fr;
@@ -483,6 +706,20 @@ function sessionExercisesText(session) {
   .calendar-session-chip {
     padding: 2px 3px;
     font-size: 10px;
+  }
+
+  .week-day {
+    min-height: 140px;
+    padding: 5px;
+  }
+
+  .week-day__date {
+    font-size: 12px;
+  }
+
+  .week-session-card {
+    padding: 4px 5px;
+    font-size: 11px;
   }
 }
 </style>
