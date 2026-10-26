@@ -106,7 +106,10 @@
               @keydown.enter="day.date && selectDate(day.date)"
             >
               <template v-if="day.date">
-                <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
+                <div class="calendar-day__head">
+                  <time class="calendar-day__number" :datetime="day.date">{{ day.day }}</time>
+                  <CalendarTodayBadge v-if="isToday(day.date)" />
+                </div>
                 <div v-if="day.sessions.length" class="calendar-day__sessions">
                   <span
                     v-for="session in day.sessions.slice(0, 2)"
@@ -140,7 +143,7 @@
             <header class="week-day__header">
               <span class="week-day__weekday">{{ day.weekday }}</span>
               <time class="week-day__date" :datetime="day.date">{{ day.day }}</time>
-              <span v-if="isToday(day.date)" class="week-day__today-badge">{{ t('plans.manager.weekToday') }}</span>
+              <CalendarTodayBadge v-if="isToday(day.date)" />
             </header>
             <div v-if="day.sessions.length" class="week-day__sessions">
               <!-- 项目名逐行铺开：顿号连成一整段在窄列里太挤，课程表式一行一项更好扫读。 -->
@@ -179,6 +182,7 @@
 import { computed, toRef } from 'vue';
 import { ArrowLeft, ArrowRight, QuestionFilled } from '@element-plus/icons-vue';
 import PlanCalendarDayDetail from '@/pages/plans/components/PlanCalendarDayDetail.vue';
+import CalendarTodayBadge from '@/pages/plans/components/CalendarTodayBadge.vue';
 import { useLocaleStore } from '@/stores/localeStore.js';
 import { todayKey, usePlanCalendar } from '@/pages/plans/composables/usePlanCalendar.js';
 import { usePlanLabels } from '@/pages/plans/composables/usePlanLabels.js';
@@ -508,6 +512,13 @@ function sessionExerciseNames(session) {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-danger) 15%, transparent);
 }
 
+.calendar-day__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .calendar-day__number {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -615,16 +626,6 @@ function sessionExerciseNames(session) {
   margin-left: auto;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-}
-
-.week-day__today-badge {
-  flex: none;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--primary-color);
-  color: #fff;
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .week-day__sessions {

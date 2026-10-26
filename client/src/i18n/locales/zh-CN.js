@@ -255,7 +255,7 @@ export default {
       calendarViewLabel: '日历视图',
       viewModeMonth: '月',
       viewModeWeek: '周',
-      weekToday: '今天',
+      calendarToday: '今天',
       weekdaysOnly: '仅工作日',
       calendarPlanDays: '计划训练日',
       calendarCompletedDays: '已完成训练日',

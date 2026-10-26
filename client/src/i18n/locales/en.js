@@ -256,7 +256,7 @@ export default {
       calendarViewLabel: 'Calendar view',
       viewModeMonth: 'Month',
       viewModeWeek: 'Week',
-      weekToday: 'Today',
+      calendarToday: 'Today',
       weekdaysOnly: 'Weekdays only',
       calendarPlanDays: 'Planned days',
       calendarCompletedDays: 'Completed days',
