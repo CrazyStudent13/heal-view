@@ -1102,9 +1102,10 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   padding: 10px 12px;
-  background: var(--card-background);
+  background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 10px;
+  box-shadow: var(--card-shadow);
 }
 
 .session-auto__heading {
