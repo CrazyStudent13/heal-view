@@ -362,7 +362,7 @@ function sessionExerciseNames(session) {
   padding: 10px 14px;
   border: 1px solid var(--card-border);
   border-radius: 8px;
-  background: var(--card-background);
+  background: var(--card-bg);
 }
 
 .plan-coverage__label {
