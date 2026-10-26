@@ -108,10 +108,11 @@
           </section>
 
           <section class="session-content">
-            <!-- 自动验证项目不进人工确认流程，这里单独说明手表数据匹配到了什么 -->
-            <section v-if="session.autoItems?.length" class="session-auto">
+            <!-- 自动验证项目不进人工确认流程，正常确认的只在汇总行报数；
+                 这里只展示异常项（没匹配到、无法验证、待出结果或歧义匹配），避免只读卡片占满版面。 -->
+            <section v-if="autoIssueItems(session).length" class="session-auto">
               <p class="session-auto__title">{{ t('mobile.autoVerifiedTitle') }}</p>
-              <div v-for="item in session.autoItems" :key="item.sessionItemId" class="session-auto__item">
+              <div v-for="item in autoIssueItems(session)" :key="item.sessionItemId" class="session-auto__item">
                 <div class="session-auto__heading">
                   <span class="session-auto__name">{{ item.exercise.name }}</span>
                   <van-tag :type="autoStatusTagType(item.status)" size="medium">{{
@@ -125,8 +126,9 @@
               </div>
             </section>
 
-            <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里 -->
-            <div v-if="session.itemCount === 0 && !session.autoItems?.length" class="session-content__auto">
+            <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里。
+                 自动验证区块只展示异常项，全正常时这里就是全天唯一的内容，不能空着。 -->
+            <div v-if="session.itemCount === 0" class="session-content__auto">
               <van-icon name="clock-o" class="session-content__auto-icon" />
               <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
             </div>
@@ -502,6 +504,14 @@ const AUTO_STATUS_LABEL_KEYS = {
   unverifiable: 'plans.manager.statuses.unverifiable',
   planned: 'mobile.statusPending'
 };
+
+/**
+ * 只有异常的自动项才值得占版面：没匹配到记录、无法验证、还没出结果或歧义匹配，
+ * 它们直接影响达成度却不需要（也没法）由用户操作；正常确认的收进汇总行的数量里。
+ */
+function autoIssueItems(session) {
+  return (session.autoItems || []).filter((item) => item.ambiguous || !['achieved', 'partial'].includes(item.status));
+}
 
 function autoStatusLabel(status) {
   return t(AUTO_STATUS_LABEL_KEYS[status] || 'mobile.statusPending');
