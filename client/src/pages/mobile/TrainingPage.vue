@@ -123,7 +123,6 @@
               <div
                 class="session-deck"
                 :class="{ 'session-deck--dragging': Boolean(deckDragState(session)) }"
-                :style="deckSpaceStyle(session)"
                 @pointerdown="onDeckPointerDown(session, $event)"
                 @pointermove="onDeckPointerMove(session, $event)"
                 @pointerup="onDeckPointerUp(session, $event)"
@@ -156,13 +155,16 @@
                   ></button>
                 </div>
               </div>
-              <div v-if="session.items.length > 1" class="session-deck__dots">
+              <div v-if="session.items.length > 1" class="session-deck__bars">
                 <button
                   v-for="(item, index) in session.items"
                   :key="item.sessionItemId"
                   type="button"
-                  class="session-deck__dot"
-                  :class="{ 'session-deck__dot--active': index === activeItemIndex(session) }"
+                  class="session-deck__bar"
+                  :class="{
+                    'session-deck__bar--active': index === activeItemIndex(session),
+                    'session-deck__bar--done': itemState(session, item).status === 'done'
+                  }"
                   :aria-label="item.exercise.name"
                   :aria-current="index === activeItemIndex(session) ? 'true' : undefined"
                   @click="setActiveIndex(session.sessionId, index)"
@@ -471,14 +473,10 @@ function setActiveIndex(sessionId, index) {
 }
 
 /**
- * 牌堆两侧固定预留的露出宽度：按项目数留足最大层数、左右各一份。
- * 不随激活卡变化，切卡时容器宽度恒定，下方内容不会因回流而闪动。
+ * 卡片不再预留侧边宽度：激活卡与上方计划卡同宽撑满，
+ * 未激活卡向两侧探出的边缘直接伸进页面内边距，超出视口的部分由
+ * .mobile-layout 的 overflow-x: clip 裁掉，不会产生横向滚动。
  */
-function deckSpaceStyle(session) {
-  if (session.items.length < 2) return null;
-  const peek = Math.min(session.items.length - 1, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
-  return { '--deck-peek-left': `${peek}px`, '--deck-peek-right': `${peek}px` };
-}
 
 function deckSlotStyle(session, index) {
   if (session.items.length < 2) return null;
@@ -1185,15 +1183,12 @@ onMounted(async () => {
 }
 
 /* 扑克牌式卡组：所有卡片叠进同一个网格单元，容器高度由最高的卡片决定，
-   激活卡置顶，其余按距离向左右探出边缘并压暗；两侧预留宽度固定，切卡不回流。 */
+   激活卡置顶并与上方计划卡同宽，其余按距离向左右探出边缘并压暗。
+   露出的边缘伸进页面内边距，超出视口由 .mobile-layout 的 overflow-x: clip 裁掉。 */
 .session-deck {
-  --deck-peek-left: 0px;
-  --deck-peek-right: 0px;
   display: grid;
   /* 横向手势留给翻卡，纵向滚动仍交给浏览器原生处理。 */
   touch-action: pan-y;
-  margin-left: var(--deck-peek-left);
-  margin-right: var(--deck-peek-right);
 }
 
 /* 拖动中禁止文本选中，避免长按卡片时选区跟着手指走。 */
@@ -1245,29 +1240,34 @@ onMounted(async () => {
   outline-offset: -2px;
 }
 
-.session-deck__dots {
+.session-deck__bars {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   padding: 12px 0 2px;
 }
 
-.session-deck__dot {
-  width: 8px;
-  height: 8px;
+.session-deck__bar {
+  width: 18px;
+  height: 4px;
   padding: 0;
   background: var(--card-border);
   border: 0;
-  border-radius: 50%;
+  border-radius: 2px;
   transition:
     background 160ms ease,
-    transform 160ms ease;
+    width 200ms ease;
 }
 
-.session-deck__dot--active {
+.session-deck__bar--active {
+  width: 30px;
   background: var(--primary-color);
-  transform: scale(1.2);
+}
+
+/* 已完成的横条用成功色（放在 --active 之后，完成且停留时颜色仍显示完成态、长度仍指示位置）。 */
+.session-deck__bar--done {
+  background: var(--success-color);
 }
 
 .session-block__notes {
