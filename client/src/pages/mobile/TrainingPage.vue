@@ -134,20 +134,56 @@
             </div>
 
             <template v-else>
-              <div class="session-items">
-                <TrainingItemPanel
-                  v-for="item in session.items"
+              <!-- 扑克牌式卡组：激活的卡片置顶，其余卡片按距离向两侧探出边缘，
+                   按住卡片左右拖动、点击露出的边缘或下方圆点均可切换；
+                   完成/跳过后自动翻到下一张。 -->
+              <div
+                class="session-deck"
+                :class="{ 'session-deck--dragging': Boolean(deckDragState(session)) }"
+                :style="deckSpaceStyle(session)"
+                @pointerdown="onDeckPointerDown(session, $event)"
+                @pointermove="onDeckPointerMove(session, $event)"
+                @pointerup="onDeckPointerUp(session, $event)"
+                @pointercancel="onDeckPointerCancel(session, $event)"
+              >
+                <div
+                  v-for="(item, index) in session.items"
                   :key="item.sessionItemId"
-                  :item="item"
-                  separate-card
-                  :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
-                  :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
-                  :note="itemDraft(session.sessionId, item.sessionItemId).note"
-                  :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
-                  @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
-                  @set-complete="(payload) => setItemComplete(session.sessionId, item.sessionItemId, payload)"
-                  @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
-                />
+                  class="session-deck__slot"
+                  :class="{ 'session-deck__slot--active': index === activeItemIndex(session) }"
+                  :style="deckSlotStyle(session, index)"
+                >
+                  <TrainingItemPanel
+                    :item="item"
+                    separate-card
+                    :actuals="itemDraft(session.sessionId, item.sessionItemId).actuals"
+                    :skip-reason="itemDraft(session.sessionId, item.sessionItemId).skipReason"
+                    :note="itemDraft(session.sessionId, item.sessionItemId).note"
+                    :details-open="isDetailsOpen(session.sessionId, item.sessionItemId)"
+                    @update="(patch) => updateItem(session.sessionId, item.sessionItemId, patch)"
+                    @set-complete="(payload) => setItemComplete(session.sessionId, item.sessionItemId, payload)"
+                    @toggle-details="toggleDetails(session.sessionId, item.sessionItemId)"
+                  />
+                  <button
+                    v-if="index !== activeItemIndex(session)"
+                    type="button"
+                    class="session-deck__hit"
+                    :aria-label="item.exercise.name"
+                    @click="setActiveIndex(session.sessionId, index)"
+                  ></button>
+                </div>
+              </div>
+              <div v-if="session.items.length > 1" class="session-deck__dots">
+                <button
+                  v-for="(item, index) in session.items"
+                  :key="item.sessionItemId"
+                  type="button"
+                  class="session-deck__dot"
+                  :class="{ 'session-deck__dot--active': index === activeItemIndex(session) }"
+                  :aria-label="item.exercise.name"
+                  :aria-current="index === activeItemIndex(session) ? 'true' : undefined"
+                  @click="setActiveIndex(session.sessionId, index)"
+                ></button>
               </div>
             </template>
           </section>
@@ -234,6 +270,8 @@ let saveFeedbackTimer = null;
 const expandedItems = reactive({});
 // 草稿在数据加载后一次性建好，避免在渲染期间创建响应式状态。
 const drafts = reactive({});
+// 扑克牌式卡组：每个训练单元记录当前置顶的卡片下标，数据重载后回到第一张。
+const activeDeckIndex = reactive({});
 
 const isToday = computed(() => selectedDate.value === todayString());
 
@@ -312,7 +350,9 @@ function itemState(session, item) {
 function buildDrafts() {
   for (const key of Object.keys(drafts)) delete drafts[key];
   for (const key of Object.keys(expandedItems)) delete expandedItems[key];
+  for (const key of Object.keys(activeDeckIndex)) delete activeDeckIndex[key];
   for (const session of sessions.value) {
+    activeDeckIndex[session.sessionId] = 0;
     const stored = readStoredDraft(session.sessionId);
     const draft = {
       items: {},
@@ -414,6 +454,7 @@ function setItemComplete(sessionId, sessionItemId, payload) {
   if (isComplete) patch.skipReason = '';
   if (typeof payload === 'object' && !isComplete && payload.skipReason) patch.skipReason = payload.skipReason;
   updateItem(sessionId, sessionItemId, patch);
+  advanceDeck(sessionId, sessionItemId);
 }
 
 function itemKey(sessionId, sessionItemId) {
@@ -427,6 +468,172 @@ function isDetailsOpen(sessionId, sessionItemId) {
 function toggleDetails(sessionId, sessionItemId) {
   const key = itemKey(sessionId, sessionItemId);
   expandedItems[key] = !expandedItems[key];
+}
+
+// —— 扑克牌式卡组 ——
+// 激活卡片置顶，其余卡片按与激活卡的距离向两侧探出边缘；露出层数封顶，
+// 避免项目很多时两侧预留过宽、卡片被挤得太窄。
+
+const DECK_PEEK_STEP = 10;
+const DECK_PEEK_LEVELS = 3;
+
+function activeItemIndex(session) {
+  const count = session.items.length;
+  const value = activeDeckIndex[session.sessionId];
+  return Number.isInteger(value) && value >= 0 && value < count ? value : 0;
+}
+
+function setActiveIndex(sessionId, index) {
+  activeDeckIndex[sessionId] = index;
+}
+
+/** 两侧给牌堆边缘预留的宽度，避免露出的卡片撑出横向滚动。 */
+function deckSpaceStyle(session) {
+  if (session.items.length < 2) return null;
+  const active = activeItemIndex(session);
+  const left = Math.min(active, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
+  const right = Math.min(session.items.length - 1 - active, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
+  return { '--deck-peek-left': `${left}px`, '--deck-peek-right': `${right}px` };
+}
+
+function deckSlotStyle(session, index) {
+  if (session.items.length < 2) return null;
+  const count = session.items.length;
+  const active = activeItemIndex(session);
+  if (index === active) {
+    const drag = deckDragState(session);
+    if (drag) return { zIndex: count, transform: `translateX(${drag.dx}px)`, transition: 'none' };
+    return { zIndex: count };
+  }
+  const distance = Math.abs(index - active);
+  const level = Math.min(distance, DECK_PEEK_LEVELS);
+  // 缩放原点放在探出的一侧，避免以中心缩放把露出的边缘宽度吃掉一半。
+  const transformOrigin = index < active ? 'left center' : 'right center';
+  return {
+    zIndex: count - distance,
+    transformOrigin,
+    transform: `translateX(${(index < active ? -1 : 1) * level * DECK_PEEK_STEP}px) scale(${1 - level * 0.03})`
+  };
+}
+
+// —— 按住拖动翻卡 ——
+// 指针事件统一处理触摸和鼠标：横向位移超过 slop 才算拖动（此时才捕获指针），
+// 纵向手势不接管、交给页面原生滚动；超过提交阈值的拖动在松手时翻卡，否则弹回。
+// 拖动过程中按钮不会误触：捕获后 click 会落到牌堆容器上，再兜底拦一次以防万一。
+
+const DECK_DRAG_SLOP = 8;
+const DECK_DRAG_COMMIT = 60;
+
+const deckDrag = reactive({
+  sessionId: null,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  dx: 0,
+  engaged: false,
+  horizontal: false
+});
+
+let deckClickSwallow = null;
+
+function deckDragState(session) {
+  return deckDrag.sessionId === session.sessionId && deckDrag.engaged && deckDrag.horizontal ? deckDrag : null;
+}
+
+function resetDeckDrag() {
+  deckDrag.sessionId = null;
+  deckDrag.pointerId = null;
+  deckDrag.startX = 0;
+  deckDrag.startY = 0;
+  deckDrag.dx = 0;
+  deckDrag.engaged = false;
+  deckDrag.horizontal = false;
+}
+
+function releaseDeckClickSwallow() {
+  if (!deckClickSwallow) return;
+  deckClickSwallow.target.removeEventListener('click', deckClickSwallow.handler, true);
+  deckClickSwallow = null;
+}
+
+function swallowNextDeckClick(target) {
+  releaseDeckClickSwallow();
+  const handler = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    releaseDeckClickSwallow();
+  };
+  deckClickSwallow = { target, handler };
+  target.addEventListener('click', handler, true);
+}
+
+function onDeckPointerDown(session, event) {
+  releaseDeckClickSwallow();
+  if (session.items.length < 2) return;
+  // 多点触控时只认第一根手指，避免第二根手指把拖动状态写乱。
+  if (deckDrag.pointerId !== null && deckDrag.pointerId !== event.pointerId) return;
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  deckDrag.sessionId = session.sessionId;
+  deckDrag.pointerId = event.pointerId;
+  deckDrag.startX = event.clientX;
+  deckDrag.startY = event.clientY;
+  deckDrag.dx = 0;
+  deckDrag.engaged = false;
+  deckDrag.horizontal = false;
+}
+
+function onDeckPointerMove(session, event) {
+  if (deckDrag.pointerId !== event.pointerId || deckDrag.sessionId !== session.sessionId) return;
+  const rawDx = event.clientX - deckDrag.startX;
+  const rawDy = event.clientY - deckDrag.startY;
+  if (!deckDrag.engaged) {
+    if (Math.abs(rawDx) < DECK_DRAG_SLOP && Math.abs(rawDy) < DECK_DRAG_SLOP) return;
+    deckDrag.engaged = true;
+    deckDrag.horizontal = Math.abs(rawDx) > Math.abs(rawDy);
+    if (deckDrag.horizontal) {
+      try {
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      } catch {
+        // 指针已经失效（自动化合成事件等场景）时捕获会抛错，忽略即可，拖动逻辑不受影响。
+      }
+    }
+  }
+  if (!deckDrag.horizontal) return;
+  // 牌堆边缘外没有可翻的卡片，位移按 1/4 衰减，给出"到头了"的橡皮筋手感。
+  const active = activeItemIndex(session);
+  const toward = rawDx < 0 ? active + 1 : active - 1;
+  const bounded = toward >= 0 && toward < session.items.length;
+  deckDrag.dx = Math.round(bounded ? rawDx : rawDx * 0.25);
+}
+
+function onDeckPointerUp(session, event) {
+  if (deckDrag.pointerId !== event.pointerId || deckDrag.sessionId !== session.sessionId) return;
+  const committed = deckDrag.engaged && deckDrag.horizontal;
+  const dx = deckDrag.dx;
+  const deckElement = event.currentTarget;
+  resetDeckDrag();
+  if (!committed) return;
+  swallowNextDeckClick(deckElement);
+  const active = activeItemIndex(session);
+  if (dx <= -DECK_DRAG_COMMIT && active + 1 < session.items.length) {
+    setActiveIndex(session.sessionId, active + 1);
+  } else if (dx >= DECK_DRAG_COMMIT && active > 0) {
+    setActiveIndex(session.sessionId, active - 1);
+  }
+}
+
+function onDeckPointerCancel(session, event) {
+  if (deckDrag.pointerId !== event.pointerId) return;
+  resetDeckDrag();
+}
+
+/** 处理完一张卡（完成或跳过）后自动翻到下一张，省一次手动切换；已经是最后一张时留在原地。 */
+function advanceDeck(sessionId, sessionItemId) {
+  const session = sessions.value.find((entry) => entry.sessionId === sessionId);
+  if (!session || session.items.length < 2) return;
+  const index = session.items.findIndex((entry) => entry.sessionItemId === sessionItemId);
+  if (index === -1 || index !== activeItemIndex(session) || index + 1 >= session.items.length) return;
+  activeDeckIndex[sessionId] = index + 1;
 }
 
 function updateSession(sessionId, patch) {
@@ -1052,10 +1259,91 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.session-items {
+/* 扑克牌式卡组：所有卡片叠进同一个网格单元，容器高度由最高的卡片决定，
+   激活卡置顶，其余按距离向左右探出边缘并压暗。 */
+.session-deck {
+  --deck-peek-left: 0px;
+  --deck-peek-right: 0px;
+  display: grid;
+  /* 横向手势留给翻卡，纵向滚动仍交给浏览器原生处理。 */
+  touch-action: pan-y;
+  margin-left: var(--deck-peek-left);
+  margin-right: var(--deck-peek-right);
+  transition: margin 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 拖动中禁止文本选中，避免长按卡片时选区跟着手指走。 */
+.session-deck--dragging {
+  user-select: none;
+}
+
+.session-deck__slot {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  grid-area: 1 / 1;
+  min-width: 0;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 280ms ease;
+}
+
+.session-deck__slot > .item-panel {
+  flex: 1;
+}
+
+/* 卡片被最高的那张撑高时把操作按钮压到底部，拉伸出的留白不会全堆在按钮下面。 */
+.session-deck__slot > .item-panel :deep(.item-panel__actions) {
+  margin-top: auto;
+}
+
+.session-deck__slot:not(.session-deck__slot--active) {
+  filter: brightness(0.92);
+}
+
+/* 非激活卡的内容不再响应指针，点按只交给覆盖整卡的选取按钮。 */
+.session-deck__slot:not(.session-deck__slot--active) > .item-panel {
+  pointer-events: none;
+}
+
+.session-deck__hit {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.session-deck__hit:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.session-deck__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 2px;
+}
+
+.session-deck__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  background: var(--card-border);
+  border: 0;
+  border-radius: 50%;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.session-deck__dot--active {
+  background: var(--primary-color);
+  transform: scale(1.2);
 }
 
 .session-block__notes {
