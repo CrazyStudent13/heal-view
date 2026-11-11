@@ -470,13 +470,14 @@ function setActiveIndex(sessionId, index) {
   activeDeckIndex[sessionId] = index;
 }
 
-/** 两侧给牌堆边缘预留的宽度，避免露出的卡片撑出横向滚动。 */
+/**
+ * 牌堆两侧固定预留的露出宽度：按项目数留足最大层数、左右各一份。
+ * 不随激活卡变化，切卡时容器宽度恒定，下方内容不会因回流而闪动。
+ */
 function deckSpaceStyle(session) {
   if (session.items.length < 2) return null;
-  const active = activeItemIndex(session);
-  const left = Math.min(active, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
-  const right = Math.min(session.items.length - 1 - active, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
-  return { '--deck-peek-left': `${left}px`, '--deck-peek-right': `${right}px` };
+  const peek = Math.min(session.items.length - 1, DECK_PEEK_LEVELS) * DECK_PEEK_STEP;
+  return { '--deck-peek-left': `${peek}px`, '--deck-peek-right': `${peek}px` };
 }
 
 function deckSlotStyle(session, index) {
@@ -490,12 +491,11 @@ function deckSlotStyle(session, index) {
   }
   const distance = Math.abs(index - active);
   const level = Math.min(distance, DECK_PEEK_LEVELS);
-  // 缩放原点放在探出的一侧，避免以中心缩放把露出的边缘宽度吃掉一半。
-  const transformOrigin = index < active ? 'left center' : 'right center';
+  // 只平移、不缩放：等比缩放会让卡片底边在切卡时缩进/长出十几像素，底部看起来在闪；
+  // 平移与缩放原点无关，也不会在切卡瞬间因原点切换而跳动。
   return {
     zIndex: count - distance,
-    transformOrigin,
-    transform: `translateX(${(index < active ? -1 : 1) * level * DECK_PEEK_STEP}px) scale(${1 - level * 0.03})`
+    transform: `translateX(${(index < active ? -1 : 1) * level * DECK_PEEK_STEP}px)`
   };
 }
 
@@ -1185,7 +1185,7 @@ onMounted(async () => {
 }
 
 /* 扑克牌式卡组：所有卡片叠进同一个网格单元，容器高度由最高的卡片决定，
-   激活卡置顶，其余按距离向左右探出边缘并压暗。 */
+   激活卡置顶，其余按距离向左右探出边缘并压暗；两侧预留宽度固定，切卡不回流。 */
 .session-deck {
   --deck-peek-left: 0px;
   --deck-peek-right: 0px;
@@ -1194,7 +1194,6 @@ onMounted(async () => {
   touch-action: pan-y;
   margin-left: var(--deck-peek-left);
   margin-right: var(--deck-peek-right);
-  transition: margin 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* 拖动中禁止文本选中，避免长按卡片时选区跟着手指走。 */
@@ -1208,9 +1207,9 @@ onMounted(async () => {
   flex-direction: column;
   grid-area: 1 / 1;
   min-width: 0;
-  transition:
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 280ms ease;
+  /* 独立合成层：卡叠卡的场景下避免浏览器层压缩导致的整层重绘闪动，位移动画纯在合成器执行。 */
+  will-change: transform;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .session-deck__slot > .item-panel {

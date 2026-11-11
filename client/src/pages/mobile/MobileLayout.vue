@@ -58,6 +58,9 @@ const themeVarsDark = computed(() => ({
   flex-direction: column;
   min-height: 100dvh;
   background: var(--app-bg);
+  /* clip 而非 hidden：不产生滚动容器，sticky 头尾仍相对视口吸附，
+     同时横向溢出（如卡组拖拽探出边缘）不会把底部顶出一条横向滚动条。 */
+  overflow-x: clip;
 }
 
 .mobile-layout__main {
