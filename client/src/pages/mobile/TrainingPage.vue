@@ -108,26 +108,9 @@
           </section>
 
           <section class="session-content">
-            <!-- 自动验证项目不进人工确认流程，正常确认的只在汇总行报数；
-                 这里只展示异常项（没匹配到、无法验证、待出结果或歧义匹配），避免只读卡片占满版面。 -->
-            <section v-if="autoIssueItems(session).length" class="session-auto">
-              <p class="session-auto__title">{{ t('mobile.autoVerifiedTitle') }}</p>
-              <div v-for="item in autoIssueItems(session)" :key="item.sessionItemId" class="session-auto__item">
-                <div class="session-auto__heading">
-                  <span class="session-auto__name">{{ item.exercise.name }}</span>
-                  <van-tag :type="autoStatusTagType(item.status)" size="medium">{{
-                    autoStatusLabel(item.status)
-                  }}</van-tag>
-                </div>
-                <p class="session-auto__detail">{{ autoItemDetail(item) }}</p>
-                <p v-if="item.ambiguous" class="session-auto__hint">
-                  {{ t('mobile.autoAmbiguous', { count: item.candidateCount }) }}
-                </p>
-              </div>
-            </section>
-
-            <!-- 全部由手表自动确认的日子：说明情况，但不出现在待确认流程里。
-                 自动验证区块只展示异常项，全正常时这里就是全天唯一的内容，不能空着。 -->
+            <!-- 自动验证的项目（室内步行等）由手表数据自动确认，移动端不展示、也不进人工确认流程；
+                 汇总行里的自动确认数量提示足够交代它们的存在。 -->
+            <!-- 全部由手表自动确认的日子：没有手动卡片，用一行说明交代情况，避免看起来像空数据。 -->
             <div v-if="session.itemCount === 0" class="session-content__auto">
               <van-icon name="clock-o" class="session-content__auto-icon" />
               <p>{{ t('mobile.allAutomaticNotice', { count: session.autoItemCount }) }}</p>
@@ -700,64 +683,6 @@ function statusTagType(session) {
   if (state.done === state.total) return 'success';
   if (state.done + state.partial === 0) return 'danger';
   return 'warning';
-}
-
-// —— 自动验证项目的展示 ——
-// 状态由服务端按导入的运动记录算出来，手机端只负责翻译和排版。
-const AUTO_STATUS_LABEL_KEYS = {
-  achieved: 'plans.manager.statuses.achieved',
-  partial: 'plans.manager.statuses.partial',
-  no_data: 'plans.manager.statuses.no_data',
-  unverifiable: 'plans.manager.statuses.unverifiable',
-  planned: 'mobile.statusPending'
-};
-
-/**
- * 只有异常的自动项才值得占版面：没匹配到记录、无法验证、还没出结果或歧义匹配，
- * 它们直接影响达成度却不需要（也没法）由用户操作；正常确认的收进汇总行的数量里。
- */
-function autoIssueItems(session) {
-  return (session.autoItems || []).filter((item) => item.ambiguous || !['achieved', 'partial'].includes(item.status));
-}
-
-function autoStatusLabel(status) {
-  return t(AUTO_STATUS_LABEL_KEYS[status] || 'mobile.statusPending');
-}
-
-function autoStatusTagType(status) {
-  if (status === 'achieved') return 'success';
-  if (status === 'partial') return 'warning';
-  if (status === 'unverifiable') return 'primary';
-  return 'default';
-}
-
-function formatAutoDuration(totalSeconds) {
-  const minutes = Math.max(0, Math.round((Number(totalSeconds) || 0) / 60));
-  return `${minutes} ${t('plans.manager.units.duration')}`;
-}
-
-/**
- * 自动项目的说明行：匹配到记录时给出行程数据，没匹配到时解释原因，
- * 避免"没导入数据"看起来像"训练没完成"。
- */
-function autoItemDetail(item) {
-  const record = item.record;
-  if (record) {
-    const parts = [];
-    if (record.durationSeconds) parts.push(formatAutoDuration(record.durationSeconds));
-    if (record.distanceMeters) {
-      parts.push(`${(record.distanceMeters / 1000).toFixed(2)} ${t('plans.manager.units.distance')}`);
-    }
-    if (record.calories) parts.push(`${Math.round(record.calories)} ${t('plans.manager.units.calories')}`);
-    if (parts.length > 0) {
-      return `${t('mobile.autoMatchedRecord')}：${parts.join(t('plans.manager.matchDetailSeparator'))}`;
-    }
-  }
-  if (item.reason === 'no_sport_types') return t('mobile.autoReasonNoSportTypes');
-  if (item.reason === 'no_target') return t('mobile.autoReasonNoTarget');
-  if (item.reason === 'record_missing_metrics') return t('mobile.autoReasonRecordMissingMetrics');
-  if (item.reason === 'pending') return t('mobile.autoReasonPending');
-  return t('mobile.autoReasonNoRecord');
 }
 
 function shiftDate(offset) {
@@ -1379,66 +1304,6 @@ onMounted(async () => {
   flex: none;
   color: var(--primary-color);
   font-size: 20px;
-}
-
-.session-auto {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 2px 0 6px;
-}
-
-.session-auto__title {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-align: left;
-}
-
-.session-auto__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
-}
-
-.session-auto__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.session-auto__name {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.session-auto__detail,
-.session-auto__hint {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: left;
-}
-
-.session-auto__detail {
-  color: var(--text-secondary);
-}
-
-.session-auto__hint {
-  color: var(--el-color-warning);
 }
 
 .session-block__feel {
